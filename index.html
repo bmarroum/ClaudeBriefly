@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Briefly | Intelligence</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Crect width='36' height='36' rx='10' fill='%231a1a1a'/%3E%3Ctext x='18' y='26' text-anchor='middle' font-family='Georgia,serif' font-size='22' font-weight='700' fill='white'%3EB%3C/text%3E%3C/svg%3E"/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
@@ -14,84 +15,128 @@
   --serif:'Playfair Display',Georgia,serif;--body:'Source Serif 4',Georgia,serif;
   --sans:'DM Sans',sans-serif;
   --green:#16a34a;--green-bg:#dcfce7;--amber:#b45309;--amber-bg:#fef3c7;
-  --red:#dc2626;--red-bg:#fee2e2;--black-alert:#111;--black-alert-text:#fff;
+  --red:#dc2626;--red-bg:#fee2e2;
   --shadow:0 1px 6px rgba(0,0,0,0.07);--shadow-md:0 4px 20px rgba(0,0,0,0.1);
   --up:#16a34a;--down:#dc2626;
+  --nav-h:64px;
 }
 [data-theme="dark"]{
   --bg:#0f1117;--bg2:#171b24;--card:#1e2230;--text:#f0ede8;--text2:#a0998f;
   --muted:#555;--border:#2a2f3e;
   --shadow:0 1px 6px rgba(0,0,0,0.3);--shadow-md:0 4px 20px rgba(0,0,0,0.45);
 }
-body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;padding-bottom:80px;transition:background .3s,color .3s;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;padding-bottom:calc(var(--nav-h) + 16px);transition:background .3s,color .3s;}
 
-/* DISCLAIMER BANNER */
-.disclaimer-banner{background:#1a1a2e;color:rgba(255,255,255,0.75);font-size:11px;text-align:center;padding:6px 20px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;}
+/* ── DISCLAIMER ── */
+.disclaimer-banner{background:#1a1a2e;color:rgba(255,255,255,0.75);font-size:11px;text-align:center;padding:6px 40px 6px 20px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;position:relative;}
 .disclaimer-banner strong{color:#f59e0b;}
 .disclaimer-banner a{color:#60a5fa;text-decoration:none;}
 .disclaimer-banner a:hover{text-decoration:underline;}
-.disclaimer-close{background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:14px;padding:0 0 0 8px;line-height:1;}
+.disclaimer-close{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:14px;padding:4px 6px;line-height:1;}
 .disclaimer-close:hover{color:#fff;}
-.preload-badge{display:none;position:fixed;bottom:90px;right:16px;background:rgba(0,0,0,0.72);color:#fff;font-size:11px;padding:5px 12px;border-radius:20px;z-index:200;align-items:center;gap:5px;backdrop-filter:blur(6px);}
+.preload-badge{display:none;position:fixed;bottom:calc(var(--nav-h) + 10px);right:16px;background:rgba(0,0,0,0.72);color:#fff;font-size:11px;padding:5px 12px;border-radius:20px;z-index:200;align-items:center;gap:5px;backdrop-filter:blur(6px);}
 
-/* BREAKING BANNER */
+/* ── BREAKING TICKER ── */
 .breaking-banner{background:#111;color:#fff;padding:8px 0;overflow:hidden;border-bottom:1px solid rgba(255,255,255,0.06);}
 .breaking-inner{display:flex;align-items:center;}
 .breaking-tag{background:#dc2626;color:#fff;font-size:10px;font-weight:700;letter-spacing:.12em;padding:4px 14px;text-transform:uppercase;white-space:nowrap;flex-shrink:0;position:relative;margin-right:16px;}
 .breaking-tag::after{content:'';position:absolute;right:-7px;top:0;bottom:0;width:8px;background:#dc2626;clip-path:polygon(0 0,100% 50%,0 100%);}
 .ticker-wrap{overflow:hidden;flex:1;}
-.ticker-track{display:flex;gap:56px;white-space:nowrap;animation:ticker 50s linear infinite;font-size:12px;color:rgba(255,255,255,.82);}
+.ticker-track{display:flex;gap:56px;white-space:nowrap;animation:ticker 55s linear infinite;font-size:12px;color:rgba(255,255,255,.82);}
 .ticker-track:hover{animation-play-state:paused;}
 .ticker-track a{color:rgba(255,255,255,.82);text-decoration:none;transition:color .15s;}
 .ticker-track a:hover{color:#f59e0b;text-decoration:underline;}
 @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 
-/* HEADER */
-header{display:flex;align-items:center;justify-content:center;padding:16px 24px 12px;position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);transition:background .3s;}
-.logo{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-size:22px;font-weight:700;color:var(--text);}
-.logo-icon{width:36px;height:36px;background:var(--text);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--bg);font-size:18px;transition:background .3s;}
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);transition:background .3s;gap:12px;}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-size:20px;font-weight:700;color:var(--text);text-decoration:none;cursor:pointer;flex-shrink:0;}
+.logo-icon{width:34px;height:34px;background:var(--text);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--bg);font-size:17px;transition:background .3s;flex-shrink:0;}
+.logo-text{display:none;}
+@media(min-width:400px){.logo-text{display:block;}}
+.header-right{display:flex;align-items:center;gap:8px;}
+.refresh-indicator{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#16a34a;background:#dcfce7;border:1px solid #86efac;border-radius:20px;padding:3px 10px;letter-spacing:.02em;position:relative;white-space:nowrap;}
+.refresh-dot{width:6px;height:6px;border-radius:50%;background:#16a34a;flex-shrink:0;animation:rpulse 2s infinite;}
+@keyframes rpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.refresh-settings-btn{background:none;border:none;cursor:pointer;font-size:12px;padding:0 2px;color:#16a34a;line-height:1;opacity:.7;transition:opacity .15s;}
+.refresh-settings-btn:hover{opacity:1;}
+.refresh-popover{display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow-md);z-index:300;min-width:200px;}
+.refresh-popover.open{display:block;}
+.refresh-popover-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;}
+.refresh-option{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text);transition:background .15s;}
+.refresh-option:hover{background:var(--bg2);}
+.refresh-option.active{background:var(--bg2);color:#16a34a;font-weight:700;}
+.refresh-option input[type=radio]{accent-color:#16a34a;}
+[data-theme="dark"] .refresh-indicator{background:rgba(22,163,74,0.15);border-color:rgba(22,163,74,0.3);color:#4ade80;}
 
-/* SEARCH */
-.search-wrap{max-width:700px;margin:16px auto 16px;padding:0 24px;}
-.search-box{display:flex;align-items:center;background:var(--card);border:1.5px solid var(--border);border-radius:50px;padding:7px 7px 7px 22px;box-shadow:var(--shadow);}
+/* ── SEARCH (header inline on desktop) ── */
+.header-search{flex:1;max-width:400px;display:none;}
+@media(min-width:600px){.header-search{display:flex;}}
+.search-box{display:flex;align-items:center;background:var(--card);border:1.5px solid var(--border);border-radius:50px;padding:5px 5px 5px 16px;box-shadow:var(--shadow);width:100%;}
 .search-box:focus-within{border-color:#aaa;box-shadow:var(--shadow-md);}
-.search-icon{color:var(--muted);font-size:15px;margin-right:10px;flex-shrink:0;}
-.search-input{flex:1;border:none;outline:none;font-family:var(--sans);font-size:15px;color:var(--text);background:transparent;}
+.search-icon{color:var(--muted);font-size:14px;margin-right:8px;flex-shrink:0;}
+.search-input{flex:1;border:none;outline:none;font-family:var(--sans);font-size:14px;color:var(--text);background:transparent;min-width:0;}
 .search-input::placeholder{color:var(--muted);}
-.search-btn{padding:10px 26px;background:var(--text);color:var(--bg);border:none;border-radius:40px;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s;}
+.search-btn{padding:8px 18px;background:var(--text);color:var(--bg);border:none;border-radius:40px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s;white-space:nowrap;flex-shrink:0;}
 .search-btn:hover{opacity:.78;}
 
-main{max-width:1120px;margin:0 auto;padding:0 20px;}
+/* Mobile search bar (below header) */
+.mobile-search{padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--border);}
+.mobile-search .search-box{width:100%;}
+@media(min-width:600px){.mobile-search{display:none;}}
 
-/* LAYOUT */
-.two-col{display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start;}
-.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
-@media(max-width:900px){.two-col,.three-col{grid-template-columns:1fr;}}
+/* ── MAIN LAYOUT ── */
+main{max-width:1120px;margin:0 auto;padding:0 16px;}
+@media(min-width:768px){main{padding:0 24px;}}
 
-/* CARD */
-.card{background:var(--card);border-radius:18px;padding:26px 30px;margin-bottom:16px;box-shadow:var(--shadow);transition:background .3s;animation:fadeUp .35s ease both;}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+/* ── TAB CONTENT ── */
+.tab-content{display:none;padding-top:20px;}
+.tab-content.active{display:block;}
 
-/* TOPIC PILLS */
-.topic-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
-.pill{padding:7px 16px;background:var(--card);border:1.5px solid var(--border);border-radius:40px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .18s;}
+/* ── BOTTOM NAV ── */
+nav.bottom-nav{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:var(--nav-bg);border-radius:28px;padding:8px 12px;display:flex;align-items:center;gap:4px;z-index:100;box-shadow:0 8px 32px rgba(0,0,0,0.35);max-width:calc(100vw - 24px);overflow-x:auto;scrollbar-width:none;}
+nav.bottom-nav::-webkit-scrollbar{display:none;}
+.nav-btn{background:none;border:none;color:var(--nav-muted);cursor:pointer;padding:8px 10px;border-radius:20px;font-family:var(--sans);font-size:10px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .18s;white-space:nowrap;flex-shrink:0;}
+@media(min-width:480px){.nav-btn{padding:8px 12px;font-size:11px;}}
+.nav-btn .nav-icon{font-size:16px;line-height:1;}
+.nav-btn:hover{color:rgba(255,255,255,0.7);}
+.nav-btn.active{background:rgba(255,255,255,0.12);color:#fff;}
+
+/* ── REGION PILLS ── */
+.region-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;}
+.pill{padding:6px 14px;background:var(--card);border:1.5px solid var(--border);border-radius:40px;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .18s;white-space:nowrap;}
+@media(min-width:480px){.pill{padding:7px 16px;font-size:13px;}}
 .pill:hover{border-color:#aaa;color:var(--text);}
 .pill.active{background:var(--text);color:var(--bg);border-color:var(--text);}
 
-/* NEWS */
-.news-title-row{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
-.news-icon{width:40px;height:40px;background:var(--text);border-radius:11px;display:flex;align-items:center;justify-content:center;color:var(--bg);font-size:19px;flex-shrink:0;}
-.news-headline{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:-.02em;}
-.news-refresh{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:5px;border-radius:8px;margin-left:auto;}
+/* ── CARDS ── */
+.card{background:var(--card);border-radius:18px;padding:22px 22px;margin-bottom:16px;box-shadow:var(--shadow);transition:background .3s;animation:fadeUp .35s ease both;}
+@media(min-width:600px){.card{padding:26px 30px;}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── TWO/THREE COLUMN LAYOUTS ── */
+.two-col{display:grid;grid-template-columns:1fr;gap:16px;align-items:start;}
+@media(min-width:900px){.two-col{grid-template-columns:1fr 300px;gap:20px;}}
+.three-col{display:grid;grid-template-columns:1fr;gap:16px;}
+@media(min-width:600px){.three-col{grid-template-columns:1fr 1fr;}}
+@media(min-width:900px){.three-col{grid-template-columns:1fr 1fr 1fr;}}
+
+/* ── NEWS SECTION ── */
+.news-header-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
+.news-icon{width:38px;height:38px;background:var(--text);border-radius:11px;display:flex;align-items:center;justify-content:center;color:var(--bg);font-size:17px;flex-shrink:0;}
+.news-headline{font-family:var(--serif);font-size:18px;font-weight:700;letter-spacing:-.02em;}
+@media(min-width:600px){.news-headline{font-size:22px;}}
+.news-refresh{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:5px;border-radius:8px;margin-left:auto;}
 .news-refresh:hover{background:var(--border);}
-.news-summary{font-family:var(--body);font-size:15px;line-height:1.75;color:var(--text2);margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border);}
-.brief-item{display:flex;gap:13px;margin-bottom:20px;}
-.brief-arrow{color:#bbb;font-size:14px;margin-top:4px;flex-shrink:0;}
-.brief-content{font-family:var(--body);font-size:15px;line-height:1.72;color:var(--text2);}
+.news-summary{font-family:var(--body);font-size:14px;line-height:1.75;color:var(--text2);margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+@media(min-width:600px){.news-summary{font-size:15px;margin-bottom:20px;padding-bottom:18px;}}
+.brief-item{display:flex;gap:12px;margin-bottom:18px;}
+.brief-arrow{color:#bbb;font-size:13px;margin-top:4px;flex-shrink:0;}
+.brief-content{font-family:var(--body);font-size:14px;line-height:1.72;color:var(--text2);}
+@media(min-width:600px){.brief-content{font-size:15px;}}
 .brief-content strong{font-weight:600;color:var(--text);}
 .brief-source{color:var(--muted);font-size:12px;font-style:italic;}
 .ai-badge{display:inline-flex;align-items:center;gap:4px;background:#f0f4ff;color:#4f46e5;border:1px solid #c7d2fe;border-radius:20px;font-size:10px;font-weight:600;padding:2px 8px;margin-left:6px;vertical-align:middle;text-decoration:none;}
-[data-theme="dark"] .refresh-indicator{background:rgba(22,163,74,0.15);border-color:rgba(22,163,74,0.3);color:#4ade80;}
 [data-theme="dark"] .ai-badge{background:rgba(79,70,229,0.15);border-color:rgba(79,70,229,0.3);color:#818cf8;}
 .ai-badge:hover{opacity:.8;}
 .citation-bar{font-size:11px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
@@ -99,62 +144,62 @@ main{max-width:1120px;margin:0 auto;padding:0 20px;}
 [data-theme="dark"] .citation-link{color:#818cf8;}
 .citation-link:hover{text-decoration:underline;}
 
-/* SIDEBAR */
-.sidebar-card{background:var(--card);border-radius:18px;padding:22px 24px;box-shadow:var(--shadow);position:sticky;top:78px;transition:background .3s;}
+/* ── SIDEBAR ── */
+.sidebar-card{background:var(--card);border-radius:18px;padding:20px 22px;box-shadow:var(--shadow);transition:background .3s;}
+@media(min-width:900px){.sidebar-card{position:sticky;top:78px;}}
 .sidebar-title{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
 .sidebar-title-icon{width:30px;height:30px;background:var(--text);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--bg);font-size:14px;}
 .sidebar-title-text{font-family:var(--serif);font-size:17px;font-weight:700;}
 .src-row{padding:12px 0;border-bottom:1px solid var(--border);}
 .src-row:last-child{border-bottom:none;padding-bottom:0;}
 .src-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
-.src-name{font-weight:600;font-size:14px;}
+.src-name{font-weight:600;font-size:13px;}
 .src-desc{font-size:12px;color:var(--muted);line-height:1.5;}
 .cred-dot{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
 .cred-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;}
 .cred-high{background:var(--green-bg);color:var(--green);}
 .cred-med{background:var(--amber-bg);color:var(--amber);}
 
-/* BRIEFING */
-.brief-topic-title{font-family:var(--serif);font-size:40px;font-weight:900;letter-spacing:-.03em;line-height:1.1;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+/* ── BRIEFING TAB ── */
+.brief-topic-title{font-family:var(--serif);font-size:28px;font-weight:900;letter-spacing:-.03em;line-height:1.1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+@media(min-width:600px){.brief-topic-title{font-size:38px;}}
 .brief-actions{display:flex;gap:10px;margin:14px 0 22px;flex-wrap:wrap;}
-.btn-outline{display:flex;align-items:center;gap:7px;padding:10px 20px;background:var(--card);border:1.5px solid var(--border);border-radius:40px;font-family:var(--sans);font-size:14px;font-weight:500;color:var(--text);cursor:pointer;transition:all .18s;}
+.btn-outline{display:flex;align-items:center;gap:7px;padding:9px 18px;background:var(--card);border:1.5px solid var(--border);border-radius:40px;font-family:var(--sans);font-size:13px;font-weight:500;color:var(--text);cursor:pointer;transition:all .18s;}
 .btn-outline:hover{border-color:#aaa;}
-.btn-solid{display:flex;align-items:center;gap:7px;padding:10px 22px;background:var(--text);border:none;border-radius:40px;font-family:var(--sans);font-size:14px;font-weight:600;color:var(--bg);cursor:pointer;}
+.btn-solid{display:flex;align-items:center;gap:7px;padding:9px 20px;background:var(--text);border:none;border-radius:40px;font-family:var(--sans);font-size:13px;font-weight:600;color:var(--bg);cursor:pointer;}
 .btn-solid:hover{opacity:.8;}
-.report-title{font-family:var(--serif);font-size:26px;font-weight:700;padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:6px;}
+.brief-search-row{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;}
+.brief-search-input{flex:1;min-width:200px;padding:10px 18px;background:var(--card);border:1.5px solid var(--border);border-radius:40px;font-family:var(--sans);font-size:14px;color:var(--text);outline:none;}
+.brief-search-input:focus{border-color:#aaa;}
+.report-title{font-family:var(--serif);font-size:22px;font-weight:700;padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:6px;}
+@media(min-width:600px){.report-title{font-size:26px;}}
 .report-meta{font-size:11px;color:var(--muted);margin-bottom:22px;letter-spacing:.05em;text-transform:uppercase;}
 .section-block{margin-bottom:24px;}
-.section-heading{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-size:19px;font-weight:700;margin-bottom:10px;}
+.section-heading{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-size:17px;font-weight:700;margin-bottom:10px;}
+@media(min-width:600px){.section-heading{font-size:19px;}}
 .section-heading::before{content:'';width:4px;height:21px;background:var(--text);border-radius:2px;flex-shrink:0;}
-.section-body{font-family:var(--body);font-size:15px;line-height:1.85;color:var(--text2);}
-.refresh-indicator{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#16a34a;background:#dcfce7;border:1px solid #86efac;border-radius:20px;padding:3px 10px;letter-spacing:.02em;position:relative;}
-.refresh-dot{width:6px;height:6px;border-radius:50%;background:#16a34a;flex-shrink:0;animation:rpulse 2s infinite;}
-@keyframes rpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
-.refresh-settings-btn{background:none;border:none;cursor:pointer;font-size:12px;padding:0 2px;color:#16a34a;line-height:1;opacity:.7;transition:opacity .15s;}
-.refresh-settings-btn:hover{opacity:1;}
-.refresh-popover{display:none;position:absolute;top:calc(100% + 8px);left:0;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow-md);z-index:300;min-width:200px;}
-.refresh-popover.open{display:block;}
-.refresh-popover-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;}
-.refresh-option{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text);transition:background .15s;}
-.refresh-option:hover{background:var(--bg2);}
-.refresh-option.active{background:var(--bg2);color:#16a34a;font-weight:700;}
-.refresh-option input[type=radio]{accent-color:#16a34a;}
+.section-body{font-family:var(--body);font-size:14px;line-height:1.85;color:var(--text2);}
+@media(min-width:600px){.section-body{font-size:15px;}}
 
-/* ── AIRSPACE ── */
-.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
-.page-title{font-family:var(--serif);font-size:28px;font-weight:700;}
+/* ── PAGE HEADER ── */
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+.page-title{font-family:var(--serif);font-size:24px;font-weight:700;}
+@media(min-width:600px){.page-title{font-size:28px;}}
 .page-subtitle{font-size:13px;color:var(--muted);margin-top:3px;}
 
+/* ── COUNTRY SELECTOR ── */
 .country-selector{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;}
-.cs-btn{padding:8px 16px;background:var(--card);border:1.5px solid var(--border);border-radius:40px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:7px;}
+.cs-btn{padding:7px 14px;background:var(--card);border:1.5px solid var(--border);border-radius:40px;font-size:12px;font-weight:500;color:var(--text);cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:6px;}
+@media(min-width:480px){.cs-btn{padding:8px 16px;font-size:13px;}}
 .cs-btn:hover{border-color:#aaa;box-shadow:var(--shadow);}
 .cs-btn.active{background:var(--text);color:var(--bg);border-color:var(--text);}
-.cs-flag{font-size:16px;}
+.cs-flag{font-size:15px;}
 
-/* MAP */
-#airspaceMap{height:420px;border-radius:16px;overflow:hidden;margin-bottom:20px;border:1.5px solid var(--border);box-shadow:var(--shadow);}
+/* ── MAP ── */
+#airspaceMap{height:320px;border-radius:16px;overflow:hidden;margin-bottom:20px;border:1.5px solid var(--border);box-shadow:var(--shadow);}
+@media(min-width:600px){#airspaceMap{height:420px;}}
 
-/* ALERT LEVELS */
+/* ── ALERT LEVELS ── */
 .alert-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.05em;}
 .alert-badge::before{content:'';width:8px;height:8px;border-radius:50%;background:currentColor;}
 .alert-GREEN{background:#dcfce7;color:#16a34a;}
@@ -167,15 +212,16 @@ main{max-width:1120px;margin:0 auto;padding:0 20px;}
 .status-CLOSED{background:#fee2e2;color:#dc2626;}
 .status-CONFLICT_ZONE{background:#111;color:#fff;}
 
-.airspace-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-top:16px;}
-.airspace-card{background:var(--card);border-radius:16px;padding:20px 24px;box-shadow:var(--shadow);border-left:4px solid #ccc;transition:background .3s;}
+.airspace-grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px;}
+@media(min-width:600px){.airspace-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));}}
+.airspace-card{background:var(--card);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow);border-left:4px solid #ccc;transition:background .3s;}
 .airspace-card.GREEN{border-left-color:#16a34a;}
 .airspace-card.AMBER{border-left-color:#b45309;}
 .airspace-card.RED{border-left-color:#dc2626;}
 .airspace-card.BLACK{border-left-color:#111;}
 .ac-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.ac-country{font-family:var(--serif);font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px;}
-.ac-summary{font-family:var(--body);font-size:14px;line-height:1.65;color:var(--text2);margin-bottom:12px;}
+.ac-country{font-family:var(--serif);font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.ac-summary{font-family:var(--body);font-size:13px;line-height:1.65;color:var(--text2);margin-bottom:12px;}
 .ac-notam{background:var(--bg2);border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:13px;}
 .ac-notam-title{font-weight:600;color:var(--text);margin-bottom:3px;}
 .ac-notam-detail{color:var(--text2);font-size:12px;line-height:1.5;}
@@ -185,24 +231,29 @@ main{max-width:1120px;margin:0 auto;padding:0 20px;}
 .ac-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:11px;color:var(--muted);}
 
 /* ── ADVISORIES ── */
-.adv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;}
-.adv-card{background:var(--card);border-radius:16px;padding:22px 26px;box-shadow:var(--shadow);transition:background .3s;}
-.adv-country{font-family:var(--serif);font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:14px;}
-.adv-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.adv-grid{display:grid;grid-template-columns:1fr;gap:16px;}
+@media(min-width:600px){.adv-grid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr));}}
+.adv-card{background:var(--card);border-radius:16px;padding:20px 24px;box-shadow:var(--shadow);transition:background .3s;}
+.adv-country{font-family:var(--serif);font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.adv-row{display:grid;grid-template-columns:1fr;gap:12px;}
+@media(min-width:500px){.adv-row{grid-template-columns:1fr 1fr;}}
 .adv-block{border-radius:12px;padding:14px 16px;}
 .adv-us{background:#f0f4ff;border:1px solid #c7d2fe;}
 [data-theme="dark"] .adv-us{background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.2);}
 .adv-uk{background:#f0fdf4;border:1px solid #bbf7d0;}
 [data-theme="dark"] .adv-uk{background:rgba(22,163,74,0.1);border-color:rgba(22,163,74,0.2);}
-.adv-flag{font-size:20px;margin-bottom:6px;}
+.adv-flag{font-size:18px;margin-bottom:4px;}
 .adv-level-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
-.adv-level{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.3;}
+.adv-level{font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;line-height:1.35;}
 .adv-summary{font-size:12px;color:var(--text2);line-height:1.55;margin-bottom:8px;}
 .adv-risks{display:flex;flex-direction:column;gap:4px;}
 .adv-risk{font-size:11px;color:var(--text2);display:flex;align-items:flex-start;gap:5px;}
 .adv-risk::before{content:'⚠';font-size:10px;flex-shrink:0;margin-top:1px;}
 .adv-updated{font-size:10px;color:var(--muted);margin-top:8px;}
-.adv-level-num{display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--text);color:var(--bg);font-size:11px;font-weight:700;text-align:center;line-height:22px;margin-right:5px;}
+.adv-link{display:inline-flex;align-items:center;gap:4px;margin-top:8px;font-size:11px;font-weight:600;color:#4f46e5;text-decoration:none;padding:3px 10px;background:#f0f4ff;border-radius:20px;}
+[data-theme="dark"] .adv-link{background:rgba(79,70,229,0.15);color:#818cf8;}
+.adv-link:hover{opacity:.8;}
+.adv-level-num{display:inline-block;width:20px;height:20px;border-radius:50%;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:20px;margin-right:5px;}
 .adv-level-1{background:#16a34a;}
 .adv-level-2{background:#ca8a04;}
 .adv-level-3{background:#ea580c;}
@@ -210,1241 +261,1227 @@ main{max-width:1120px;margin:0 auto;padding:0 20px;}
 
 /* ── MARKETS ── */
 .markets-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
-.market-section-title{font-family:var(--serif);font-size:18px;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
-.ticker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:24px;}
-.ticker-card{background:var(--card);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);transition:background .3s,box-shadow .2s;cursor:default;}
+.market-section-title{font-family:var(--serif);font-size:17px;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.ticker-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px;}
+@media(min-width:480px){.ticker-grid{grid-template-columns:repeat(3,1fr);}}
+@media(min-width:768px){.ticker-grid{grid-template-columns:repeat(4,1fr);}}
+@media(min-width:1024px){.ticker-grid{grid-template-columns:repeat(5,1fr);}}
+.ticker-card{background:var(--card);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);transition:background .3s,box-shadow .2s;cursor:default;}
 .ticker-card:hover{box-shadow:var(--shadow-md);}
-.tc-name{font-size:11px;color:var(--muted);font-weight:500;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.tc-symbol{font-size:10px;color:var(--muted);margin-bottom:8px;font-family:monospace;}
-.tc-price{font-family:var(--serif);font-size:22px;font-weight:700;margin-bottom:4px;}
-.tc-change{font-size:13px;font-weight:600;display:flex;align-items:center;gap:4px;}
+.tc-name{font-size:11px;color:var(--muted);font-weight:500;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tc-symbol{font-size:10px;color:var(--muted);margin-bottom:7px;font-family:monospace;}
+.tc-price{font-family:var(--serif);font-size:20px;font-weight:700;margin-bottom:4px;}
+.tc-change{font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;}
 .tc-up{color:var(--up);}
 .tc-down{color:var(--down);}
-.tc-loading{color:var(--muted);font-size:20px;}
-.commentary-card{background:var(--card);border-radius:16px;padding:22px 26px;box-shadow:var(--shadow);margin-bottom:16px;}
+.tc-loading{color:var(--muted);font-size:18px;}
+.commentary-card{background:var(--card);border-radius:16px;padding:20px 24px;box-shadow:var(--shadow);margin-bottom:16px;}
 .commentary-section{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);}
 .commentary-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
 .commentary-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
-.commentary-text{font-family:var(--body);font-size:14px;line-height:1.7;color:var(--text2);}
-.last-refresh{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+.commentary-text{font-family:var(--body);font-size:13px;line-height:1.7;color:var(--text2);}
+@media(min-width:600px){.commentary-text{font-size:14px;}}
 
-/* ARCHIVE */
-.archive-card{background:var(--card);border-radius:14px;padding:20px 26px;margin-bottom:12px;cursor:pointer;box-shadow:var(--shadow);transition:box-shadow .2s,transform .2s;}
-.archive-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px);}
+/* ── PRESS RELEASES ── */
+.press-region-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;}
+.press-grid{display:grid;grid-template-columns:1fr;gap:14px;}
+@media(min-width:600px){.press-grid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr));}}
+.press-card{background:var(--card);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow);transition:background .3s;border-top:3px solid var(--border);}
+.press-card.cat-fp{border-top-color:#4f46e5;}
+.press-card.cat-eco{border-top-color:#16a34a;}
+.press-card.cat-def{border-top-color:#dc2626;}
+.press-card.cat-health{border-top-color:#0891b2;}
+.press-card.cat-env{border-top-color:#65a30d;}
+.press-card.cat-social{border-top-color:#d97706;}
+.press-card.cat-inf{border-top-color:#7c3aed;}
+.press-card.cat-just{border-top-color:#b45309;}
+.press-card-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
+.press-flag{font-size:22px;flex-shrink:0;margin-top:2px;}
+.press-title{font-family:var(--serif);font-size:15px;font-weight:700;line-height:1.35;flex:1;}
+@media(min-width:600px){.press-title{font-size:16px;}}
+.press-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.press-country{font-size:12px;font-weight:600;color:var(--text);}
+.press-ministry{font-size:11px;color:var(--muted);}
+.press-cat-badge{padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
+.cat-badge-fp{background:#f0f4ff;color:#4f46e5;}
+.cat-badge-eco{background:#dcfce7;color:#16a34a;}
+.cat-badge-def{background:#fee2e2;color:#dc2626;}
+.cat-badge-health{background:#e0f7fa;color:#0891b2;}
+.cat-badge-env{background:#f0fdf4;color:#65a30d;}
+.cat-badge-other{background:var(--bg2);color:var(--muted);}
+.press-summary{font-family:var(--body);font-size:13px;line-height:1.65;color:var(--text2);margin-bottom:10px;}
+.press-source-link{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#4f46e5;text-decoration:none;padding:3px 10px;background:#f0f4ff;border-radius:20px;}
+[data-theme="dark"] .press-source-link{background:rgba(79,70,229,0.15);color:#818cf8;}
+.press-source-link:hover{opacity:.8;}
 
-/* CONTINENTS/CALENDAR (Press) */
-.continent-section{margin-bottom:20px;}
-.continent-header{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;background:var(--card);border-radius:14px;cursor:pointer;box-shadow:var(--shadow);margin-bottom:2px;}
-.continent-header:hover{box-shadow:var(--shadow-md);}
-.continent-name{font-family:var(--serif);font-size:17px;font-weight:700;}
-.continent-chevron{font-size:13px;color:var(--muted);transition:transform .25s;}
-.continent-chevron.open{transform:rotate(180deg);}
-.continent-body{display:none;padding:10px 0 0;}
-.continent-body.open{display:block;}
-.country-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:7px;margin-bottom:8px;}
-.country-btn{padding:9px 12px;background:var(--card);border:1.5px solid var(--border);border-radius:11px;font-size:12px;font-weight:500;color:var(--text);cursor:pointer;text-align:left;transition:all .18s;display:flex;align-items:center;gap:7px;}
-.country-btn:hover{border-color:#aaa;box-shadow:var(--shadow);}
-.country-btn.active{background:var(--text);color:var(--bg);border-color:var(--text);}
-.cal-wrap{background:var(--card);border-radius:16px;padding:22px;box-shadow:var(--shadow);margin-bottom:14px;}
-.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
-.cal-month{font-family:var(--serif);font-size:19px;font-weight:700;}
-.cal-arrow{background:none;border:1.5px solid var(--border);border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:15px;color:var(--text);display:flex;align-items:center;justify-content:center;}
-.cal-arrow:hover{background:var(--border);}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
-.cal-day-name{font-size:10px;font-weight:600;letter-spacing:.06em;text-align:center;color:var(--muted);padding:5px 0;text-transform:uppercase;}
-.cal-day{min-height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;font-weight:500;border:1.5px solid transparent;transition:all .15s;position:relative;}
-.cal-day:hover{background:var(--bg2);}
-.cal-day.today{background:var(--text);color:var(--bg);font-weight:700;}
-.cal-day.selected:not(.today){border-color:var(--text);background:var(--bg2);}
-.cal-day.other-month{opacity:.3;}
-.pr-card{padding:14px 0;border-bottom:1px solid var(--border);}
-.pr-card:last-child{border-bottom:none;}
-.pr-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:5px;}
-.pr-card-title{font-weight:600;font-size:14px;color:var(--text);line-height:1.4;}
-.pr-cat{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;background:var(--bg2);color:var(--muted);white-space:nowrap;}
-.pr-ministry{font-size:11px;color:var(--muted);margin-bottom:5px;}
-.pr-body{font-family:var(--body);font-size:13px;line-height:1.6;color:var(--text2);}
-.country-panel{background:var(--card);border-radius:16px;padding:22px 26px;box-shadow:var(--shadow);margin-bottom:14px;animation:fadeUp .3s ease;}
-.view-toggle{display:flex;background:var(--card);border:1.5px solid var(--border);border-radius:40px;padding:4px;gap:4px;}
-.view-btn{padding:7px 16px;border-radius:30px;border:none;background:none;font-family:var(--sans);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .18s;}
-.view-btn.active{background:var(--text);color:var(--bg);}
+/* ── ARCHIVE ── */
+.archive-list{display:flex;flex-direction:column;gap:12px;}
+.archive-item{background:var(--card);border-radius:14px;padding:16px 20px;box-shadow:var(--shadow);cursor:pointer;transition:all .2s;border-left:3px solid var(--border);}
+.archive-item:hover{box-shadow:var(--shadow-md);border-left-color:#4f46e5;}
+.archive-date{font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;}
+.archive-title{font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:4px;}
+.archive-preview{font-size:13px;color:var(--text2);line-height:1.5;}
+.archive-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.archive-tag{padding:2px 10px;border-radius:20px;font-size:10px;background:var(--bg2);color:var(--muted);}
+.archive-empty{text-align:center;padding:60px 20px;color:var(--muted);}
+.archive-empty-icon{font-size:40px;margin-bottom:12px;}
 
-/* ASSISTANT */
-.chat-history{max-height:320px;overflow-y:auto;margin-bottom:14px;display:flex;flex-direction:column;gap:10px;}
-.chat-bubble{padding:12px 16px;border-radius:16px;font-family:var(--body);font-size:14px;line-height:1.65;}
-.chat-user{background:var(--text);color:var(--bg);margin-left:48px;border-radius:16px 16px 4px 16px;}
-.chat-ai{background:var(--bg2);color:var(--text);margin-right:48px;border-radius:16px 16px 16px 4px;}
-.assistant-input-wrap{display:flex;gap:10px;}
-.assistant-input{flex:1;padding:12px 18px;border:1.5px solid var(--border);border-radius:40px;font-family:var(--sans);font-size:14px;background:var(--bg);color:var(--text);outline:none;}
-.assistant-input:focus{border-color:#aaa;}
-.assistant-send{padding:12px 22px;background:var(--text);color:var(--bg);border:none;border-radius:40px;font-size:14px;font-weight:600;cursor:pointer;}
+/* ── ASK ── */
+.ask-input-row{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
+.ask-input{flex:1;min-width:200px;padding:12px 20px;background:var(--card);border:1.5px solid var(--border);border-radius:50px;font-family:var(--sans);font-size:14px;color:var(--text);outline:none;}
+.ask-input:focus{border-color:#aaa;box-shadow:var(--shadow-md);}
+.ask-messages{display:flex;flex-direction:column;gap:16px;}
+.msg-user{background:var(--text);color:var(--bg);border-radius:18px 18px 4px 18px;padding:12px 18px;font-size:14px;align-self:flex-end;max-width:85%;}
+.msg-ai{background:var(--card);border-radius:18px 18px 18px 4px;padding:16px 20px;font-family:var(--body);font-size:14px;line-height:1.75;color:var(--text2);box-shadow:var(--shadow);max-width:90%;}
+@media(min-width:600px){.msg-user,.msg-ai{max-width:75%;}}
 
-/* SETTINGS */
-.settings-row{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--border);}
-.settings-row:last-child{border-bottom:none;}
-.settings-label{font-size:15px;font-weight:500;}
-.settings-sub{font-size:12px;color:var(--muted);margin-top:2px;}
-.settings-section-title{font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:4px;padding-bottom:12px;border-bottom:1px solid var(--border);}
-.interval-btn{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;}
-.interval-btn:hover{border-color:#aaa;color:var(--text);}
+/* ── SETTINGS ── */
+.settings-grid{display:grid;grid-template-columns:1fr;gap:14px;}
+@media(min-width:600px){.settings-grid{grid-template-columns:repeat(2,1fr);}}
+.setting-card{background:var(--card);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow);}
+.setting-label{font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:7px;}
+.setting-desc{font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5;}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:#ccc;border-radius:24px;cursor:pointer;transition:.3s;}
+.toggle-slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s;}
+.toggle input:checked + .toggle-slider{background:#16a34a;}
+.toggle input:checked + .toggle-slider:before{transform:translateX(20px);}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.interval-btns{display:flex;gap:6px;flex-wrap:wrap;}
+.interval-btn{padding:5px 14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text);transition:all .15s;}
 .interval-btn.active{background:var(--text);color:var(--bg);border-color:var(--text);}
-.btn-outline{background:none;border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--sans);cursor:pointer;transition:all .15s;}
-.btn-outline:hover{background:var(--bg2);}
-.settings-sub{font-size:12px;color:var(--muted);margin-top:2px;}
-.toggle{width:46px;height:27px;background:#ccc;border-radius:14px;position:relative;cursor:pointer;transition:background .25s;border:none;flex-shrink:0;}
-.toggle.on{background:var(--text);}
-.toggle::after{content:'';position:absolute;width:21px;height:21px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .25s;box-shadow:0 1px 4px rgba(0,0,0,.2);}
-.toggle.on::after{transform:translateX(19px);}
+.topic-sel{padding:8px 12px;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;font-size:13px;color:var(--text);font-family:var(--sans);outline:none;width:100%;}
+.sources-list{display:flex;flex-direction:column;gap:8px;}
+.source-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);}
+.source-toggle-row:last-child{border-bottom:none;}
+.source-name{font-size:13px;font-weight:500;}
+.btn-danger{padding:10px 20px;background:#fee2e2;color:#dc2626;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s;}
+.btn-danger:hover{opacity:.8;}
+.btn-neutral{padding:10px 20px;background:var(--bg2);color:var(--text);border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s;}
+.btn-neutral:hover{opacity:.8;}
 
-/* FAB */
-.fab{position:fixed;bottom:84px;right:20px;width:50px;height:50px;border-radius:50%;background:var(--text);color:var(--bg);border:none;font-size:19px;cursor:pointer;z-index:40;box-shadow:0 4px 16px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center;}
-.fab:hover{transform:scale(1.08);}
-
-/* BOTTOM NAV — scrollable on small screens */
-.bottom-nav{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);background:var(--nav-bg);border-radius:32px;padding:8px 6px;display:flex;gap:1px;box-shadow:0 8px 32px rgba(0,0,0,.28);z-index:50;max-width:calc(100vw - 24px);overflow-x:auto;}
-.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 12px;border-radius:22px;cursor:pointer;transition:background .18s;border:none;background:none;color:var(--nav-muted);min-width:52px;flex-shrink:0;}
-.nav-item.active{background:rgba(255,255,255,.13);color:#fff;}
-.nav-item:hover:not(.active){background:rgba(255,255,255,.07);}
-.nav-icon{font-size:17px;line-height:1;}
-.nav-label{font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
-
-.section-label{font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:12px;}
-.skeleton{background:linear-gradient(90deg,var(--border) 25%,var(--bg2) 50%,var(--border) 75%);background-size:200% 100%;border-radius:8px;animation:shimmer 1.4s infinite;}
-@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
+/* ── LOADING / ERROR ── */
+.loading-state{text-align:center;padding:40px 20px;color:var(--muted);}
+.loading-spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
 @keyframes spin{to{transform:rotate(360deg)}}
-.ai-cursor{display:inline-block;width:2px;height:14px;background:var(--muted);animation:blink .8s infinite;vertical-align:middle;margin-left:1px;}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-.hidden{display:none!important;}
-.load-msg{padding:20px 0;color:var(--muted);font-size:14px;}
+.error-state{text-align:center;padding:30px 20px;color:var(--red);}
+
+/* ── LIVE RSS BADGE ── */
+.live-badge{display:inline-flex;align-items:center;gap:4px;background:#dcfce7;color:#16a34a;border:1px solid #86efac;border-radius:20px;font-size:10px;font-weight:600;padding:2px 8px;margin-left:6px;}
+.live-badge::before{content:'';width:5px;height:5px;border-radius:50%;background:#16a34a;}
 </style>
 </head>
 <body>
 
-<!-- PRELOAD STATUS BADGE -->
-<div class="preload-badge" id="preloadBadge"></div>
-
-<!-- DISCLAIMER BANNER -->
+<!-- DISCLAIMER -->
 <div class="disclaimer-banner" id="disclaimerBanner">
-  <span>⚠️ <strong>AI-Generated Intelligence:</strong> All briefings, news, advisories, and airspace data are generated by Claude AI based on training data (up to early 2025) — not live-scraped from primary sources. Always verify with
-    <a href="https://reuters.com" target="_blank">Reuters</a>,
-    <a href="https://apnews.com" target="_blank">AP</a>,
-    <a href="https://travel.state.gov" target="_blank">US State Dept.</a>, or
-    <a href="https://www.gov.uk/foreign-travel-advice" target="_blank">UK FCDO</a> before acting on any information.
-  </span>
-  <button class="disclaimer-close" onclick="document.getElementById('disclaimerBanner').style.display='none'" title="Dismiss">✕</button>
+  <span>⚠ <strong>Intelligence Use Only.</strong> AI-generated briefings. Verify with official sources before operational decisions.</span>
+  <a href="https://travel.state.gov" target="_blank">US State Dept</a> ·
+  <a href="https://www.gov.uk/foreign-travel-advice" target="_blank">UK FCDO</a> ·
+  <a href="https://www.icao.int" target="_blank">ICAO</a>
+  <button class="disclaimer-close" onclick="document.getElementById('disclaimerBanner').style.display='none'">✕</button>
 </div>
 
-<!-- BREAKING BANNER -->
+<!-- BREAKING TICKER -->
 <div class="breaking-banner">
   <div class="breaking-inner">
     <div class="breaking-tag">Breaking</div>
-    <div class="ticker-wrap"><div class="ticker-track" id="tickerTrack"></div></div>
+    <div class="ticker-wrap"><div class="ticker-track" id="tickerTrack">Loading headlines…</div></div>
   </div>
 </div>
 
 <!-- HEADER -->
 <header>
-  <div class="logo"><div class="logo-icon">🛡</div>Briefly</div>
+  <a class="logo" onclick="switchTab('news')" href="#" aria-label="Briefly Intelligence - Go to News">
+    <div class="logo-icon">B</div>
+    <span class="logo-text">Briefly</span>
+  </a>
+
+  <!-- Inline search (desktop) -->
+  <div class="header-search">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="headerSearchInput" type="text" placeholder="Search headlines…" autocomplete="off"/>
+      <button class="search-btn" onclick="searchHeadlines()">Search</button>
+    </div>
+  </div>
+
+  <div class="header-right">
+    <!-- Refresh indicator -->
+    <div class="refresh-indicator" id="refreshIndicator">
+      <span class="refresh-dot"></span>
+      <span id="refreshLabel">Live</span>
+      <button class="refresh-settings-btn" onclick="toggleRefreshPopover(event)" title="Set refresh interval">⚙</button>
+      <div class="refresh-popover" id="refreshPopover">
+        <div class="refresh-popover-title">Auto-refresh</div>
+        <label class="refresh-option" id="ro5"><input type="radio" name="ri" value="5" onchange="setRefreshInterval(5)"/> Every 5 min</label>
+        <label class="refresh-option" id="ro10"><input type="radio" name="ri" value="10" onchange="setRefreshInterval(10)"/> Every 10 min</label>
+        <label class="refresh-option" id="ro15"><input type="radio" name="ri" value="15" onchange="setRefreshInterval(15)"/> Every 15 min</label>
+        <label class="refresh-option" id="ro30"><input type="radio" name="ri" value="30" onchange="setRefreshInterval(30)"/> Every 30 min</label>
+        <label class="refresh-option" id="ro60"><input type="radio" name="ri" value="60" onchange="setRefreshInterval(60)"/> Every 60 min</label>
+      </div>
+    </div>
+  </div>
 </header>
 
-<!-- SEARCH -->
-<div class="search-wrap">
+<!-- Mobile search -->
+<div class="mobile-search">
   <div class="search-box">
     <span class="search-icon">🔍</span>
-    <input class="search-input" id="searchInput" placeholder="Search any topic for intelligence..." onkeydown="if(event.key==='Enter')doSearch()"/>
-    <button class="search-btn" onclick="doSearch()">Search</button>
+    <input class="search-input" id="mobileSearchInput" type="text" placeholder="Search headlines…" autocomplete="off"/>
+    <button class="search-btn" onclick="searchHeadlinesMobile()">Search</button>
   </div>
 </div>
 
+<!-- PRELOAD BADGE -->
+<div class="preload-badge" id="preloadBadge">⚙ Loading…</div>
+
+<!-- ════════════════════════════════════════════════════════ MAIN ══ -->
 <main>
 
-<!-- NEWS -->
-<div id="tab-news">
-  <div class="topic-pills" id="topicPills"></div>
+<!-- ── NEWS TAB ── -->
+<div id="tab-news" class="tab-content active">
+  <div class="region-pills" id="regionPills">
+    <button class="pill active" onclick="selectRegion(this,'Global/World')">🌍 Global</button>
+    <button class="pill" onclick="selectRegion(this,'North America')">🌎 N. America</button>
+    <button class="pill" onclick="selectRegion(this,'Europe')">🌍 Europe</button>
+    <button class="pill" onclick="selectRegion(this,'Asia')">🌏 Asia</button>
+    <button class="pill" onclick="selectRegion(this,'Middle East & Africa')">🌍 Mid East & Africa</button>
+    <button class="pill" onclick="selectRegion(this,'South America')">🌎 S. America</button>
+  </div>
   <div class="two-col">
-    <div id="newsContent"></div>
-    <div class="sidebar-card">
-      <div class="sidebar-title"><div class="sidebar-title-icon">📰</div><div class="sidebar-title-text">Source Intelligence</div></div>
-      <div id="sidebarSources"></div>
+    <div id="newsMain"></div>
+    <div>
+      <div class="sidebar-card" id="sourcesSidebar">
+        <div class="sidebar-title">
+          <div class="sidebar-title-icon">📡</div>
+          <span class="sidebar-title-text">Sources</span>
+        </div>
+        <div id="sourcesContent">
+          <div class="src-row"><div class="src-header"><span class="src-name">Reuters</span><span class="cred-dot cred-high">High</span></div><div class="src-desc">Global wire service, London</div></div>
+          <div class="src-row"><div class="src-header"><span class="src-name">Associated Press</span><span class="cred-dot cred-high">High</span></div><div class="src-desc">US non-profit cooperative</div></div>
+          <div class="src-row"><div class="src-header"><span class="src-name">BBC News</span><span class="cred-dot cred-high">High</span></div><div class="src-desc">UK public broadcaster</div></div>
+          <div class="src-row"><div class="src-header"><span class="src-name">Al Jazeera</span><span class="cred-dot cred-med">Med</span></div><div class="src-desc">Qatar-based global network</div></div>
+          <div class="src-row"><div class="src-header"><span class="src-name">The Guardian</span><span class="cred-dot cred-high">High</span></div><div class="src-desc">Independent UK daily</div></div>
+          <div class="src-row"><div class="src-header"><span class="src-name">UPI / CNN</span><span class="cred-dot cred-med">Med</span></div><div class="src-desc">US wire & broadcaster</div></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- BRIEFING -->
-<div id="tab-briefing" class="hidden">
-  <div id="briefingTopMeta"></div>
-  <div class="two-col">
-    <div id="briefingMain"></div>
-    <div id="briefingSidebar"></div>
+<!-- ── BRIEF TAB ── -->
+<div id="tab-brief" class="tab-content">
+  <div class="card">
+    <div class="brief-topic-title">
+      <span id="briefTitleText">Intelligence Brief</span>
+      <div class="ai-badge">🤖 AI Analysis</div>
+    </div>
+    <div class="brief-search-row">
+      <input class="brief-search-input" id="briefSearchInput" type="text" placeholder="Search all sources or enter a topic for a full brief…" autocomplete="off"/>
+      <button class="btn-outline" onclick="briefSearch()">🔍 Search</button>
+      <button class="btn-solid" onclick="generateBrief()">📋 Full Brief</button>
+    </div>
+    <div id="briefSearchResults" style="display:none;margin-bottom:20px;"></div>
+    <div id="briefContent">
+      <div style="text-align:center;padding:50px 20px;color:var(--muted);">
+        <div style="font-size:36px;margin-bottom:12px;">📋</div>
+        <div style="font-size:15px;margin-bottom:8px;font-weight:600;color:var(--text);">Enter a topic to generate an intelligence brief</div>
+        <div style="font-size:13px;">Type in the search box above and click <strong>Full Brief</strong> for a comprehensive analysis,<br>or click <strong>Search</strong> to find headlines on the topic.</div>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- AIRSPACE -->
-<div id="tab-airspace" class="hidden">
+<!-- ── AIRSPACE TAB ── -->
+<div id="tab-airspace" class="tab-content">
   <div class="page-header">
     <div>
-      <div class="page-title">✈️ Regional Airspace Tracker</div>
-      <div class="page-subtitle">Live NOTAM status & airspace restrictions — Middle East & Gulf Region</div>
+      <div class="page-title">✈️ Airspace & NOTAMs</div>
+      <div class="page-subtitle">AI-synthesized status from ICAO, FAA, EASA, EUROCONTROL</div>
     </div>
-    <button class="btn-solid" onclick="loadAllAirspace()">↻ Refresh All</button>
+    <button class="btn-outline" onclick="refreshAirspace()">🔄 Refresh</button>
+  </div>
+  <div class="country-selector" id="airspaceCountrySelector">
+    <button class="cs-btn active" onclick="selectAirspaceCountry(this,'United States')"><span class="cs-flag">🇺🇸</span>US</button>
+    <button class="cs-btn" onclick="selectAirspaceCountry(this,'United Kingdom')"><span class="cs-flag">🇬🇧</span>UK</button>
+    <button class="cs-btn" onclick="selectAirspaceCountry(this,'France')"><span class="cs-flag">🇫🇷</span>France</button>
+    <button class="cs-btn" onclick="selectAirspaceCountry(this,'Germany')"><span class="cs-flag">🇩🇪</span>Germany</button>
+    <button class="cs-btn" onclick="selectAirspaceCountry(this,'Israel')"><span class="cs-flag">🇮🇱</span>Israel</button>
+    <button class="cs-btn" onclick="selectAirspaceCountry(this,'Ukraine')"><span class="cs-flag">🇺🇦</span>Ukraine</button>
+    <button class="cs-btn" onclick="selectAirspaceCountry(this,'Russia')"><span class="cs-flag">🇷🇺</span>Russia</button>
+    <button class="cs-btn" onclick="selectAirspaceCountry(this,'Saudi Arabia')"><span class="cs-flag">🇸🇦</span>Saudi Arabia</button>
+    <button class="cs-btn" onclick="selectAirspaceCountry(this,'UAE')"><span class="cs-flag">🇦🇪</span>UAE</button>
+    <button class="cs-btn" onclick="selectAirspaceCountry(this,'Jordan')"><span class="cs-flag">🇯🇴</span>Jordan</button>
+    <button class="cs-btn" onclick="selectAirspaceCountry(this,'Lebanon')"><span class="cs-flag">🇱🇧</span>Lebanon</button>
+    <button class="cs-btn" onclick="selectAirspaceCountry(this,'China')"><span class="cs-flag">🇨🇳</span>China</button>
   </div>
   <div id="airspaceMap"></div>
-  <div class="country-selector" id="airspaceCountryBtns"></div>
-  <div class="airspace-grid" id="airspaceGrid"></div>
+  <div id="airspaceContent"></div>
 </div>
 
-<!-- ADVISORIES -->
-<div id="tab-advisories" class="hidden">
+<!-- ── ADVISORY TAB ── -->
+<div id="tab-advisory" class="tab-content">
   <div class="page-header">
     <div>
-      <div class="page-title">🚨 US & UK Travel Advisories</div>
-      <div class="page-subtitle">Live from travel.state.gov & gov.uk/foreign-travel-advice</div>
+      <div class="page-title">🛡️ Travel Advisories</div>
+      <div class="page-subtitle">US State Dept & UK FCDO official guidance</div>
     </div>
-    <button class="btn-solid" onclick="loadAllAdvisories()">↻ Refresh All</button>
+    <button class="btn-outline" onclick="refreshAdvisory()">🔄 Refresh</button>
   </div>
-  <div class="country-selector" id="advCountryBtns"></div>
-  <div class="adv-grid" id="advGrid"></div>
+  <div class="country-selector" id="advisoryCountrySelector">
+    <button class="cs-btn active" onclick="selectAdvisoryCountry(this,'Jordan')"><span class="cs-flag">🇯🇴</span>Jordan</button>
+    <button class="cs-btn" onclick="selectAdvisoryCountry(this,'Lebanon')"><span class="cs-flag">🇱🇧</span>Lebanon</button>
+    <button class="cs-btn" onclick="selectAdvisoryCountry(this,'Israel')"><span class="cs-flag">🇮🇱</span>Israel</button>
+    <button class="cs-btn" onclick="selectAdvisoryCountry(this,'Saudi Arabia')"><span class="cs-flag">🇸🇦</span>Saudi Arabia</button>
+    <button class="cs-btn" onclick="selectAdvisoryCountry(this,'UAE')"><span class="cs-flag">🇦🇪</span>UAE</button>
+    <button class="cs-btn" onclick="selectAdvisoryCountry(this,'Egypt')"><span class="cs-flag">🇪🇬</span>Egypt</button>
+    <button class="cs-btn" onclick="selectAdvisoryCountry(this,'Iraq')"><span class="cs-flag">🇮🇶</span>Iraq</button>
+    <button class="cs-btn" onclick="selectAdvisoryCountry(this,'Syria')"><span class="cs-flag">🇸🇾</span>Syria</button>
+    <button class="cs-btn" onclick="selectAdvisoryCountry(this,'Ukraine')"><span class="cs-flag">🇺🇦</span>Ukraine</button>
+    <button class="cs-btn" onclick="selectAdvisoryCountry(this,'Russia')"><span class="cs-flag">🇷🇺</span>Russia</button>
+    <button class="cs-btn" onclick="selectAdvisoryCountry(this,'Iran')"><span class="cs-flag">🇮🇷</span>Iran</button>
+    <button class="cs-btn" onclick="selectAdvisoryCountry(this,'Pakistan')"><span class="cs-flag">🇵🇰</span>Pakistan</button>
+  </div>
+  <div id="advisoryContent"></div>
 </div>
 
-<!-- MARKETS -->
-<div id="tab-markets" class="hidden">
+<!-- ── MARKETS TAB ── -->
+<div id="tab-markets" class="tab-content">
   <div class="markets-header">
-    <div>
-      <div class="page-title">📊 Markets & Commodities</div>
-      <div class="page-subtitle" id="marketsLastRefresh">Loading live prices…</div>
-    </div>
-    <button class="btn-solid" onclick="loadMarkets(true)">↻ Refresh</button>
+    <div class="page-title">📈 Global Markets</div>
+    <button class="btn-outline" onclick="loadMarkets(true)">🔄 Refresh</button>
   </div>
 
-  <div class="market-section-title">🛢 Energy & Commodities</div>
-  <div class="ticker-grid" id="tickerCommodities"></div>
+  <!-- US -->
+  <div class="market-section-title">🇺🇸 United States</div>
+  <div class="ticker-grid" id="ticker-us"></div>
 
-  <div class="market-section-title">📈 Global Indices</div>
-  <div class="ticker-grid" id="tickerIndices"></div>
+  <!-- Europe -->
+  <div class="market-section-title">🇪🇺 Europe</div>
+  <div class="ticker-grid" id="ticker-europe"></div>
 
-  <div class="market-section-title">💱 Currencies</div>
-  <div class="ticker-grid" id="tickerFX"></div>
+  <!-- Asia -->
+  <div class="market-section-title">🌏 Asia</div>
+  <div class="ticker-grid" id="ticker-asia"></div>
 
-  <div class="market-section-title">🌍 Middle East Stocks</div>
-  <div class="ticker-grid" id="tickerMENA"></div>
+  <!-- Middle East -->
+  <div class="market-section-title">🌙 Middle East</div>
+  <div class="ticker-grid" id="ticker-mideast"></div>
 
-  <div class="commentary-card" id="marketCommentary">
-    <div class="load-msg"><span class="spinner"></span>Loading AI market commentary…</div>
-  </div>
+  <!-- Commodities -->
+  <div class="market-section-title">⚡ Commodities</div>
+  <div class="ticker-grid" id="ticker-commodities"></div>
+
+  <!-- Commentary -->
+  <div class="market-section-title">📊 Market Commentary</div>
+  <div class="commentary-card" id="marketCommentary"><div class="loading-state"><div class="loading-spinner"></div>Loading commentary…</div></div>
 </div>
 
-<!-- PRESS RELEASES -->
-<div id="tab-press" class="hidden">
+<!-- ── PRESS RELEASES TAB ── -->
+<div id="tab-press" class="tab-content">
   <div class="page-header">
-    <div class="page-title">🌐 Global Press Releases</div>
-    <div class="view-toggle">
-      <button class="view-btn active" id="vbtn-calendar" onclick="setPRView('calendar')">📅 Calendar</button>
-      <button class="view-btn" id="vbtn-day" onclick="setPRView('day')">📋 Day View</button>
+    <div>
+      <div class="page-title">📰 Official Statements</div>
+      <div class="page-subtitle">Government press releases & official communiqués by region</div>
     </div>
+    <button class="btn-outline" onclick="refreshPress()">🔄 Refresh</button>
   </div>
-  <div id="pr-calendar-view">
-    <div class="two-col">
-      <div>
-        <div class="cal-wrap">
-          <div class="cal-nav">
-            <button class="cal-arrow" onclick="changeMonth(-1)">‹</button>
-            <div class="cal-month" id="calMonthLabel"></div>
-            <button class="cal-arrow" onclick="changeMonth(1)">›</button>
-          </div>
-          <div class="cal-grid" id="calGrid"></div>
-        </div>
-        <div id="calReleasePanel"></div>
-      </div>
-      <div id="continentList"></div>
-    </div>
+  <div class="press-region-pills" id="pressRegionPills">
+    <button class="pill active" onclick="selectPressRegion(this,'Global/World')">🌍 Global</button>
+    <button class="pill" onclick="selectPressRegion(this,'North America')">🌎 N. America</button>
+    <button class="pill" onclick="selectPressRegion(this,'Europe')">🌍 Europe</button>
+    <button class="pill" onclick="selectPressRegion(this,'Middle East & Africa')">🌍 Mid East & Africa</button>
+    <button class="pill" onclick="selectPressRegion(this,'Asia')">🌏 Asia</button>
+    <button class="pill" onclick="selectPressRegion(this,'South America')">🌎 S. America</button>
   </div>
-  <div id="pr-day-view" class="hidden">
-    <div class="two-col">
-      <div class="country-panel">
-        <div style="font-family:var(--serif);font-size:18px;font-weight:700;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)">Today — <span id="todayDateLabel"></span></div>
-        <div id="dayReleaseContent"><p class="load-msg">Select a country →</p></div>
-      </div>
-      <div id="dayCountryList"></div>
-    </div>
-  </div>
+  <div class="press-grid" id="pressContent"></div>
 </div>
 
-<!-- ARCHIVE -->
-<div id="tab-archive" class="hidden">
-  <p class="section-label">Past Intelligence Reports</p>
+<!-- ── ARCHIVE TAB ── -->
+<div id="tab-archive" class="tab-content">
+  <div class="page-header">
+    <div class="page-title">🗄 Archive</div>
+    <div style="font-size:13px;color:var(--muted);margin-top:4px;">Your saved briefings from this session</div>
+  </div>
   <div id="archiveList"></div>
 </div>
 
-<!-- ASSISTANT -->
-<div id="tab-assistant" class="hidden">
+<!-- ── ASK TAB ── -->
+<div id="tab-ask" class="tab-content">
   <div class="card">
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-      <div class="news-icon">💬</div><div class="news-headline">Intelligence Assistant</div>
+    <div class="brief-topic-title" style="margin-bottom:20px;">🤖 Ask Briefly</div>
+    <div class="ask-input-row">
+      <input class="ask-input" id="askInput" type="text" placeholder="Ask about any global event, country, or topic…" autocomplete="off" onkeydown="if(event.key==='Enter')sendAsk()"/>
+      <button class="btn-solid" onclick="sendAsk()">Ask →</button>
     </div>
-    <p style="font-family:var(--body);font-size:15px;color:var(--text2);margin-bottom:18px;line-height:1.7">Ask anything about geopolitics, markets, aviation, or current events.</p>
-    <div class="chat-history" id="chatHistory"></div>
-    <div class="assistant-input-wrap">
-      <input class="assistant-input" id="assistantInput" placeholder="Ask a question…" onkeydown="if(event.key==='Enter')sendChat()"/>
-      <button class="assistant-send" onclick="sendChat()">Send</button>
-    </div>
+    <div class="ask-messages" id="askMessages"></div>
   </div>
 </div>
 
-<!-- SETTINGS -->
-<div id="tab-settings" class="hidden">
-  <div style="max-width:680px;margin:0 auto;">
-
-    <!-- APPEARANCE -->
-    <div class="card" style="margin-bottom:16px">
-      <div class="settings-section-title">🎨 Appearance</div>
-      <div class="settings-row">
-        <div><div class="settings-label">Dark Mode</div><div class="settings-sub">Switch to dark theme</div></div>
-        <button class="toggle" id="darkModeToggle" onclick="toggleDarkMode()"></button>
+<!-- ── SETTINGS TAB ── -->
+<div id="tab-settings" class="tab-content">
+  <div class="page-title" style="margin-bottom:20px;">⚙️ Settings</div>
+  <div class="settings-grid">
+    <!-- Dark Mode -->
+    <div class="setting-card">
+      <div class="setting-label">🌙 Dark Mode</div>
+      <div class="setting-desc">Switch to dark theme for low-light use</div>
+      <div class="setting-row">
+        <span style="font-size:13px;color:var(--muted)">Toggle dark theme</span>
+        <label class="toggle"><input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()"/><span class="toggle-slider"></span></label>
       </div>
     </div>
-
-    <!-- REFRESH -->
-    <div class="card" style="margin-bottom:16px">
-      <div class="settings-section-title">🔄 Auto-Refresh</div>
-      <div class="settings-row">
-        <div>
-          <div class="settings-label">Auto-Refresh Briefings</div>
-          <div class="settings-sub" id="autoRefreshSub">Refreshes every <strong id="settingsRefreshLabel">15</strong> minutes</div>
-        </div>
-        <button class="toggle on" id="autoRefreshToggle" onclick="toggleAutoRefresh()"></button>
+    <!-- Auto-Refresh -->
+    <div class="setting-card">
+      <div class="setting-label">🔄 Auto-Refresh</div>
+      <div class="setting-desc">Automatically refresh briefings on a schedule</div>
+      <div class="setting-row" style="margin-bottom:12px;">
+        <span style="font-size:13px;color:var(--muted)">Enable auto-refresh</span>
+        <label class="toggle"><input type="checkbox" id="autoRefreshToggle" onchange="toggleAutoRefresh()"/><span class="toggle-slider"></span></label>
       </div>
-      <div id="refreshIntervalRow" style="padding:12px 0 4px">
-        <div class="settings-sub" style="margin-bottom:10px">Refresh interval</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="interval-btn" id="ibtn-5"  onclick="setRefreshInterval(5)">5min</button>
-          <button class="interval-btn" id="ibtn-10" onclick="setRefreshInterval(10)">10min</button>
-          <button class="interval-btn active" id="ibtn-15" onclick="setRefreshInterval(15)">15min</button>
-          <button class="interval-btn" id="ibtn-30" onclick="setRefreshInterval(30)">30min</button>
-          <button class="interval-btn" id="ibtn-60" onclick="setRefreshInterval(60)">60min</button>
-        </div>
+      <div class="interval-btns">
+        <button class="interval-btn" onclick="setRefreshInterval(5)">5m</button>
+        <button class="interval-btn" onclick="setRefreshInterval(10)">10m</button>
+        <button class="interval-btn active" onclick="setRefreshInterval(15)">15m</button>
+        <button class="interval-btn" onclick="setRefreshInterval(30)">30m</button>
+        <button class="interval-btn" onclick="setRefreshInterval(60)">60m</button>
       </div>
     </div>
-
-    <!-- SOURCE CITATIONS -->
-    <div class="card" style="margin-bottom:16px">
-      <div class="settings-section-title">📎 Source Citations</div>
-      <div class="settings-row">
-        <div><div class="settings-label">Show source citations</div><div class="settings-sub">Display verify links below each news item and briefing section</div></div>
-        <button class="toggle on" id="citationsToggle" onclick="toggleCitations()"></button>
-      </div>
-      <div class="settings-row">
-        <div><div class="settings-label">Show AI badge</div><div class="settings-sub">Display 🤖 AI Analysis badge on news cards</div></div>
-        <button class="toggle on" id="aiBadgeToggle" onclick="toggleAiBadge()"></button>
+    <!-- Citations -->
+    <div class="setting-card">
+      <div class="setting-label">📎 Show Citations</div>
+      <div class="setting-desc">Display source verification links on cards</div>
+      <div class="setting-row">
+        <span style="font-size:13px;color:var(--muted)">Show verify links</span>
+        <label class="toggle"><input type="checkbox" id="citationsToggle" onchange="toggleCitations()" checked/><span class="toggle-slider"></span></label>
       </div>
     </div>
-
-    <!-- DEFAULT TOPIC -->
-    <div class="card" style="margin-bottom:16px">
-      <div class="settings-section-title">🌐 Default News Topic</div>
-      <div class="settings-sub" style="margin-bottom:12px">Which topic loads when you open the News tab</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap" id="defaultTopicBtns">
-        <button class="interval-btn" id="dtbtn-World"       onclick="setDefaultTopic('World')">World</button>
-        <button class="interval-btn" id="dtbtn-Technology"  onclick="setDefaultTopic('Technology')">Technology</button>
-        <button class="interval-btn" id="dtbtn-Finance"     onclick="setDefaultTopic('Finance')">Finance</button>
-        <button class="interval-btn" id="dtbtn-Geopolitics" onclick="setDefaultTopic('Geopolitics')">Geopolitics</button>
-        <button class="interval-btn" id="dtbtn-Science"     onclick="setDefaultTopic('Science')">Science</button>
-        <button class="interval-btn" id="dtbtn-Climate"     onclick="setDefaultTopic('Climate')">Climate</button>
-        <button class="interval-btn" id="dtbtn-Health"      onclick="setDefaultTopic('Health')">Health</button>
-        <button class="interval-btn" id="dtbtn-Defense"     onclick="setDefaultTopic('Defense')">Defense</button>
+    <!-- AI Badge -->
+    <div class="setting-card">
+      <div class="setting-label">🤖 Show AI Badge</div>
+      <div class="setting-desc">Display AI Analysis badge on content cards</div>
+      <div class="setting-row">
+        <span style="font-size:13px;color:var(--muted)">Show AI badge</span>
+        <label class="toggle"><input type="checkbox" id="aiBadgeToggle" onchange="toggleAiBadge()" checked/><span class="toggle-slider"></span></label>
       </div>
     </div>
-
-    <!-- NEWS SOURCES -->
-    <div class="card" style="margin-bottom:16px">
-      <div class="settings-section-title">📡 Preferred News Sources</div>
-      <div class="settings-sub" style="margin-bottom:12px">Sources to prioritise in the News tab and breaking ticker</div>
-      <div id="sourceToggles">
-        <div class="settings-row"><div><div class="settings-label">Reuters</div><div class="settings-sub">Global wire service</div></div><button class="toggle on" id="src-reuters" onclick="toggleSource('src-reuters',this)"></button></div>
-        <div class="settings-row"><div><div class="settings-label">BBC News</div><div class="settings-sub">International broadcast</div></div><button class="toggle on" id="src-bbc" onclick="toggleSource('src-bbc',this)"></button></div>
-        <div class="settings-row"><div><div class="settings-label">Al Jazeera</div><div class="settings-sub">Middle East focus</div></div><button class="toggle on" id="src-alj" onclick="toggleSource('src-alj',this)"></button></div>
-        <div class="settings-row"><div><div class="settings-label">AP News</div><div class="settings-sub">US wire service</div></div><button class="toggle on" id="src-ap" onclick="toggleSource('src-ap',this)"></button></div>
-        <div class="settings-row"><div><div class="settings-label">The Guardian</div><div class="settings-sub">In-depth reporting</div></div><button class="toggle on" id="src-guardian" onclick="toggleSource('src-guardian',this)"></button></div>
-        <div class="settings-row"><div><div class="settings-label">Foreign Policy</div><div class="settings-sub">Geopolitics specialist</div></div><button class="toggle on" id="src-fp" onclick="toggleSource('src-fp',this)"></button></div>
+    <!-- Default Region -->
+    <div class="setting-card">
+      <div class="setting-label">🌐 Default Region</div>
+      <div class="setting-desc">Which region loads first on the News tab</div>
+      <select class="topic-sel" id="defaultTopicSel" onchange="saveDefaultTopic()">
+        <option value="Global/World">🌍 Global / World</option>
+        <option value="North America">🌎 North America</option>
+        <option value="Europe">🌍 Europe</option>
+        <option value="Asia">🌏 Asia</option>
+        <option value="Middle East & Africa">🌍 Middle East & Africa</option>
+        <option value="South America">🌎 South America</option>
+      </select>
+    </div>
+    <!-- Clear Cache -->
+    <div class="setting-card">
+      <div class="setting-label">🗄 Cache & Reset</div>
+      <div class="setting-desc">Force fresh data or reset all settings</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn-neutral" onclick="clearCache()">Clear Cache</button>
+        <button class="btn-danger" onclick="resetAll()">Reset All</button>
       </div>
     </div>
-
-    <!-- CLEAR CACHE -->
-    <div class="card" style="margin-bottom:16px">
-      <div class="settings-section-title">🗄 Data & Cache</div>
-      <div class="settings-row">
-        <div><div class="settings-label">Clear cached data</div><div class="settings-sub">Force all tabs to reload fresh data on next visit</div></div>
-        <button class="btn-outline" onclick="clearAllCache()" style="font-size:13px;padding:7px 16px">Clear Cache</button>
-      </div>
-      <div class="settings-row">
-        <div><div class="settings-label">Reset all settings</div><div class="settings-sub">Restore defaults and clear session memory</div></div>
-        <button class="btn-outline" onclick="resetAllSettings()" style="font-size:13px;padding:7px 16px;border-color:var(--red);color:var(--red)">Reset</button>
-      </div>
-    </div>
-
-    <!-- ABOUT -->
-    <div class="card">
-      <div class="settings-section-title">ℹ️ About</div>
-      <div class="settings-row" style="border:none">
-        <div><div class="settings-label">Briefly Intelligence</div><div class="settings-sub">AI-powered analysis · Live RSS from Reuters, BBC, Al Jazeera, AP, The Guardian · Powered by Claude (Anthropic)</div></div>
-      </div>
-    </div>
-
   </div>
 </div>
 
 </main>
 
-<button class="fab" onclick="switchTab('assistant')">🤖</button>
-
+<!-- ── BOTTOM NAV ── -->
 <nav class="bottom-nav">
-  <button class="nav-item active" id="nav-news" onclick="switchTab('news')"><span class="nav-icon">🌐</span><span class="nav-label">News</span></button>
-  <button class="nav-item" id="nav-briefing" onclick="switchTab('briefing')"><span class="nav-icon">🛡</span><span class="nav-label">Brief</span></button>
-  <button class="nav-item" id="nav-airspace" onclick="switchTab('airspace')"><span class="nav-icon">✈️</span><span class="nav-label">Airspace</span></button>
-  <button class="nav-item" id="nav-advisories" onclick="switchTab('advisories')"><span class="nav-icon">🚨</span><span class="nav-label">Advisory</span></button>
-  <button class="nav-item" id="nav-markets" onclick="switchTab('markets')"><span class="nav-icon">📊</span><span class="nav-label">Markets</span></button>
-  <button class="nav-item" id="nav-press" onclick="switchTab('press')"><span class="nav-icon">📋</span><span class="nav-label">Press</span></button>
-  <button class="nav-item" id="nav-archive" onclick="switchTab('archive')"><span class="nav-icon">🕐</span><span class="nav-label">Archive</span></button>
-  <button class="nav-item" id="nav-assistant" onclick="switchTab('assistant')"><span class="nav-icon">💬</span><span class="nav-label">Ask</span></button>
-  <button class="nav-item" id="nav-settings" onclick="switchTab('settings')"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></button>
+  <button class="nav-btn active" id="nav-news" onclick="switchTab('news')"><span class="nav-icon">📰</span>News</button>
+  <button class="nav-btn" id="nav-brief" onclick="switchTab('brief')"><span class="nav-icon">📋</span>Brief</button>
+  <button class="nav-btn" id="nav-airspace" onclick="switchTab('airspace')"><span class="nav-icon">✈️</span>Airspace</button>
+  <button class="nav-btn" id="nav-advisory" onclick="switchTab('advisory')"><span class="nav-icon">🛡️</span>Advisory</button>
+  <button class="nav-btn" id="nav-markets" onclick="switchTab('markets')"><span class="nav-icon">📈</span>Markets</button>
+  <button class="nav-btn" id="nav-press" onclick="switchTab('press')"><span class="nav-icon">🗞</span>Press</button>
+  <button class="nav-btn" id="nav-archive" onclick="switchTab('archive')"><span class="nav-icon">🗄</span>Archive</button>
+  <button class="nav-btn" id="nav-ask" onclick="switchTab('ask')"><span class="nav-icon">🤖</span>Ask</button>
+  <button class="nav-btn" id="nav-settings" onclick="switchTab('settings')"><span class="nav-icon">⚙️</span>Settings</button>
 </nav>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const B = "https://claudebriefly.onrender.com";
+// ════════════════════════════════════════════════════════════════
+// BRIEFLY INTELLIGENCE v2.0
+// ════════════════════════════════════════════════════════════════
+const API = 'https://claudebriefly.onrender.com';
+const CACHE = {};
+const CACHE_TTL = {};
+const TTL_MS = 10 * 60 * 1000; // 10 min default cache
 
-// ── CONSTANTS ──────────────────────────────────────────────────────────────
-const BREAKING = [
-  {text:"US-Iran tensions escalate following strikes on Iranian naval facilities", q:"US Iran tensions naval strikes 2025"},
-  {text:"Federal Reserve signals emergency rate review amid market volatility", q:"Federal Reserve emergency rate review 2025"},
-  {text:"North Korea conducts ballistic missile test over Sea of Japan", q:"North Korea ballistic missile test 2025"},
-  {text:"Massive cyberattack targets European energy grid", q:"cyberattack European energy grid 2025"},
-  {text:"WHO declares health emergency — novel respiratory virus spreads in SE Asia", q:"WHO health emergency respiratory virus Southeast Asia 2025"},
-  {text:"China announces military exercises near Taiwan Strait", q:"China military exercises Taiwan Strait 2025"},
-  {text:"Oil prices surge 12% following OPEC+ emergency meeting", q:"oil prices surge OPEC emergency meeting 2025"},
-  {text:"Ukraine reports largest drone attack on Kyiv since war began", q:"Ukraine drone attack Kyiv 2025"},
-  {text:"IMF revises global growth forecast to 2.1% for 2026", q:"IMF global growth forecast 2026"},
-];
-
-const TOPICS = ["World","Technology","Finance","Geopolitics","Science","Climate","Health","Defense"];
-
-const ME_COUNTRIES = [
-  {name:"Jordan",flag:"🇯🇴",lat:31.0,lng:36.0},
-  {name:"Iraq",flag:"🇮🇶",lat:33.0,lng:44.0},
-  {name:"Syria",flag:"🇸🇾",lat:35.0,lng:38.0},
-  {name:"Lebanon",flag:"🇱🇧",lat:33.8,lng:35.9},
-  {name:"Yemen",flag:"🇾🇪",lat:15.5,lng:48.5},
-  {name:"UAE",flag:"🇦🇪",lat:24.0,lng:54.0},
-  {name:"Saudi Arabia",flag:"🇸🇦",lat:24.0,lng:45.0},
-  {name:"Oman",flag:"🇴🇲",lat:21.0,lng:57.0},
-  {name:"Bahrain",flag:"🇧🇭",lat:26.0,lng:50.5},
-  {name:"Qatar",flag:"🇶🇦",lat:25.3,lng:51.2},
-  {name:"Kuwait",flag:"🇰🇼",lat:29.5,lng:47.8},
-];
-
-const SOURCES = [
-  {name:"Reuters",credibility:"HIGH",type:"Wire Service",url:"https://reuters.com",desc:"Primary wire service. Verify AI-generated analysis against Reuters live coverage."},
-  {name:"AP News",credibility:"HIGH",type:"Wire Service",url:"https://apnews.com",desc:"Gold standard for breaking news accuracy. Cross-reference AI briefings here."},
-  {name:"BBC News",credibility:"HIGH",type:"Broadcast",url:"https://bbc.com/news",desc:"Extensive global correspondent network. Use for international event verification."},
-  {name:"Financial Times",credibility:"HIGH",type:"Business",url:"https://ft.com",desc:"Best source for market and economic verification of AI-generated analysis."},
-  {name:"Al Jazeera",credibility:"HIGH",type:"International",url:"https://aljazeera.com",desc:"Strong Middle East coverage. Verify regional AI briefings here."},
-  {name:"Foreign Affairs",credibility:"HIGH",type:"Policy",url:"https://foreignaffairs.com",desc:"Long-form geopolitical analysis for deeper context verification."},
-  {name:"US State Dept.",credibility:"HIGH",type:"Official",url:"https://travel.state.gov",desc:"Official US travel advisories. Always check before relying on AI advisory data."},
-  {name:"UK FCDO",credibility:"HIGH",type:"Official",url:"https://www.gov.uk/foreign-travel-advice",desc:"Official UK travel advisories. Primary source — AI data may be outdated."},
-];
-
-const CONTINENTS = {
-  "🌍 Africa":["Algeria","Egypt","Ethiopia","Ghana","Kenya","Morocco","Nigeria","South Africa","Tanzania","Tunisia"],
-  "🌏 Asia":["Bangladesh","China","India","Indonesia","Iran","Iraq","Israel","Japan","Jordan","Kazakhstan","North Korea","Pakistan","Philippines","Saudi Arabia","Singapore","South Korea","Taiwan","Thailand","Turkey","UAE","Vietnam"],
-  "🌎 Americas":["Argentina","Brazil","Canada","Chile","Colombia","Cuba","Mexico","Peru","USA","Venezuela"],
-  "🌍 Europe":["Austria","Belgium","Czech Republic","Denmark","Finland","France","Germany","Greece","Hungary","Ireland","Italy","Netherlands","Norway","Poland","Portugal","Romania","Russia","Spain","Sweden","Switzerland","Ukraine","United Kingdom"],
-  "🌏 Middle East":["Bahrain","Jordan","Kuwait","Lebanon","Oman","Qatar","Saudi Arabia","Syria","UAE","Yemen"],
-  "🌏 Oceania":["Australia","Fiji","New Zealand","Papua New Guinea","Samoa"],
+// localStorage helpers
+const LS = {
+  get: (k, def) => { try { const v = localStorage.getItem('briefly_' + k); return v !== null ? JSON.parse(v) : def; } catch { return def; } },
+  set: (k, v) => { try { localStorage.setItem('briefly_' + k, JSON.stringify(v)); } catch {} },
 };
 
-const FLAGS = {"USA":"🇺🇸","United Kingdom":"🇬🇧","France":"🇫🇷","Germany":"🇩🇪","China":"🇨🇳","Japan":"🇯🇵","Russia":"🇷🇺","India":"🇮🇳","Brazil":"🇧🇷","Canada":"🇨🇦","Australia":"🇦🇺","Italy":"🇮🇹","Spain":"🇪🇸","Saudi Arabia":"🇸🇦","UAE":"🇦🇪","Israel":"🇮🇱","Iran":"🇮🇷","Turkey":"🇹🇷","South Korea":"🇰🇷","Egypt":"🇪🇬","South Africa":"🇿🇦","Nigeria":"🇳🇬","Kenya":"🇰🇪","Ukraine":"🇺🇦","Poland":"🇵🇱","Sweden":"🇸🇪","Jordan":"🇯🇴","Iraq":"🇮🇶","Syria":"🇸🇾","Lebanon":"🇱🇧","Yemen":"🇾🇪","Oman":"🇴🇲","Bahrain":"🇧🇭","Qatar":"🇶🇦","Kuwait":"🇰🇼","Morocco":"🇲🇦","Algeria":"🇩🇿","Tunisia":"🇹🇳","New Zealand":"🇳🇿","Netherlands":"🇳🇱","Belgium":"🇧🇪","Denmark":"🇩🇰","Finland":"🇫🇮","Norway":"🇳🇴","Switzerland":"🇨🇭","Austria":"🇦🇹","Portugal":"🇵🇹","Greece":"🇬🇷","Ireland":"🇮🇪","Czech Republic":"🇨🇿","Hungary":"🇭🇺","Romania":"🇷🇴","Argentina":"🇦🇷","Chile":"🇨🇱","Colombia":"🇨🇴","Mexico":"🇲🇽","Peru":"🇵🇪","Venezuela":"🇻🇪","Cuba":"🇨🇺","Pakistan":"🇵🇰","Bangladesh":"🇧🇩","Indonesia":"🇮🇩","Philippines":"🇵🇭","Vietnam":"🇻🇳","Thailand":"🇹🇭","Singapore":"🇸🇬","Taiwan":"🇹🇼","Kazakhstan":"🇰🇿","North Korea":"🇰🇵","Ethiopia":"🇪🇹","Ghana":"🇬🇭","Tanzania":"🇹🇿","Fiji":"🇫🇯"};
+// ── STATE ──────────────────────────────────────────────────────
+let currentTab = LS.get('lastTab', 'news');
+let currentRegion = LS.get('lastRegion', LS.get('defaultTopic', 'Global/World'));
+let currentAirspace = LS.get('lastAirspace', 'United States');
+let currentAdvisory = LS.get('lastAdvisory', 'Jordan');
+let currentPressRegion = LS.get('lastPressRegion', 'Global/World');
+let currentBriefTopic = LS.get('lastBrief', '');
+let refreshIntervalMins = LS.get('refreshMins', 15);
+let autoRefreshEnabled = LS.get('autoRefresh', true);
+let showCitations = LS.get('citations', true);
+let showAiBadge = LS.get('aiBadge', true);
+let refreshTimer = null;
+let leafletMap = null;
+let archiveItems = LS.get('archive', []);
 
-// Market symbols
-const COMMODITIES = [{s:"CL=F",n:"WTI Crude Oil"},{s:"BZ=F",n:"Brent Crude"},{s:"GC=F",n:"Gold"},{s:"SI=F",n:"Silver"},{s:"NG=F",n:"Natural Gas"},{s:"HG=F",n:"Copper"}];
-const INDICES = [{s:"^GSPC",n:"S&P 500"},{s:"^DJI",n:"Dow Jones"},{s:"^IXIC",n:"NASDAQ"},{s:"^FTSE",n:"FTSE 100"},{s:"^GDAXI",n:"DAX"},{s:"^N225",n:"Nikkei 225"}];
-const FX = [{s:"EURUSD=X",n:"EUR/USD"},{s:"GBPUSD=X",n:"GBP/USD"},{s:"USDJPY=X",n:"USD/JPY"},{s:"USDSAR=X",n:"USD/SAR"},{s:"USDAED=X",n:"USD/AED"},{s:"USDKWD=X",n:"USD/KWD"}];
-const MENA = [{s:"TADAWUL.SR",n:"Tadawul (KSA)"},{s:"ADX.AD",n:"ADX (UAE)"},{s:"DFM.DU",n:"DFM (Dubai)"},{s:"ASE.AM",n:"Amman SE"},{s:"KSE.KW",n:"Kuwait SE"},{s:"MSM30.OM",n:"Muscat SE"}];
-
-// ── STATE ──────────────────────────────────────────────────────────────────
-let activeTopic="World", currentBriefingTopic="World";
-let briefingCache={}, newsCache={}, airspaceCache={}, advisoryCache={};
-let currentRefreshMins=15;
-
-function toggleRefreshPopover(e){
-  e.stopPropagation();
-  document.getElementById('refreshPopover').classList.toggle('open');
-}
-function setRefreshInterval(mins){
-  currentRefreshMins=mins;
-  MEM.set('refreshMins',mins);
-  // Update indicator badge
-  document.getElementById('refreshLabel').textContent=`Live · Auto-refresh ${mins}min`;
-  // Update settings page label
-  const sl=document.getElementById('settingsRefreshLabel');if(sl)sl.textContent=mins;
-  // Update interval buttons in both places
-  document.querySelectorAll('.refresh-option,[id^="ibtn-"]').forEach(el=>{
-    const v=parseInt(el.querySelector?.('input')?.value||el.id.replace('ibtn-',''));
-    el.classList.toggle('active',v===mins);
-    const inp=el.querySelector?.('input');if(inp)inp.checked=(v===mins);
+// ── API FETCH ──────────────────────────────────────────────────
+async function apiFetch(path, opts = {}, cacheKey = null, ttl = TTL_MS) {
+  if (cacheKey && CACHE[cacheKey] && Date.now() - CACHE_TTL[cacheKey] < ttl) {
+    return CACHE[cacheKey];
+  }
+  const r = await fetch(API + path, {
+    method: opts.body ? 'POST' : 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
   });
-  // Restart timer
-  if(autoRefreshTimer)clearInterval(autoRefreshTimer);
-  autoRefreshTimer=setInterval(()=>{
-    if(document.getElementById('autoRefreshToggle').classList.contains('on')){
-      briefingCache[currentBriefingTopic]=null;fetchLiveBriefing(currentBriefingTopic);
-    }
-  },mins*60*1000);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const data = await r.json();
+  if (cacheKey) { CACHE[cacheKey] = data; CACHE_TTL[cacheKey] = Date.now(); }
+  return data;
+}
+
+// ── TAB SWITCHING ──────────────────────────────────────────────
+function switchTab(tab) {
+  // Deactivate all
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  // Activate
+  document.getElementById('tab-' + tab)?.classList.add('active');
+  document.getElementById('nav-' + tab)?.classList.add('active');
+  currentTab = tab;
+  LS.set('lastTab', tab);
+  // Load content
+  if (tab === 'news') loadNews(currentRegion);
+  else if (tab === 'brief') { /* user-driven */ }
+  else if (tab === 'airspace') loadAirspace(currentAirspace);
+  else if (tab === 'advisory') loadAdvisory(currentAdvisory);
+  else if (tab === 'markets') loadMarkets();
+  else if (tab === 'press') loadPress(currentPressRegion);
+  else if (tab === 'archive') renderArchive();
+  else if (tab === 'settings') initSettingsUI();
+  // Close popover
   document.getElementById('refreshPopover').classList.remove('open');
 }
-// Close popover when clicking outside
-document.addEventListener('click',()=>document.getElementById('refreshPopover')?.classList.remove('open'));
-let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
-let selectedCalDate=new Date(), selectedCountry=null;
-let leafletMap=null, mapMarkers=[];
-let marketsRefreshTimer=null;
 
-// ── INIT ───────────────────────────────────────────────────────────────────
-// ── SESSION MEMORY ─────────────────────────────────────────────────────────
-const MEM={
-  get(k,def=null){try{const v=localStorage.getItem('briefly_'+k);return v!==null?JSON.parse(v):def;}catch{return def;}},
-  set(k,v){try{localStorage.setItem('briefly_'+k,JSON.stringify(v));}catch{}},
-};
-
-function init(){
-  renderTicker();
-  renderTopicPills();
-  renderSidebarSources();
-  renderArchive();
-  renderContinentList('continentList','cal');
-  renderContinentList('dayCountryList','day');
-  renderCalendar();
-  document.getElementById('todayDateLabel').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-
-  // Restore dark mode preference
-  if(MEM.get('darkMode',false)){
-    document.documentElement.setAttribute('data-theme','dark');
-    const t=document.getElementById('darkModeToggle');if(t)t.classList.add('on');
-  }
-
-  // Restore last session state
-  const lastTab=MEM.get('lastTab','news');
-  const lastTopic=MEM.get('lastTopic','World');
-  const lastSearch=MEM.get('lastSearch','');
-  const lastBriefTopic=MEM.get('lastBriefTopic','');
-
-  // Restore search box text
-  if(lastSearch){const si=document.getElementById('searchInput');if(si)si.value=lastSearch;}
-
-  // Restore last news topic pill
-  if(lastTopic&&lastTopic!==activeTopic){activeTopic=lastTopic;renderTopicPills();}
-
-  // Restore last briefing topic
-  if(lastBriefTopic)currentBriefingTopic=lastBriefTopic;
-
-  // Restore saved refresh interval
-  const savedMins=MEM.get('refreshMins',15);
-  if(savedMins!==15)setRefreshInterval(savedMins);
-
-  // Restore last tab and trigger its content
-  setTimeout(()=>switchTab(lastTab,true),50);
-
-  // Init settings UI state
-  setTimeout(()=>initSettingsUI(),100);
-
-  // Background preload all tabs after 3s so switching feels instant
-  setTimeout(()=>{
-    const badge=document.getElementById('preloadBadge');
-    if(badge){badge.style.display='flex';badge.textContent='⚙ Loading tabs…';}
-    preloadAllTabs().then(()=>{
-      if(badge){badge.textContent='✓ All tabs ready';setTimeout(()=>badge.style.display='none',2500);}
-    });
-  },3000);
+// ── LOADING HELPERS ────────────────────────────────────────────
+function showLoading(el) {
+  el.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div>Loading…</div>';
+}
+function showError(el, msg) {
+  el.innerHTML = `<div class="error-state">⚠ ${msg || 'Failed to load. Please try again.'}</div>`;
 }
 
-async function preloadAllTabs(){
-  // 1. News — all topic pills
-  for(const topic of TOPICS){
-    if(!newsCache[topic]){
-      try{
-        const r=await post('/api/news',{topic});
-        newsCache[topic]={data:r,ts:Date.now()};
-      }catch{}
-      await new Promise(r=>setTimeout(r,1200)); // stagger to avoid rate limits
-    }
-  }
+// ── NEWS ───────────────────────────────────────────────────────
+function selectRegion(btn, region) {
+  document.querySelectorAll('#regionPills .pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentRegion = region;
+  LS.set('lastRegion', region);
+  delete CACHE['news_' + region];
+  loadNews(region);
+}
 
-  // 2. Briefing — preload current topic
-  if(currentBriefingTopic&&!briefingCache[currentBriefingTopic]){
-    try{
-      const r=await post('/api/briefing',{topic:currentBriefingTopic});
-      briefingCache[currentBriefingTopic]={data:r.analysis,ts:Date.now()};
-    }catch{}
-  }
-
-  // 3. Markets — preload prices + commentary
-  try{
-    const symbols=[...COMMODITIES,...INDICES,...FX,...MENA].map(x=>x.s).join(',');
-    const r=await fetch(`${B}/api/markets/quote?symbols=${encodeURIComponent(symbols)}`);
-    if(r.ok) window._marketsCache={data:await r.json(),ts:Date.now()};
-  }catch{}
-
-  // 4. Advisories — preload all 11 countries
-  for(const c of ME_COUNTRIES){
-    if(!advisoryCache[c.name]){
-      try{
-        const data=await post('/api/advisories',{country:c.name});
-        advisoryCache[c.name]={data,ts:Date.now()};
-      }catch{}
-      await new Promise(r=>setTimeout(r,1500));
-    }
-  }
-
-  // 5. Airspace — preload all 11 countries
-  for(const c of ME_COUNTRIES){
-    if(!airspaceCache[c.name]){
-      try{
-        const data=await post('/api/airspace',{country:c.name});
-        airspaceCache[c.name]={data,ts:Date.now()};
-      }catch{}
-      await new Promise(r=>setTimeout(r,1500));
-    }
+async function loadNews(region, search = '') {
+  const el = document.getElementById('newsMain');
+  showLoading(el);
+  try {
+    const ck = search ? 'search_' + search : 'news_' + region;
+    const data = await apiFetch('/api/news', {
+      body: JSON.stringify({ topic: region, search }),
+    }, ck);
+    renderNews(el, data, region);
+  } catch (e) {
+    showError(el, 'Could not load news. Backend may be warming up (30s). Retrying…');
+    setTimeout(() => loadNews(region, search), 8000);
   }
 }
 
-function renderTicker(){
-  const items=[...BREAKING,...BREAKING];
-  document.getElementById('tickerTrack').innerHTML=items.map(h=>{
-    const url='https://www.google.com/search?q='+encodeURIComponent(h.q);
-    return`<span>🔴 <a href="${url}" target="_blank" rel="noopener">${h.text}</a> &nbsp;●&nbsp; </span>`;
-  }).join('');
-  // Try to upgrade ticker with live RSS headlines
-  fetch(`${B}/api/rss/breaking`).then(r=>r.json()).then(data=>{
-    if(data.items&&data.items.length>0){
-      const live=[...data.items,...data.items];
-      document.getElementById('tickerTrack').innerHTML=live.map(h=>{
-        const url=h.link||('https://www.google.com/search?q='+encodeURIComponent(h.title));
-        return`<span>🔴 <a href="${url}" target="_blank" rel="noopener">${h.title}</a> &nbsp;●&nbsp; </span>`;
-      }).join('');
-    }
-  }).catch(()=>{}); // silently fall back to static headlines
-}
+function renderNews(el, data, region) {
+  const items = data.items || [];
+  const isLive = data.isLive;
+  const liveBadge = isLive ? '<span class="live-badge">RSS Live</span>' : '';
 
-// ── NEWS ───────────────────────────────────────────────────────────────────
-function renderTopicPills(){
-  document.getElementById('topicPills').innerHTML=TOPICS.map(t=>`<button class="pill${t===activeTopic?' active':''}" onclick="selectTopic('${t}')">${t}</button>`).join('');
-}
-function selectTopic(t){activeTopic=t;MEM.set('lastTopic',t);renderTopicPills();loadNews(t);}
-function doSearch(){
-  const v=document.getElementById('searchInput').value.trim();
-  if(!v)return;
-  MEM.set('lastSearch',v);
-  MEM.set('lastBriefTopic',v);
-  currentBriefingTopic=v;
-  switchTab('briefing');
-  renderBriefingPage(v);
-}
-
-async function loadNews(topic, attempt=1){
-  const el=document.getElementById('newsContent');
-  if(attempt===1) el.innerHTML=`<div class="card">${skels()}<div style="font-size:12px;color:var(--muted);margin-top:8px">⏳ Connecting to intelligence server…</div></div>`;
-  if(newsCache[topic]&&Date.now()-newsCache[topic].ts<15*60*1000){renderNewsData(newsCache[topic].data,topic);return;}
-  try{
-    const r=await post('/api/news',{topic});
-    newsCache[topic]={data:r,ts:Date.now()};
-    renderNewsData(r,topic);
-  }catch(e){
-    if(attempt<4){
-      el.innerHTML=`<div class="card">${skels()}<div style="font-size:12px;color:var(--muted);margin-top:8px">⏳ Server waking up… retry ${attempt}/3</div></div>`;
-      setTimeout(()=>loadNews(topic,attempt+1), 8000);
-    } else {
-      el.innerHTML=`<div class="card"><p class="load-msg">Unable to load. Server may be starting up — refresh in 30s.</p></div>`;
-    }
-  }
-}
-
-function renderNewsData(data,topic){
-  const icons={World:"🌐",Technology:"💻",Finance:"📈",Geopolitics:"🗺️",Science:"🔬",Climate:"🌍",Health:"🏥",Defense:"🛡"};
-  const sourceLinks={
-    "Reuters":"https://reuters.com","AP":"https://apnews.com","BBC":"https://bbc.com/news",
-    "FT":"https://ft.com","Bloomberg":"https://bloomberg.com","WSJ":"https://wsj.com",
-    "AP News":"https://apnews.com","BBC News":"https://bbc.com/news","Financial Times":"https://ft.com",
-    "The Economist":"https://economist.com","Foreign Affairs":"https://foreignaffairs.com",
-  };
-  function makeSourceLinks(srcStr){
-    return srcStr.split(/[\/,]/).map(s=>s.trim()).filter(Boolean).map(s=>{
-      const url=sourceLinks[s]||('https://www.google.com/search?q='+encodeURIComponent(s+' news'));
-      return`<a class="citation-link" href="${url}" target="_blank" rel="noopener">${s}</a>`;
-    }).join(' · ');
-  }
-  document.getElementById('newsContent').innerHTML=`
-    <div class="card">
-      <div class="news-title-row">
-        <div class="news-icon">${icons[topic]||'🌐'}</div>
-        <div class="news-headline">${data.headline||topic+' Headlines'}</div>
-        ${data.isLive?'<span style="background:#dcfce7;color:#16a34a;border:1px solid #86efac;border-radius:20px;font-size:10px;font-weight:700;padding:2px 8px;white-space:nowrap">● LIVE RSS</span>':''}
-        <a class="ai-badge" href="https://www.anthropic.com/claude" target="_blank" title="Generated by Claude AI — not live news">🤖 AI Analysis</a>
-        <button class="news-refresh" onclick="newsCache['${topic}']=null;loadNews('${topic}')">↻</button>
+  let html = `<div class="card">
+    <div class="news-header-row">
+      <div class="news-icon">${regionIcon(region)}</div>
+      <div>
+        <div class="news-headline">${esc(data.headline || region + ' Headlines')} ${liveBadge}${showAiBadge ? '' : ''}</div>
       </div>
-      <p class="news-summary">${data.summary||''}</p>
-      <div class="citation-bar">📌 <strong>Source:</strong> AI-generated analysis by Claude (Anthropic). Based on training data — not a live news feed. Verify with: <a class="citation-link" href="https://reuters.com" target="_blank">Reuters</a> · <a class="citation-link" href="https://apnews.com" target="_blank">AP</a> · <a class="citation-link" href="https://bbc.com/news" target="_blank">BBC</a></div>
-      <div style="height:1px;background:var(--border);margin:14px 0"></div>
-      ${(data.items||[]).map(i=>`
-        <div class="brief-item">
-          <span class="brief-arrow">→</span>
-          <div class="brief-content">
-            <strong>${i.title}</strong><br>${i.body}
-            <div class="citation-bar" style="margin-top:6px">
-              🔗 ${i.isLive?'<strong style="color:var(--green)">● LIVE</strong> · <a class="citation-link" href="'+i.link+'" target="_blank" rel="noopener">Read full article at '+i.sources+' ↗</a>':'Verify: '+makeSourceLinks(i.sources||'Reuters')}
-              &nbsp;·&nbsp; <a class="citation-link" href="https://www.google.com/search?q=${encodeURIComponent(i.title)}" target="_blank">Search this story ↗</a>
-            </div>
-          </div>
-        </div>`).join('')}
-    </div>`;
-}
+      <button class="news-refresh" onclick="loadNews('${region}','')" title="Refresh">↻</button>
+    </div>
+    <div class="news-summary">${esc(data.summary || '')}</div>`;
 
-function renderSidebarSources(){
-  document.getElementById('sidebarSources').innerHTML=
-    `<div class="citation-bar" style="margin-bottom:12px">📌 AI-generated content. Click sources below to verify.</div>`+
-    SOURCES.map(s=>`
-    <div class="src-row">
-      <div class="src-header">
-        <a href="${s.url}" target="_blank" rel="noopener" class="src-name" style="text-decoration:none;color:var(--text)">${s.name} ↗</a>
-        <span class="cred-dot ${s.credibility==='HIGH'?'cred-high':'cred-med'}">${s.credibility}</span>
-      </div>
-      <div class="src-desc">${s.desc}</div>
-    </div>`).join('');
-}
-
-// ── BRIEFING ───────────────────────────────────────────────────────────────
-const SECTIONS=[{key:"executive",label:"Executive Summary"},{key:"ngo",label:"NGO & NPO Impact"},{key:"geopolitical",label:"Geopolitical Stance & National Expectations"},{key:"social",label:"Social Media Intelligence & Public Sentiment"},{key:"strategic",label:"Strategic Impact Analysis"},{key:"market",label:"Market & Industry Reaction"}];
-
-function renderBriefingPage(topic){
-  currentBriefingTopic=topic;
-  const now=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-  document.getElementById('briefingTopMeta').innerHTML=`
-    <div style="margin-bottom:4px">
-      <div class="brief-topic-title">${topic} <span style="font-size:24px">✦</span>
-        <span class="refresh-indicator" id="refreshIndicator">
-          <span class="refresh-dot"></span>
-          <span id="refreshLabel">Live · Auto-refresh 15min</span>
-          <button class="refresh-settings-btn" onclick="toggleRefreshPopover(event)" title="Change refresh interval">⚙</button>
-          <div class="refresh-popover" id="refreshPopover">
-            <div class="refresh-popover-title">Refresh Interval</div>
-            <label class="refresh-option" onclick="setRefreshInterval(5)"><input type="radio" name="ri" value="5"> Every 5 minutes</label>
-            <label class="refresh-option" onclick="setRefreshInterval(10)"><input type="radio" name="ri" value="10"> Every 10 minutes</label>
-            <label class="refresh-option active" onclick="setRefreshInterval(15)"><input type="radio" name="ri" value="15" checked> Every 15 minutes</label>
-            <label class="refresh-option" onclick="setRefreshInterval(30)"><input type="radio" name="ri" value="30"> Every 30 minutes</label>
-            <label class="refresh-option" onclick="setRefreshInterval(60)"><input type="radio" name="ri" value="60"> Every 60 minutes</label>
-          </div>
-        </span>
-      </div>
-      <div class="brief-actions">
-        <button class="btn-outline" onclick="window.print()">🖨 Print</button>
-        <button class="btn-solid" onclick="briefingCache['${topic}']=null;renderBriefingPage('${topic}')">↻ Regenerate</button>
+  items.forEach(item => {
+    const linkTarget = item.link ? `href="${esc(item.link)}" target="_blank" rel="noopener"` : '';
+    const badge = item.isLive ? `<span class="live-badge">RSS</span>` : (showAiBadge ? `<a class="ai-badge" ${linkTarget}>🤖 AI</a>` : '');
+    html += `<div class="brief-item">
+      <div class="brief-arrow">→</div>
+      <div>
+        <div class="brief-content">
+          <strong><a ${linkTarget} style="color:inherit;text-decoration:none;${item.link ? 'text-decoration:underline dotted;' : ''}">${esc(item.title)}</a></strong> ${badge}
+          <br/>${esc(item.body || '')}
+          ${item.sources ? `<div class="brief-source">— ${esc(item.sources)}${item.pubDate ? ' · ' + formatDate(item.pubDate) : ''}</div>` : ''}
+        </div>
+        ${showCitations && item.sourceUrl ? `<div class="citation-bar">📎 Verify: <a class="citation-link" href="${esc(item.sourceUrl)}" target="_blank" rel="noopener">${esc(item.sources || 'Source')}</a>${item.link ? ` · <a class="citation-link" href="${esc(item.link)}" target="_blank" rel="noopener">Full article →</a>` : ''}</div>` : ''}
       </div>
     </div>`;
-  document.getElementById('briefingMain').innerHTML=`
-    <div class="card">
-      <div class="report-title">${topic} Intelligence Report</div>
-      <div class="report-meta">Generated ${now} · Briefly Intelligence · <a class="citation-link" href="https://www.anthropic.com/claude" target="_blank">Powered by Claude AI (Anthropic)</a> · AI-generated analysis, not a live news feed</div>
-      <div class="citation-bar" style="margin-bottom:18px">⚠️ <strong>Disclaimer:</strong> This briefing is AI-generated by Claude based on training data up to early 2025. Always verify with <a class="citation-link" href="https://reuters.com" target="_blank">Reuters</a>, <a class="citation-link" href="https://apnews.com" target="_blank">AP</a>, <a class="citation-link" href="https://ft.com" target="_blank">FT</a>, or official government sources before acting on this analysis.</div>
-      ${SECTIONS.map(s=>`<div class="section-block"><div class="section-heading">${s.label}</div><div class="section-body" id="body-${s.key}"><span class="spinner"></span>Searching live sources…</div></div><div style="height:1px;background:var(--border);margin:4px 0 20px"></div>`).join('')}
-    </div>`;
-  document.getElementById('briefingSidebar').innerHTML=`
-    <div class="sidebar-card">
-      <div class="sidebar-title"><div class="sidebar-title-icon">📰</div><div class="sidebar-title-text">Source Intelligence</div></div>
-      ${SOURCES.map(s=>`<div class="src-row"><div class="src-header"><span class="src-name">${s.name}</span><span class="cred-dot ${s.credibility==='HIGH'?'cred-high':'cred-med'}">${s.credibility}</span></div><div class="src-desc">${s.desc}</div></div>`).join('')}
-    </div>`;
-  fetchLiveBriefing(topic);
-  if(autoRefreshTimer)clearInterval(autoRefreshTimer);
-  autoRefreshTimer=setInterval(()=>{
-    if(document.getElementById('autoRefreshToggle').classList.contains('on')){briefingCache[topic]=null;fetchLiveBriefing(topic);}
-  },currentRefreshMins*60*1000);
-}
-
-async function fetchLiveBriefing(topic){
-  if(briefingCache[topic]&&Date.now()-briefingCache[topic].ts<15*60*1000){displayBriefingData(briefingCache[topic].data);return;}
-  try{
-    const r=await post('/api/briefing',{topic});
-    briefingCache[topic]={data:r.analysis,ts:Date.now()};
-    displayBriefingData(r.analysis);
-  }catch(e){SECTIONS.forEach(s=>{const el=document.getElementById('body-'+s.key);if(el)el.innerHTML=`<span style="color:var(--muted)">Live analysis unavailable. (${e.message})</span>`;});}
-}
-
-function displayBriefingData(data){
-  SECTIONS.forEach((s,i)=>{
-    const el=document.getElementById('body-'+s.key);if(!el)return;
-    const text=data[s.key]||'No data available.';
-    let idx=0;el.innerHTML='';
-    setTimeout(()=>{const iv=setInterval(()=>{if(idx<text.length)el.innerHTML=text.slice(0,++idx).replace(/\n/g,'<br>');else clearInterval(iv);},8);},i*150);
   });
+
+  html += `</div>`;
+  el.innerHTML = html;
 }
 
-// ── AIRSPACE ───────────────────────────────────────────────────────────────
-function initAirspace(){
-  // Country selector buttons
-  document.getElementById('airspaceCountryBtns').innerHTML=ME_COUNTRIES.map(c=>`
-    <button class="cs-btn" id="asbtn-${c.name.replace(/\s/g,'_')}" onclick="loadAirspaceCountry('${c.name}')">
-      <span class="cs-flag">${c.flag}</span>${c.name}
-    </button>`).join('');
+function regionIcon(r) {
+  const icons = {'Global/World':'🌍','North America':'🌎','Europe':'🌍','Asia':'🌏','Middle East & Africa':'🌍','South America':'🌎'};
+  return icons[r] || '📰';
+}
 
-  // Wait for Leaflet if not yet loaded
-  if(typeof L==='undefined'){
-    document.getElementById('airspaceMap').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:14px;background:var(--card);border-radius:16px"><span class="spinner"></span>&nbsp;Loading map…</div>';
-    setTimeout(initAirspace,600);
+// ── HEADLINE SEARCH (News Tab) ─────────────────────────────────
+function searchHeadlines() {
+  const q = document.getElementById('headerSearchInput').value.trim();
+  if (!q) return;
+  switchTab('news');
+  loadNews(currentRegion, q);
+}
+function searchHeadlinesMobile() {
+  const q = document.getElementById('mobileSearchInput').value.trim();
+  if (!q) return;
+  switchTab('news');
+  loadNews(currentRegion, q);
+}
+document.getElementById('headerSearchInput').addEventListener('keydown', e => { if (e.key === 'Enter') searchHeadlines(); });
+document.getElementById('mobileSearchInput').addEventListener('keydown', e => { if (e.key === 'Enter') searchHeadlinesMobile(); });
+
+// ── BRIEF TAB ──────────────────────────────────────────────────
+async function briefSearch() {
+  const q = document.getElementById('briefSearchInput').value.trim();
+  if (!q) return;
+  const el = document.getElementById('briefSearchResults');
+  el.style.display = 'block';
+  showLoading(el);
+  try {
+    const data = await apiFetch('/api/news', { body: JSON.stringify({ topic: 'Global/World', search: q }) }, 'bsearch_' + q, 5 * 60000);
+    let html = `<div style="font-weight:700;margin-bottom:12px;font-size:14px;">Search results for: <em>"${esc(q)}"</em></div>`;
+    (data.items || []).forEach(item => {
+      const lk = item.link ? `href="${esc(item.link)}" target="_blank" rel="noopener"` : '';
+      html += `<div class="brief-item">
+        <div class="brief-arrow">→</div>
+        <div>
+          <div class="brief-content"><strong><a ${lk} style="color:inherit;">${esc(item.title)}</a></strong><br/>${esc(item.body || '')}</div>
+          <div class="brief-source">— ${esc(item.sources || '')}${item.pubDate ? ' · ' + formatDate(item.pubDate) : ''}</div>
+        </div>
+      </div>`;
+    });
+    el.innerHTML = html;
+  } catch (e) {
+    showError(el, 'Search failed. Try again.');
+  }
+}
+
+async function generateBrief() {
+  const q = document.getElementById('briefSearchInput').value.trim() || currentBriefTopic;
+  if (!q) { alert('Please enter a topic first.'); return; }
+  currentBriefTopic = q;
+  LS.set('lastBrief', q);
+  document.getElementById('briefTitleText').textContent = q;
+  const el = document.getElementById('briefContent');
+  showLoading(el);
+  document.getElementById('briefSearchResults').style.display = 'none';
+  try {
+    const data = await apiFetch('/api/briefing', { body: JSON.stringify({ topic: q }) }, 'brief_' + q);
+    const a = data.analysis || {};
+    const ts = new Date().toLocaleString('en-US', { timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short' }) + ' UTC';
+    let html = `<div class="report-title">${esc(q)}</div>
+      <div class="report-meta">Intelligence Brief · ${ts}${showAiBadge ? ' · <span class="ai-badge">🤖 AI Analysis</span>' : ''}</div>`;
+    const sections = [
+      { key: 'executive', label: 'Executive Summary' },
+      { key: 'geopolitical', label: 'Geopolitical Analysis' },
+      { key: 'humanitarian', label: 'Humanitarian Impact' },
+      { key: 'economic', label: 'Economic & Market Impact' },
+      { key: 'social', label: 'Social Dynamics' },
+      { key: 'strategic', label: 'Strategic Outlook' },
+    ];
+    sections.forEach(s => {
+      if (a[s.key]) {
+        html += `<div class="section-block"><div class="section-heading">${s.label}</div><div class="section-body">${esc(a[s.key])}</div></div>`;
+      }
+    });
+    if (a.sources?.length) {
+      html += `<div class="citation-bar" style="margin-top:20px;">📎 Sources: `;
+      a.sources.forEach(src => {
+        html += `<a class="citation-link" href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.name)}</a> `;
+      });
+      html += `</div>`;
+    }
+    el.innerHTML = html;
+    // Save to archive
+    archiveSave(q, a);
+  } catch (e) {
+    showError(el, 'Failed to generate brief. ' + e.message);
+  }
+}
+document.getElementById('briefSearchInput').addEventListener('keydown', e => { if (e.key === 'Enter') briefSearch(); });
+
+// ── ARCHIVE ────────────────────────────────────────────────────
+function archiveSave(topic, analysis) {
+  const item = {
+    id: Date.now(),
+    topic,
+    date: new Date().toISOString(),
+    preview: (analysis.executive || '').slice(0, 120) + '…',
+    data: analysis,
+  };
+  archiveItems = [item, ...archiveItems.filter(i => i.topic !== topic)].slice(0, 50);
+  LS.set('archive', archiveItems);
+}
+
+function renderArchive() {
+  const el = document.getElementById('archiveList');
+  if (!archiveItems.length) {
+    el.innerHTML = `<div class="archive-empty"><div class="archive-empty-icon">🗄</div><div>No briefings saved yet.</div><div style="font-size:13px;color:var(--muted);margin-top:8px;">Generate intelligence briefs on the Brief tab and they'll appear here.</div></div>`;
     return;
   }
+  let html = '<div class="archive-list">';
+  archiveItems.forEach(item => {
+    const d = new Date(item.date);
+    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    html += `<div class="archive-item" onclick="loadFromArchive('${item.id}')">
+      <div class="archive-date">${dateStr} at ${timeStr}</div>
+      <div class="archive-title">${esc(item.topic)}</div>
+      <div class="archive-preview">${esc(item.preview)}</div>
+      <div class="archive-tags"><span class="archive-tag">Intelligence Brief</span></div>
+    </div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
 
-  // Init Leaflet map
-  if(!leafletMap){
-    leafletMap=L.map('airspaceMap',{zoomControl:true,scrollWheelZoom:false}).setView([26,44],4);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:10,subdomains:'abcd'}).addTo(leafletMap);
-    // Add country markers
-    ME_COUNTRIES.forEach(c=>{
-      const m=L.circleMarker([c.lat,c.lng],{radius:10,color:'#888',fillColor:'#aaa',fillOpacity:0.7,weight:2})
-        .addTo(leafletMap).bindPopup(`<b>${c.flag} ${c.name}</b><br>Click to load airspace status`);
-      m.on('click',()=>loadAirspaceCountry(c.name));
-      mapMarkers.push({name:c.name,marker:m});
-    });
+function loadFromArchive(id) {
+  const item = archiveItems.find(i => i.id == id);
+  if (!item) return;
+  currentBriefTopic = item.topic;
+  document.getElementById('briefSearchInput').value = item.topic;
+  document.getElementById('briefTitleText').textContent = item.topic;
+  switchTab('brief');
+  // Render directly from cache
+  const a = item.data;
+  const el = document.getElementById('briefContent');
+  const ts = new Date(item.date).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+  let html = `<div class="report-title">${esc(item.topic)}</div>
+    <div class="report-meta">📂 Archived Brief · ${ts}</div>`;
+  const sections = [
+    { key: 'executive', label: 'Executive Summary' },
+    { key: 'geopolitical', label: 'Geopolitical Analysis' },
+    { key: 'humanitarian', label: 'Humanitarian Impact' },
+    { key: 'economic', label: 'Economic & Market Impact' },
+    { key: 'social', label: 'Social Dynamics' },
+    { key: 'strategic', label: 'Strategic Outlook' },
+  ];
+  sections.forEach(s => {
+    if (a[s.key]) html += `<div class="section-block"><div class="section-heading">${s.label}</div><div class="section-body">${esc(a[s.key])}</div></div>`;
+  });
+  el.innerHTML = html;
+  document.getElementById('briefSearchResults').style.display = 'none';
+}
+
+// ── AIRSPACE ───────────────────────────────────────────────────
+function selectAirspaceCountry(btn, country) {
+  document.querySelectorAll('#airspaceCountrySelector .cs-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentAirspace = country;
+  LS.set('lastAirspace', country);
+  loadAirspace(country);
+}
+
+async function loadAirspace(country) {
+  const el = document.getElementById('airspaceContent');
+  showLoading(el);
+  initMap(country);
+  try {
+    const data = await apiFetch('/api/airspace', { body: JSON.stringify({ country }) }, 'airspace_' + country, 15 * 60000);
+    renderAirspace(el, data);
+  } catch (e) {
+    showError(el, 'Failed to load airspace data.');
   }
-  loadAllAirspace();
 }
 
-async function loadAllAirspace(){
-  document.getElementById('airspaceGrid').innerHTML=ME_COUNTRIES.map(c=>`
-    <div class="airspace-card" id="ac-${c.name.replace(/\s/g,'_')}">
-      <div class="ac-header"><div class="ac-country">${c.flag} ${c.name}</div></div>
-      <div class="ac-summary"><span class="spinner"></span>Loading…</div>
-    </div>`).join('');
-  for(const c of ME_COUNTRIES){
-    await loadAirspaceCountry(c.name);
-    await new Promise(r=>setTimeout(r,1500));
-  }
+function initMap(country) {
+  const coords = {
+    'United States':[37,-95,4],'United Kingdom':[54,-2,6],'France':[46,2,6],
+    'Germany':[51,10,6],'Israel':[31,35,7],'Ukraine':[49,31,6],'Russia':[62,100,3],
+    'Saudi Arabia':[24,45,5],'UAE':[24,54,7],'Jordan':[31,36,7],'Lebanon':[33,35,8],
+    'China':[35,105,4],
+  };
+  const [lat, lng, zoom] = coords[country] || [26, 44, 4];
+  const mapEl = document.getElementById('airspaceMap');
+  if (leafletMap) { leafletMap.setView([lat, lng], zoom); return; }
+  leafletMap = L.map(mapEl, { zoomControl: true }).setView([lat, lng], zoom);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap © CARTO', maxZoom: 18,
+  }).addTo(leafletMap);
 }
 
-async function loadAirspaceCountry(country){
-  const id='ac-'+country.replace(/\s/g,'_');
-  const el=document.getElementById(id);
-  if(!el)return;
-  if(airspaceCache[country]&&Date.now()-airspaceCache[country].ts<15*60*1000){renderAirspaceCard(airspaceCache[country].data,el,country);return;}
-  try{
-    const data=await post('/api/airspace',{country});
-    airspaceCache[country]={data,ts:Date.now()};
-    renderAirspaceCard(data,el,country);
-    updateMapMarker(country,data.alert_level);
-  }catch(e){if(el)el.innerHTML=`<div class="ac-country">${country}</div><div class="ac-summary" style="color:var(--muted)">Error: ${e.message}</div>`;}
+function refreshAirspace() {
+  delete CACHE['airspace_' + currentAirspace];
+  loadAirspace(currentAirspace);
 }
 
-function renderAirspaceCard(data,el,country){
-  const c=ME_COUNTRIES.find(x=>x.name===country)||{flag:'🏳'};
-  const lvl=data.alert_level||'GREEN';
-  el.className=`airspace-card ${lvl}`;
-  const notams=(data.notams||[]).map(n=>`
-    <div class="ac-notam">
-      <div class="ac-notam-title">${n.id!=='N/A'?n.id+' — ':''}${n.title}</div>
-      <div class="ac-notam-detail">${n.detail}</div>
-      <div class="ac-notam-meta">Effective: ${n.effective} · ${n.authority}</div>
-    </div>`).join('');
-  const restrictions=(data.restrictions||[]).map(r=>`<span class="ac-restriction">${r}</span>`).join('');
-  el.innerHTML=`
+function renderAirspace(el, d) {
+  const level = d.alert_level || 'GREEN';
+  const status = d.status || 'OPEN';
+  let html = `<div class="airspace-card ${level}">
     <div class="ac-header">
-      <div class="ac-country">${c.flag} ${data.country||country}</div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span class="status-badge status-${(data.status||'OPEN').replace(' ','_')}">${data.status||'OPEN'}</span>
-        <span class="alert-badge alert-${lvl}">${lvl}</span>
+      <div class="ac-country">${esc(d.country || '')}</div>
+      <div>
+        <span class="alert-badge alert-${level}">${level}</span>
+        <span class="status-badge status-${status}" style="margin-left:6px;">${status.replace('_',' ')}</span>
       </div>
     </div>
-    <div class="ac-summary">${data.summary||''}</div>
-    ${notams}
-    ${restrictions?`<div class="ac-restrictions">${restrictions}</div>`:''}
-    <div class="ac-footer">
-      <span>⚠️ AI estimate · <a class="citation-link" href="https://notams.aim.faa.gov/notamSearch/" target="_blank">FAA NOTAMs ↗</a> · <a class="citation-link" href="https://www.easa.europa.eu/en/domains/air-operations/flight-standards-and-airworthiness/safety-information-bulletin" target="_blank">EASA ↗</a> · <a class="citation-link" href="https://www.google.com/search?q=${encodeURIComponent((data.country||country)+' airspace NOTAM restrictions 2025')}" target="_blank">Search ↗</a></span>
-      <span>Updated: ${data.last_updated||'Today'}</span>
+    <div class="ac-summary">${esc(d.summary || '')}</div>`;
+
+  (d.notams || []).forEach(n => {
+    html += `<div class="ac-notam">
+      <div class="ac-notam-title">${esc(n.title || n.id || 'NOTAM')}</div>
+      <div class="ac-notam-detail">${esc(n.detail || '')}</div>
+      <div class="ac-notam-meta">Authority: ${esc(n.authority || 'ICAO')} · Effective: ${esc(n.effective || 'Ongoing')}</div>
     </div>`;
+  });
+
+  if (d.restrictions?.length) {
+    html += `<div class="ac-restrictions">${d.restrictions.map(r => `<span class="ac-restriction">${esc(r)}</span>`).join('')}</div>`;
+  }
+
+  if (d.verifyLinks?.length) {
+    html += `<div class="citation-bar" style="margin-top:14px;">📎 Verify: `;
+    d.verifyLinks.forEach(l => {
+      html += `<a class="citation-link" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a> `;
+    });
+    html += `</div>`;
+  }
+
+  html += `<div class="ac-footer"><span>Data: ${esc(d.data_sources || 'ICAO · FAA · EASA')}</span><span>${esc(d.last_updated || '')}</span></div>`;
+  html += `</div>`;
+  el.innerHTML = html;
 }
 
-function updateMapMarker(country,level){
-  const colors={GREEN:'#16a34a',AMBER:'#ca8a04',RED:'#dc2626',BLACK:'#111'};
-  const m=mapMarkers.find(x=>x.name===country);
-  if(m) m.marker.setStyle({color:colors[level]||'#888',fillColor:colors[level]||'#aaa',fillOpacity:0.75});
+// ── ADVISORY ───────────────────────────────────────────────────
+function selectAdvisoryCountry(btn, country) {
+  document.querySelectorAll('#advisoryCountrySelector .cs-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentAdvisory = country;
+  LS.set('lastAdvisory', country);
+  loadAdvisory(country);
 }
 
-// ── ADVISORIES ─────────────────────────────────────────────────────────────
-function initAdvisories(){
-  document.getElementById('advCountryBtns').innerHTML=ME_COUNTRIES.map(c=>`
-    <button class="cs-btn" id="advbtn-${c.name.replace(/\s/g,'_')}" onclick="loadAdvisoryCountry('${c.name}')">
-      <span class="cs-flag">${c.flag}</span>${c.name}
-    </button>`).join('');
-  loadAllAdvisories();
-}
-
-async function loadAllAdvisories(){
-  document.getElementById('advGrid').innerHTML=ME_COUNTRIES.map(c=>`
-    <div class="adv-card" id="advc-${c.name.replace(/\s/g,'_')}">
-      <div class="adv-country">${c.flag} ${c.name}</div>
-      <div class="load-msg"><span class="spinner"></span>Fetching advisories…</div>
-    </div>`).join('');
-  for(const c of ME_COUNTRIES){
-    await loadAdvisoryCountry(c.name);
-    await new Promise(r=>setTimeout(r,1500));
+async function loadAdvisory(country) {
+  const el = document.getElementById('advisoryContent');
+  showLoading(el);
+  try {
+    const data = await apiFetch('/api/advisories', { body: JSON.stringify({ country }) }, 'advisory_' + country, 30 * 60000);
+    renderAdvisory(el, data);
+  } catch (e) {
+    showError(el, 'Failed to load advisory data.');
   }
 }
 
-async function loadAdvisoryCountry(country){
-  const id='advc-'+country.replace(/\s/g,'_');
-  const el=document.getElementById(id);
-  if(!el)return;
-  if(advisoryCache[country]&&Date.now()-advisoryCache[country].ts<15*60*1000){renderAdvisoryCard(advisoryCache[country].data,el,country);return;}
-  try{
-    const data=await post('/api/advisories',{country});
-    advisoryCache[country]={data,ts:Date.now()};
-    renderAdvisoryCard(data,el,country);
-  }catch(e){if(el)el.querySelector('.load-msg').innerHTML=`<span style="color:var(--muted)">Error: ${e.message}</span>`;}
+function refreshAdvisory() {
+  delete CACHE['advisory_' + currentAdvisory];
+  loadAdvisory(currentAdvisory);
 }
 
-function renderAdvisoryCard(data,el,country){
-  const c=ME_COUNTRIES.find(x=>x.name===country)||{flag:'🏳'};
-  const us=data.us||{}, uk=data.uk||{};
-  const lvlNum=us.level_number||1;
-  const lvlColors=['','adv-level-1','adv-level-2','adv-level-3','adv-level-4'];
-  el.innerHTML=`
-    <div class="adv-country">${c.flag} ${data.country||country}</div>
+function renderAdvisory(el, d) {
+  const us = d.us || {};
+  const uk = d.uk || {};
+  const lvlNum = us.level_number || 1;
+  const lvlClass = `adv-level-${Math.min(lvlNum, 4)}`;
+
+  let html = `<div class="adv-card">
+    <div class="adv-country">${esc(d.country || '')}</div>
     <div class="adv-row">
       <div class="adv-block adv-us">
         <div class="adv-flag">🇺🇸</div>
-        <div class="adv-level-label">US State Dept.</div>
-        <div class="adv-level"><span class="adv-level-num ${lvlColors[lvlNum]||''}">${lvlNum}</span>${us.level||'N/A'}</div>
-        <div class="adv-summary">${us.summary||''}</div>
-        <div class="adv-risks">${(us.key_risks||[]).map(r=>`<div class="adv-risk">${r}</div>`).join('')}</div>
-        <div class="adv-updated">⚠️ AI estimate · <a class="citation-link" href="${us.url||'https://travel.state.gov'}" target="_blank">Verify at travel.state.gov ↗</a></div>
+        <div class="adv-level-label">U.S. State Department</div>
+        <div class="adv-level"><span class="adv-level-num ${lvlClass}">${lvlNum}</span>${esc(us.level || 'N/A')}</div>
+        <div class="adv-summary">${esc(us.summary || '')}</div>
+        <div class="adv-risks">${(us.key_risks || []).map(r => `<div class="adv-risk">${esc(r)}</div>`).join('')}</div>
+        <div class="adv-updated">Last updated: ${esc(us.last_updated || '')}</div>
+        ${us.url ? `<a class="adv-link" href="${esc(us.url)}" target="_blank" rel="noopener">🔗 Official Source →</a>` : ''}
       </div>
       <div class="adv-block adv-uk">
         <div class="adv-flag">🇬🇧</div>
-        <div class="adv-level-label">UK Foreign Office</div>
-        <div class="adv-level">${uk.level||'N/A'}</div>
-        <div class="adv-summary">${uk.summary||''}</div>
-        <div class="adv-risks">${(uk.key_risks||[]).map(r=>`<div class="adv-risk">${r}</div>`).join('')}</div>
-        <div class="adv-updated">⚠️ AI estimate · <a class="citation-link" href="${uk.url||'https://www.gov.uk/foreign-travel-advice'}" target="_blank">Verify at gov.uk ↗</a></div>
+        <div class="adv-level-label">UK FCDO</div>
+        <div class="adv-level">${esc(uk.level || 'N/A')}</div>
+        <div class="adv-summary">${esc(uk.summary || '')}</div>
+        <div class="adv-risks">${(uk.key_risks || []).map(r => `<div class="adv-risk">${esc(r)}</div>`).join('')}</div>
+        <div class="adv-updated">Last updated: ${esc(uk.last_updated || '')}</div>
+        ${uk.url ? `<a class="adv-link" href="${esc(uk.url)}" target="_blank" rel="noopener">🔗 Official Source →</a>` : ''}
       </div>
-    </div>`;
+    </div>
+  </div>`;
+  el.innerHTML = html;
 }
 
-// ── MARKETS ────────────────────────────────────────────────────────────────
-async function loadMarkets(force=false){
-  const symbols=[...COMMODITIES,...INDICES,...FX,...MENA].map(x=>x.s).join(',');
-  try{
-    const r=await fetch(`${B}/api/markets/quote?symbols=${encodeURIComponent(symbols)}`);
-    const data=await r.json();
-    const quotes=data.quotes||[];
-    renderTickerGroup('tickerCommodities',COMMODITIES,quotes);
-    renderTickerGroup('tickerIndices',INDICES,quotes);
-    renderTickerGroup('tickerFX',FX,quotes);
-    renderTickerGroup('tickerMENA',MENA,quotes);
-    document.getElementById('marketsLastRefresh').textContent=`Live prices · Last updated ${new Date().toLocaleTimeString()}`;
-  }catch(e){
-    ['tickerCommodities','tickerIndices','tickerFX','tickerMENA'].forEach(id=>{
-      document.getElementById(id).innerHTML=`<div style="color:var(--muted);font-size:13px;grid-column:1/-1">Unable to load prices. ${e.message}</div>`;
-    });
+// ── MARKETS ────────────────────────────────────────────────────
+const MARKET_GROUPS = {
+  us: { id: 'ticker-us', symbols: '^GSPC,^DJI,^IXIC,^RUT' },
+  europe: { id: 'ticker-europe', symbols: '^FTSE,^GDAXI,^FCHI,^IBEX' },
+  asia: { id: 'ticker-asia', symbols: '^N225,^HSI,^AXJO,000001.SS' },
+  mideast: { id: 'ticker-mideast', symbols: '^TASI.SR,DFMGI.AE,^ADSMI.AE,^KWSE' },
+  commodities: { id: 'ticker-commodities', symbols: 'CL=F,BZ=F,GC=F,SI=F,NG=F' },
+};
+
+async function loadMarkets(force = false) {
+  if (force) Object.keys(MARKET_GROUPS).forEach(k => delete CACHE['quotes_' + k]);
+  // Load all groups in parallel
+  Object.entries(MARKET_GROUPS).forEach(([key, grp]) => loadTickerGroup(key, grp, force));
+  loadMarketCommentary(force);
+}
+
+async function loadTickerGroup(key, grp, force) {
+  const el = document.getElementById(grp.id);
+  el.innerHTML = grp.symbols.split(',').map(() => `<div class="ticker-card"><div class="tc-loading">⋯</div></div>`).join('');
+  try {
+    const data = await apiFetch(`/api/markets/quote?symbols=${encodeURIComponent(grp.symbols)}`, {}, 'quotes_' + key, 5 * 60000);
+    renderTickers(el, data.quotes || []);
+  } catch (e) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:12px 0;">Failed to load. <a onclick="loadTickerGroup('${key}',{id:'${grp.id}',symbols:'${grp.symbols}'},true)" style="cursor:pointer;color:#4f46e5;">Retry</a></div>`;
   }
-  if(force||!document.getElementById('marketCommentary').dataset.loaded){
-    document.getElementById('marketCommentary').dataset.loaded='1';
-    loadMarketCommentary();
-  }
-  if(marketsRefreshTimer)clearInterval(marketsRefreshTimer);
-  marketsRefreshTimer=setInterval(()=>loadMarkets(),5*60*1000);
 }
 
-function renderTickerGroup(containerId,symbolList,quotes){
-  document.getElementById(containerId).innerHTML=symbolList.map(item=>{
-    const q=quotes.find(x=>x.symbol===item.s);
-    if(!q)return`<div class="ticker-card"><div class="tc-name">${item.n}</div><div class="tc-symbol">${item.s}</div><div class="tc-loading">—</div></div>`;
-    const up=q.change>=0;
-    return`<div class="ticker-card">
-      <div class="tc-name">${item.n}</div>
-      <div class="tc-symbol">${item.s}</div>
-      <div class="tc-price">${formatPrice(q.price,item.s)}</div>
-      <div class="tc-change ${up?'tc-up':'tc-down'}">${up?'▲':'▼'} ${Math.abs(q.changePercent||0).toFixed(2)}%</div>
-    </div>`;
-  }).join('');
-}
-
-function formatPrice(p,s){
-  if(!p)return'—';
-  if(s.includes('=X'))return p.toFixed(4);
-  if(p>1000)return p.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  return p.toFixed(2);
-}
-
-async function loadMarketCommentary(){
-  const el=document.getElementById('marketCommentary');
-  el.innerHTML=`<div class="load-msg"><span class="spinner"></span>Loading AI market commentary…</div>`;
-  try{
-    const data=await post('/api/markets/commentary',{});
-    const sections=[
-      {label:"📊 Overall Market",key:"summary"},
-      {label:"🛢 Oil & Energy",key:"oil_commentary"},
-      {label:"🥇 Gold & Metals",key:"gold_commentary"},
-      {label:"💱 Currencies",key:"fx_commentary"},
-      {label:"🌍 Middle East Markets",key:"regional_commentary"},
-    ];
-    el.innerHTML=`<div style="font-family:var(--serif);font-size:19px;font-weight:700;margin-bottom:16px">${data.headline||"Today's Market Intelligence"}</div>`+
-      sections.map(s=>`<div class="commentary-section"><div class="commentary-label">${s.label}</div><div class="commentary-text">${data[s.key]||'—'}</div></div>`).join('')+
-      `<div class="citation-bar" style="margin-top:16px">⚠️ AI-generated analysis · Verify live prices: <a class="citation-link" href="https://bloomberg.com/markets" target="_blank">Bloomberg ↗</a> · <a class="citation-link" href="https://reuters.com/markets" target="_blank">Reuters ↗</a> · <a class="citation-link" href="https://ft.com/markets" target="_blank">FT ↗</a> · <a class="citation-link" href="https://finance.yahoo.com" target="_blank">Yahoo Finance ↗</a></div>`;
-  }catch{el.innerHTML=`<div class="load-msg" style="color:var(--muted)">Commentary unavailable.</div>`;}
-}
-
-// ── PRESS RELEASES ─────────────────────────────────────────────────────────
-function renderContinentList(containerId,mode){
-  document.getElementById(containerId).innerHTML=Object.entries(CONTINENTS).map(([cont,countries])=>{
-    const id=`${mode}-cont-${cont.replace(/\W/g,'')}`;
-    return`<div class="continent-section">
-      <div class="continent-header" onclick="toggleContinent('${id}')">
-        <span class="continent-name">${cont}</span>
-        <span class="continent-chevron" id="chev-${id}">▼</span>
-      </div>
-      <div class="continent-body" id="${id}">
-        <div class="country-grid">
-          ${countries.map(c=>`<button class="country-btn" id="cbtn-${mode}-${c.replace(/\s/g,'_')}" onclick="selectCountry${mode==='cal'?'Cal':'Day'}('${c}')">${FLAGS[c]||'🏳'} ${c}</button>`).join('')}
-        </div>
-      </div>
+function renderTickers(el, quotes) {
+  el.innerHTML = quotes.map(q => {
+    const up = q.changePercent >= 0;
+    const arrow = up ? '▲' : '▼';
+    const cls = up ? 'tc-up' : 'tc-down';
+    const price = formatPrice(q.price, q.currency);
+    const pct = (q.changePercent || 0).toFixed(2);
+    return `<div class="ticker-card">
+      <div class="tc-name">${esc(q.name)}</div>
+      <div class="tc-symbol">${esc(q.symbol)}</div>
+      <div class="tc-price">${price}</div>
+      <div class="tc-change ${cls}">${arrow} ${Math.abs(pct)}%</div>
     </div>`;
   }).join('');
 }
-function toggleContinent(id){document.getElementById(id).classList.toggle('open');document.getElementById('chev-'+id).classList.toggle('open');}
-function setPRView(v){
-  document.getElementById('pr-calendar-view').classList.toggle('hidden',v!=='calendar');
-  document.getElementById('pr-day-view').classList.toggle('hidden',v!=='day');
-  document.getElementById('vbtn-calendar').classList.toggle('active',v==='calendar');
-  document.getElementById('vbtn-day').classList.toggle('active',v==='day');
+
+function formatPrice(p, currency) {
+  if (!p) return '—';
+  const digits = p < 10 ? 2 : p < 1000 ? 1 : 0;
+  const formatted = p.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  if (currency && currency !== 'USD') return formatted;
+  return p < 100 ? '$' + formatted : formatted;
 }
-function renderCalendar(){
-  const months=["January","February","March","April","May","June","July","August","September","October","November","December"];
-  document.getElementById('calMonthLabel').textContent=`${months[calMonth]} ${calYear}`;
-  const today=new Date(),first=new Date(calYear,calMonth,1).getDay(),total=new Date(calYear,calMonth+1,0).getDate(),prev=new Date(calYear,calMonth,0).getDate();
-  const days=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  let h=days.map(d=>`<div class="cal-day-name">${d}</div>`).join('');
-  for(let i=0;i<first;i++)h+=`<div class="cal-day other-month">${prev-first+i+1}</div>`;
-  for(let d=1;d<=total;d++){
-    const isToday=d===today.getDate()&&calMonth===today.getMonth()&&calYear===today.getFullYear();
-    const isSel=d===selectedCalDate.getDate()&&calMonth===selectedCalDate.getMonth()&&calYear===selectedCalDate.getFullYear();
-    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    h+=`<div class="cal-day${isToday?' today':''}${isSel?' selected':''}" onclick="selectCalDate(${d},'${ds}')">${d}</div>`;
+
+async function loadMarketCommentary(force) {
+  const el = document.getElementById('marketCommentary');
+  if (!force && CACHE['mkt_commentary']) { renderCommentary(el, CACHE['mkt_commentary']); return; }
+  showLoading(el);
+  try {
+    const data = await apiFetch('/api/markets/commentary', { body: JSON.stringify({}) }, 'mkt_commentary', 15 * 60000);
+    renderCommentary(el, data);
+  } catch (e) {
+    showError(el, 'Failed to load commentary.');
   }
-  const rem=(7-(first+total)%7)%7;
-  for(let i=1;i<=rem;i++)h+=`<div class="cal-day other-month">${i}</div>`;
-  document.getElementById('calGrid').innerHTML=h;
 }
-function changeMonth(d){calMonth+=d;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}renderCalendar();}
-function selectCalDate(d,ds){selectedCalDate=new Date(calYear,calMonth,d);renderCalendar();if(selectedCountry)loadPressReleases(selectedCountry,ds,'calReleasePanel');}
-function selectCountryCal(country){
-  selectedCountry=country;
-  document.querySelectorAll('[id^="cbtn-cal-"]').forEach(b=>b.classList.remove('active'));
-  const btn=document.getElementById('cbtn-cal-'+country.replace(/\s/g,'_'));if(btn)btn.classList.add('active');
-  const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(selectedCalDate.getDate()).padStart(2,'0')}`;
-  loadPressReleases(country,ds,'calReleasePanel');
+
+function renderCommentary(el, d) {
+  const sections = [
+    { key: 'summary', label: 'Overview' },
+    { key: 'us_commentary', label: '🇺🇸 US Markets' },
+    { key: 'europe_commentary', label: '🇪🇺 European Markets' },
+    { key: 'asia_commentary', label: '🌏 Asian Markets' },
+    { key: 'mideast_commentary', label: '🌙 Middle East Markets' },
+    { key: 'oil_commentary', label: '⚡ Crude Oil' },
+    { key: 'gold_commentary', label: '🥇 Gold & Metals' },
+    { key: 'fx_commentary', label: '💱 FX Markets' },
+  ];
+  let html = `<div style="font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:16px;">${esc(d.headline || 'Market Intelligence')}</div>`;
+  sections.forEach(s => {
+    if (d[s.key]) {
+      html += `<div class="commentary-section">
+        <div class="commentary-label">${s.label}</div>
+        <div class="commentary-text">${esc(d[s.key])}</div>
+      </div>`;
+    }
+  });
+  if (d.sources?.length) {
+    html += `<div class="citation-bar">📎 Sources: `;
+    d.sources.forEach(s => { html += `<a class="citation-link" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a> `; });
+    html += `</div>`;
+  }
+  el.innerHTML = html;
 }
-function selectCountryDay(country){
-  document.querySelectorAll('[id^="cbtn-day-"]').forEach(b=>b.classList.remove('active'));
-  const btn=document.getElementById('cbtn-day-'+country.replace(/\s/g,'_'));if(btn)btn.classList.add('active');
-  loadPressReleases(country,new Date().toISOString().split('T')[0],'dayReleaseContent');
+
+// ── PRESS RELEASES ────────────────────────────────────────────
+function selectPressRegion(btn, region) {
+  document.querySelectorAll('#pressRegionPills .pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentPressRegion = region;
+  LS.set('lastPressRegion', region);
+  delete CACHE['press_' + region];
+  loadPress(region);
 }
-async function loadPressReleases(country,date,targetId){
-  const el=document.getElementById(targetId);if(!el)return;
-  el.innerHTML=`<div class="load-msg"><span class="spinner"></span>Searching ${country} government sources…</div>`;
-  try{
-    const data=await post('/api/press-releases',{country,date});
-    const releases=data.releases||[];
-    if(!releases.length){el.innerHTML='<p class="load-msg">No press releases found.</p>';return;}
-    const cats={"Foreign Policy":"#dbeafe","Economy":"#dcfce7","Defense":"#fee2e2","Health":"#fce7f3","Environment":"#d1fae5","Social":"#fef3c7","Infrastructure":"#e0e7ff","Justice":"#f3e8ff"};
-    el.innerHTML=`<div class="country-panel">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)">
-        <div style="font-family:var(--serif);font-size:20px;font-weight:700">${FLAGS[data.country]||'🏳'} ${data.country}</div>
-        <div style="font-size:12px;color:var(--muted)">${new Date(data.date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
+
+async function loadPress(region) {
+  const el = document.getElementById('pressContent');
+  el.innerHTML = '<div class="loading-state" style="grid-column:1/-1;"><div class="loading-spinner"></div>Loading…</div>';
+  try {
+    const data = await apiFetch('/api/press-releases', { body: JSON.stringify({ region }) }, 'press_' + region, 20 * 60000);
+    renderPress(el, data.releases || []);
+  } catch (e) {
+    el.innerHTML = `<div class="error-state" style="grid-column:1/-1;">Failed to load press releases.</div>`;
+  }
+}
+
+function refreshPress() {
+  delete CACHE['press_' + currentPressRegion];
+  loadPress(currentPressRegion);
+}
+
+function pressCardClass(cat) {
+  const map = { 'Foreign Policy': 'cat-fp', 'Economy': 'cat-eco', 'Defense': 'cat-def', 'Health': 'cat-health', 'Environment': 'cat-env', 'Social': 'cat-social', 'Infrastructure': 'cat-inf', 'Justice': 'cat-just' };
+  return map[cat] || '';
+}
+function pressBadgeClass(cat) {
+  const map = { 'Foreign Policy': 'cat-badge-fp', 'Economy': 'cat-badge-eco', 'Defense': 'cat-badge-def', 'Health': 'cat-badge-health', 'Environment': 'cat-badge-env' };
+  return map[cat] || 'cat-badge-other';
+}
+
+function renderPress(el, releases) {
+  if (!releases.length) { el.innerHTML = `<div class="error-state" style="grid-column:1/-1;">No releases found.</div>`; return; }
+  el.innerHTML = releases.map(r => `
+    <div class="press-card ${pressCardClass(r.category)}">
+      <div class="press-card-header">
+        <div class="press-flag">${esc(r.flag || '📄')}</div>
+        <div class="press-title">${esc(r.title)}</div>
       </div>
-      ${releases.map(r=>`<div class="pr-card">
-        <div class="pr-card-header"><div class="pr-card-title">${r.title}</div><span class="pr-cat" style="background:${cats[r.category]||'var(--bg2)'}">${r.category||'General'}</span></div>
-        <div class="pr-ministry">📌 ${r.ministry||'Government Office'}</div>
-        <div class="pr-body">${r.summary}</div>
-        <div class="citation-bar" style="margin-top:6px">⚠️ AI estimate · <a class="citation-link" href="${r.sourceUrl||r.verifyUrl||('https://www.google.com/search?q=official+press+release+'+encodeURIComponent(data.country||''))}" target="_blank">Verify at official source ↗</a> · <a class="citation-link" href="https://www.google.com/search?q=${encodeURIComponent((r.title||'')+ ' ' + (data.country||''))}" target="_blank">Search this release ↗</a></div>
-      </div>`).join('')}
-    </div>`;
-  }catch(e){el.innerHTML=`<p class="load-msg">Error: ${e.message}</p>`;}
+      <div class="press-meta">
+        <span class="press-country">${esc(r.country || '')}</span>
+        <span class="press-ministry">${esc(r.ministry || '')}</span>
+        <span class="press-cat-badge ${pressBadgeClass(r.category)}">${esc(r.category || 'Official')}</span>
+      </div>
+      <div class="press-summary">${esc(r.summary)}</div>
+      ${r.sourceUrl ? `<a class="press-source-link" href="${esc(r.sourceUrl)}" target="_blank" rel="noopener">🔗 Official Source →</a>` : ''}
+    </div>
+  `).join('');
 }
 
-// ── ARCHIVE ────────────────────────────────────────────────────────────────
-function renderArchive(){
-  document.getElementById('archiveList').innerHTML=TOPICS.map(t=>`
-    <div class="archive-card" onclick="switchTab('briefing');renderBriefingPage('${t}')">
-      <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">${t}</div>
-      <div style="font-family:var(--serif);font-size:17px;font-weight:700;color:var(--text)">Generate live briefing on ${t}</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:5px">🤖 AI-generated · click to generate briefing</div>
-    </div>`).join('');
-}
+// ── ASK ────────────────────────────────────────────────────────
+let askHistory = [];
 
-// ── ASSISTANT ──────────────────────────────────────────────────────────────
-async function sendChat(){
-  const input=document.getElementById('assistantInput');
-  const msg=input.value.trim();if(!msg)return;
-  input.value='';
-  const history=document.getElementById('chatHistory');
-  history.innerHTML+=`<div class="chat-bubble chat-user">${msg}</div>`;
-  const aiId='ai_'+Date.now();
-  history.innerHTML+=`<div class="chat-bubble chat-ai" id="${aiId}"><span class="spinner"></span>Searching…</div>`;
-  history.scrollTop=history.scrollHeight;
-  try{
-    const r=await post('/api/news',{topic:msg});
-    const el=document.getElementById(aiId);
-    if(el){
-      const text=r.summary||(r.items||[]).map(i=>i.title+': '+i.body).join('\n\n')||'No results found.';
-      let i=0;el.innerHTML='';
-      const iv=setInterval(()=>{if(i<text.length)el.innerHTML=text.slice(0,++i).replace(/\n\n/g,'<br><br>');else clearInterval(iv);},10);
-    }
-  }catch{const el=document.getElementById(aiId);if(el)el.innerHTML='Unable to process request.';}
-}
+async function sendAsk() {
+  const input = document.getElementById('askInput');
+  const q = input.value.trim();
+  if (!q) return;
+  input.value = '';
+  const messagesEl = document.getElementById('askMessages');
 
-// ── DARK MODE ──────────────────────────────────────────────────────────────
-function toggleAutoRefresh(){
-  const btn=document.getElementById('autoRefreshToggle');
-  btn.classList.toggle('on');
-  const on=btn.classList.contains('on');
-  MEM.set('autoRefresh',on);
-  if(!on&&autoRefreshTimer){clearInterval(autoRefreshTimer);autoRefreshTimer=null;}
-  else if(on) setRefreshInterval(currentRefreshMins);
-}
+  // Add user message
+  messagesEl.innerHTML += `<div class="msg-user">${esc(q)}</div>`;
+  messagesEl.innerHTML += `<div class="msg-ai" id="askLoading"><div class="loading-spinner"></div></div>`;
+  messagesEl.scrollTop = messagesEl.scrollHeight;
 
-function toggleCitations(){
-  const btn=document.getElementById('citationsToggle');
-  btn.classList.toggle('on');
-  const on=btn.classList.contains('on');
-  MEM.set('citations',on);
-  document.querySelectorAll('.citation-bar').forEach(el=>el.style.display=on?'':'none');
-}
+  askHistory.push({ role: 'user', content: q });
 
-function toggleAiBadge(){
-  const btn=document.getElementById('aiBadgeToggle');
-  btn.classList.toggle('on');
-  const on=btn.classList.contains('on');
-  MEM.set('aiBadge',on);
-  document.querySelectorAll('.ai-badge').forEach(el=>el.style.display=on?'':'none');
-}
-
-function setDefaultTopic(t){
-  MEM.set('defaultTopic',t);
-  document.querySelectorAll('[id^="dtbtn-"]').forEach(b=>b.classList.remove('active'));
-  const btn=document.getElementById('dtbtn-'+t);if(btn)btn.classList.add('active');
-}
-
-function toggleSource(id,btn){
-  btn.classList.toggle('on');
-  const sources=MEM.get('disabledSources',[]);
-  if(btn.classList.contains('on')){
-    MEM.set('disabledSources',sources.filter(s=>s!==id));
-  } else {
-    if(!sources.includes(id))sources.push(id);
-    MEM.set('disabledSources',sources);
+  try {
+    const data = await apiFetch('/api/briefing', { body: JSON.stringify({ topic: q }) });
+    const a = data.analysis || {};
+    const answer = [a.executive, a.geopolitical, a.economic].filter(Boolean).join('\n\n') || 'No response.';
+    document.getElementById('askLoading')?.remove();
+    const aiEl = document.createElement('div');
+    aiEl.className = 'msg-ai';
+    aiEl.innerHTML = esc(answer).replace(/\n\n/g, '<br/><br/>');
+    messagesEl.appendChild(aiEl);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    askHistory.push({ role: 'assistant', content: answer });
+  } catch (e) {
+    document.getElementById('askLoading')?.remove();
+    const aiEl = document.createElement('div');
+    aiEl.className = 'msg-ai';
+    aiEl.textContent = 'Failed to get a response. Please try again.';
+    messagesEl.appendChild(aiEl);
   }
 }
 
-function clearAllCache(){
-  newsCache={};briefingCache={};advisoryCache={};airspaceCache={};window._marketsCache=null;
-  const btn=event.target;
-  btn.textContent='✓ Cleared!';btn.style.color='var(--green)';
-  setTimeout(()=>{btn.textContent='Clear Cache';btn.style.color='';},2000);
+// ── BREAKING TICKER ────────────────────────────────────────────
+async function loadBreakingTicker() {
+  try {
+    const data = await apiFetch('/api/rss/breaking', {}, 'ticker', 5 * 60000);
+    const items = data.items || [];
+    if (!items.length) return;
+    const html = [...items, ...items].map(i => `<a ${i.link ? `href="${esc(i.link)}" target="_blank" rel="noopener"` : ''}>🔴 ${esc(i.title)} <span style="opacity:.5;font-size:10px;">[${esc(i.source)}]</span></a>`).join('');
+    document.getElementById('tickerTrack').innerHTML = html;
+  } catch (e) {}
 }
 
-function resetAllSettings(){
-  if(!confirm('Reset all settings and clear session memory?'))return;
-  ['lastTab','lastTopic','lastSearch','lastBriefTopic','darkMode','refreshMins',
-   'autoRefresh','citations','aiBadge','defaultTopic','disabledSources'].forEach(k=>localStorage.removeItem('briefly_'+k));
-  location.reload();
+// ── SETTINGS ───────────────────────────────────────────────────
+function toggleDarkMode() {
+  const isDark = document.getElementById('darkModeToggle').checked;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  LS.set('darkMode', isDark);
 }
 
-function initSettingsUI(){
-  // Restore interval buttons
-  const mins=MEM.get('refreshMins',15);
-  document.querySelectorAll('[id^="ibtn-"]').forEach(b=>b.classList.remove('active'));
-  const ib=document.getElementById('ibtn-'+mins);if(ib)ib.classList.add('active');
-  document.getElementById('settingsRefreshLabel').textContent=mins;
-
-  // Restore default topic button
-  const dt=MEM.get('defaultTopic','World');
-  const db=document.getElementById('dtbtn-'+dt);if(db)db.classList.add('active');
-
-  // Restore citations toggle
-  const cit=MEM.get('citations',true);
-  const cb=document.getElementById('citationsToggle');
-  if(cb&&!cit)cb.classList.remove('on');
-  if(!cit)document.querySelectorAll('.citation-bar').forEach(el=>el.style.display='none');
-
-  // Restore AI badge toggle
-  const aib=MEM.get('aiBadge',true);
-  const ab=document.getElementById('aiBadgeToggle');
-  if(ab&&!aib)ab.classList.remove('on');
-  if(!aib)document.querySelectorAll('.ai-badge').forEach(el=>el.style.display='none');
-
-  // Restore disabled sources
-  const disabled=MEM.get('disabledSources',[]);
-  disabled.forEach(id=>{
-    const btn=document.getElementById(id);
-    if(btn)btn.classList.remove('on');
-  });
-
-  // Restore auto-refresh toggle state
-  const ar=MEM.get('autoRefresh',true);
-  const arb=document.getElementById('autoRefreshToggle');
-  if(arb&&!ar)arb.classList.remove('on');
+function toggleAutoRefresh() {
+  autoRefreshEnabled = document.getElementById('autoRefreshToggle').checked;
+  LS.set('autoRefresh', autoRefreshEnabled);
+  setupRefreshTimer();
 }
 
-function toggleDarkMode(){
-  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
-  document.documentElement.setAttribute('data-theme',isDark?'light':'dark');
-  document.getElementById('darkModeToggle').classList.toggle('on',!isDark);
-  MEM.set('darkMode',!isDark);
-  if(leafletMap)setTimeout(()=>leafletMap.invalidateSize(),100);
+function toggleCitations() {
+  showCitations = document.getElementById('citationsToggle').checked;
+  LS.set('citations', showCitations);
+  if (currentTab === 'news') loadNews(currentRegion);
 }
 
-// ── TABS ───────────────────────────────────────────────────────────────────
-const ALL_TABS=['news','briefing','airspace','advisories','markets','press','archive','assistant','settings'];
-function switchTab(tab, isRestore=false){
-  ALL_TABS.forEach(t=>{
-    document.getElementById('tab-'+t).classList.toggle('hidden',t!==tab);
-    document.getElementById('nav-'+t).classList.toggle('active',t===tab);
-  });
-  if(!isRestore) MEM.set('lastTab',tab);
-  if(tab==='airspace'&&!leafletMap)initAirspace();
-  else if(tab==='airspace'&&leafletMap)setTimeout(()=>leafletMap.invalidateSize(),100);
-  if(tab==='advisories'&&!document.getElementById('advGrid').innerHTML.includes('adv-country'))initAdvisories();
-  if(tab==='markets'&&!document.getElementById('tickerCommodities').innerHTML.includes('ticker-card')){
-    if(window._marketsCache&&Date.now()-window._marketsCache.ts<5*60*1000){
-      const quotes=window._marketsCache.data.quotes||[];
-      renderTickerGroup('tickerCommodities',COMMODITIES,quotes);
-      renderTickerGroup('tickerIndices',INDICES,quotes);
-      renderTickerGroup('tickerFX',FX,quotes);
-      renderTickerGroup('tickerMENA',MENA,quotes);
-      document.getElementById('marketsLastRefresh').textContent=`Live prices · Last updated ${new Date().toLocaleTimeString()}`;
-      loadMarketCommentary();
-    } else {
-      loadMarkets();
-    }
+function toggleAiBadge() {
+  showAiBadge = document.getElementById('aiBadgeToggle').checked;
+  LS.set('aiBadge', showAiBadge);
+}
+
+function saveDefaultTopic() {
+  LS.set('defaultTopic', document.getElementById('defaultTopicSel').value);
+}
+
+function clearCache() {
+  Object.keys(CACHE).forEach(k => delete CACHE[k]);
+  alert('Cache cleared. Data will reload fresh.');
+}
+
+function resetAll() {
+  if (confirm('Reset all settings and clear cache?')) {
+    localStorage.clear();
+    location.reload();
   }
-  if(tab==='briefing'&&!document.getElementById('briefingMain').innerHTML.trim())renderBriefingPage(currentBriefingTopic);
-  if(tab==='news')loadNews(activeTopic);
 }
 
-// ── HELPERS ────────────────────────────────────────────────────────────────
-async function post(path,body){
-  const r=await fetch(B+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!r.ok)throw new Error(`HTTP ${r.status}`);
-  return r.json();
+function setRefreshInterval(mins) {
+  refreshIntervalMins = mins;
+  LS.set('refreshMins', mins);
+  const label = document.getElementById('refreshLabel');
+  if (label) label.textContent = `Live · ${mins}min`;
+  // Update popover active state
+  [5,10,15,30,60].forEach(m => {
+    const el = document.getElementById('ro' + m);
+    if (el) el.classList.toggle('active', m === mins);
+  });
+  // Update interval buttons in settings
+  document.querySelectorAll('.interval-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.textContent) === mins);
+  });
+  setupRefreshTimer();
 }
-function skels(){return['80%','60%','90%','70%'].map(w=>`<div class="skeleton" style="height:14px;width:${w};margin-bottom:12px"></div>`).join('');}
 
-init();
+function toggleRefreshPopover(e) {
+  e.stopPropagation();
+  document.getElementById('refreshPopover').classList.toggle('open');
+}
+document.addEventListener('click', () => document.getElementById('refreshPopover').classList.remove('open'));
+
+function setupRefreshTimer() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  if (!autoRefreshEnabled) return;
+  refreshTimer = setInterval(() => {
+    if (currentTab === 'news') loadNews(currentRegion);
+    else if (currentTab === 'brief' && currentBriefTopic) { delete CACHE['brief_' + currentBriefTopic]; generateBrief(); }
+    else if (currentTab === 'markets') loadMarkets(true);
+  }, refreshIntervalMins * 60 * 1000);
+}
+
+function initSettingsUI() {
+  document.getElementById('darkModeToggle').checked = LS.get('darkMode', false);
+  document.getElementById('autoRefreshToggle').checked = autoRefreshEnabled;
+  document.getElementById('citationsToggle').checked = showCitations;
+  document.getElementById('aiBadgeToggle').checked = showAiBadge;
+  const defSel = document.getElementById('defaultTopicSel');
+  if (defSel) defSel.value = LS.get('defaultTopic', 'Global/World');
+  document.querySelectorAll('.interval-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.textContent) === refreshIntervalMins);
+  });
+}
+
+// ── UTILITIES ─────────────────────────────────────────────────
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function formatDate(str) {
+  try {
+    const d = new Date(str);
+    if (isNaN(d)) return str;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch { return str; }
+}
+
+// ── BACKGROUND PRELOADER ───────────────────────────────────────
+async function backgroundPreload() {
+  const badge = document.getElementById('preloadBadge');
+  badge.style.display = 'flex';
+  badge.textContent = '⚙ Preloading tabs…';
+  try {
+    await loadMarkets();
+    await loadBreakingTicker();
+    badge.textContent = '✓ All tabs ready';
+    setTimeout(() => { badge.style.display = 'none'; }, 3000);
+  } catch (e) {
+    badge.style.display = 'none';
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+(function init() {
+  // Apply saved theme
+  if (LS.get('darkMode', false)) document.documentElement.setAttribute('data-theme', 'dark');
+
+  // Restore state
+  showCitations = LS.get('citations', true);
+  showAiBadge = LS.get('aiBadge', true);
+  autoRefreshEnabled = LS.get('autoRefresh', true);
+  refreshIntervalMins = LS.get('refreshMins', 15);
+  archiveItems = LS.get('archive', []);
+  currentBriefTopic = LS.get('lastBrief', '');
+
+  // Apply refresh label
+  document.getElementById('refreshLabel').textContent = `Live · ${refreshIntervalMins}min`;
+  setRefreshInterval(refreshIntervalMins);
+
+  // Switch to last tab
+  const lastTab = LS.get('lastTab', 'news');
+  currentRegion = LS.get('lastRegion', LS.get('defaultTopic', 'Global/World'));
+
+  // Sync region pills
+  document.querySelectorAll('#regionPills .pill').forEach(b => {
+    const r = b.getAttribute('onclick')?.match(/'([^']+)'\)$/)?.[1];
+    if (r === currentRegion) b.classList.add('active');
+    else b.classList.remove('active');
+  });
+
+  switchTab(lastTab);
+
+  // Load ticker immediately
+  loadBreakingTicker();
+
+  // Background preload after 3s
+  setTimeout(backgroundPreload, 3000);
+
+  // Auto-refresh
+  setupRefreshTimer();
+})();
 </script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </body>
 </html>
