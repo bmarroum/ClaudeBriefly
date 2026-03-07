@@ -570,6 +570,12 @@ let leafletMap=null, mapMarkers=[];
 let marketsRefreshTimer=null;
 
 // ── INIT ───────────────────────────────────────────────────────────────────
+// ── SESSION MEMORY ─────────────────────────────────────────────────────────
+const MEM={
+  get(k,def=null){try{const v=localStorage.getItem('briefly_'+k);return v!==null?JSON.parse(v):def;}catch{return def;}},
+  set(k,v){try{localStorage.setItem('briefly_'+k,JSON.stringify(v));}catch{}},
+};
+
 function init(){
   renderTicker();
   renderTopicPills();
@@ -579,7 +585,30 @@ function init(){
   renderContinentList('dayCountryList','day');
   renderCalendar();
   document.getElementById('todayDateLabel').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  loadNews("World");
+
+  // Restore dark mode preference
+  if(MEM.get('darkMode',false)){
+    document.documentElement.setAttribute('data-theme','dark');
+    const t=document.getElementById('darkModeToggle');if(t)t.classList.add('on');
+  }
+
+  // Restore last session state
+  const lastTab=MEM.get('lastTab','news');
+  const lastTopic=MEM.get('lastTopic','World');
+  const lastSearch=MEM.get('lastSearch','');
+  const lastBriefTopic=MEM.get('lastBriefTopic','');
+
+  // Restore search box text
+  if(lastSearch){const si=document.getElementById('searchInput');if(si)si.value=lastSearch;}
+
+  // Restore last news topic pill
+  if(lastTopic&&lastTopic!==activeTopic){activeTopic=lastTopic;renderTopicPills();}
+
+  // Restore last briefing topic
+  if(lastBriefTopic)currentBriefingTopic=lastBriefTopic;
+
+  // Restore last tab and trigger its content
+  setTimeout(()=>switchTab(lastTab,true),50);
 }
 
 function renderTicker(){
@@ -604,10 +633,12 @@ function renderTicker(){
 function renderTopicPills(){
   document.getElementById('topicPills').innerHTML=TOPICS.map(t=>`<button class="pill${t===activeTopic?' active':''}" onclick="selectTopic('${t}')">${t}</button>`).join('');
 }
-function selectTopic(t){activeTopic=t;renderTopicPills();loadNews(t);}
+function selectTopic(t){activeTopic=t;MEM.set('lastTopic',t);renderTopicPills();loadNews(t);}
 function doSearch(){
   const v=document.getElementById('searchInput').value.trim();
   if(!v)return;
+  MEM.set('lastSearch',v);
+  MEM.set('lastBriefTopic',v);
   currentBriefingTopic=v;
   switchTab('briefing');
   renderBriefingPage(v);
@@ -754,7 +785,7 @@ function initAirspace(){
 
   // Init Leaflet map
   if(!leafletMap){
-    leafletMap=L.map('airspaceMap',{zoomControl:true,scrollWheelZoom:false}).setView([26,44],5);
+    leafletMap=L.map('airspaceMap',{zoomControl:true,scrollWheelZoom:false}).setView([26,44],4);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:10,subdomains:'abcd'}).addTo(leafletMap);
     // Add country markers
     ME_COUNTRIES.forEach(c=>{
@@ -1064,21 +1095,24 @@ function toggleDarkMode(){
   const isDark=document.documentElement.getAttribute('data-theme')==='dark';
   document.documentElement.setAttribute('data-theme',isDark?'light':'dark');
   document.getElementById('darkModeToggle').classList.toggle('on',!isDark);
+  MEM.set('darkMode',!isDark);
   if(leafletMap)setTimeout(()=>leafletMap.invalidateSize(),100);
 }
 
 // ── TABS ───────────────────────────────────────────────────────────────────
 const ALL_TABS=['news','briefing','airspace','advisories','markets','press','archive','assistant','settings'];
-function switchTab(tab){
+function switchTab(tab, isRestore=false){
   ALL_TABS.forEach(t=>{
     document.getElementById('tab-'+t).classList.toggle('hidden',t!==tab);
     document.getElementById('nav-'+t).classList.toggle('active',t===tab);
   });
+  if(!isRestore) MEM.set('lastTab',tab);
   if(tab==='airspace'&&!leafletMap)initAirspace();
   else if(tab==='airspace'&&leafletMap)setTimeout(()=>leafletMap.invalidateSize(),100);
   if(tab==='advisories'&&!document.getElementById('advGrid').innerHTML.includes('adv-country'))initAdvisories();
   if(tab==='markets'&&!document.getElementById('tickerCommodities').innerHTML.includes('ticker-card'))loadMarkets();
   if(tab==='briefing'&&!document.getElementById('briefingMain').innerHTML.trim())renderBriefingPage(currentBriefingTopic);
+  if(tab==='news')loadNews(activeTopic);
 }
 
 // ── HELPERS ────────────────────────────────────────────────────────────────

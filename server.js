@@ -78,41 +78,55 @@ async function fetchRSS(url) {
   return items.slice(0, 8);
 }
 
-// RSS feeds by topic
+// RSS feeds by topic — Reuters, BBC, Al Jazeera, AP, FT, Guardian
 const RSS_FEEDS = {
   World: [
     { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters", sourceUrl: "https://reuters.com" },
-    { url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml", source: "NY Times", sourceUrl: "https://nytimes.com" },
     { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC News", sourceUrl: "https://bbc.com/news" },
+    { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera", sourceUrl: "https://aljazeera.com" },
+    { url: "https://feeds.ap.org/rss/apf-topnews", source: "AP News", sourceUrl: "https://apnews.com" },
+    { url: "https://www.theguardian.com/world/rss", source: "The Guardian", sourceUrl: "https://theguardian.com/world" },
   ],
   Technology: [
     { url: "https://feeds.reuters.com/reuters/technologyNews", source: "Reuters Tech", sourceUrl: "https://reuters.com/technology" },
-    { url: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml", source: "NY Times Tech", sourceUrl: "https://nytimes.com/section/technology" },
     { url: "https://feeds.bbci.co.uk/news/technology/rss.xml", source: "BBC Tech", sourceUrl: "https://bbc.com/news/technology" },
+    { url: "https://www.theguardian.com/technology/rss", source: "The Guardian Tech", sourceUrl: "https://theguardian.com/technology" },
+    { url: "https://feeds.ap.org/rss/apf-technology", source: "AP Tech", sourceUrl: "https://apnews.com/technology" },
   ],
   Finance: [
     { url: "https://feeds.reuters.com/reuters/businessNews", source: "Reuters Business", sourceUrl: "https://reuters.com/business" },
-    { url: "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml", source: "NY Times Business", sourceUrl: "https://nytimes.com/section/business" },
+    { url: "https://feeds.bbci.co.uk/news/business/rss.xml", source: "BBC Business", sourceUrl: "https://bbc.com/news/business" },
+    { url: "https://www.theguardian.com/business/rss", source: "The Guardian Business", sourceUrl: "https://theguardian.com/business" },
+    { url: "https://feeds.ap.org/rss/apf-business", source: "AP Business", sourceUrl: "https://apnews.com/business" },
   ],
   Geopolitics: [
-    { url: "https://feeds.reuters.com/Reuters/worldNews", source: "Reuters World", sourceUrl: "https://reuters.com/world" },
+    { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters", sourceUrl: "https://reuters.com/world" },
     { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC World", sourceUrl: "https://bbc.com/news/world" },
+    { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera", sourceUrl: "https://aljazeera.com" },
+    { url: "https://www.theguardian.com/world/rss", source: "The Guardian", sourceUrl: "https://theguardian.com/world" },
+    { url: "https://foreignpolicy.com/feed/", source: "Foreign Policy", sourceUrl: "https://foreignpolicy.com" },
   ],
   Science: [
     { url: "https://feeds.reuters.com/reuters/scienceNews", source: "Reuters Science", sourceUrl: "https://reuters.com/science" },
-    { url: "https://rss.nytimes.com/services/xml/rss/nyt/Science.xml", source: "NY Times Science", sourceUrl: "https://nytimes.com/section/science" },
+    { url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml", source: "BBC Science", sourceUrl: "https://bbc.com/news/science_and_environment" },
+    { url: "https://www.theguardian.com/science/rss", source: "The Guardian Science", sourceUrl: "https://theguardian.com/science" },
   ],
   Climate: [
     { url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml", source: "BBC Environment", sourceUrl: "https://bbc.com/news/science_and_environment" },
-    { url: "https://rss.nytimes.com/services/xml/rss/nyt/Climate.xml", source: "NY Times Climate", sourceUrl: "https://nytimes.com/section/climate" },
+    { url: "https://www.theguardian.com/environment/climate-crisis/rss", source: "The Guardian Climate", sourceUrl: "https://theguardian.com/environment/climate-crisis" },
+    { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera", sourceUrl: "https://aljazeera.com" },
   ],
   Health: [
     { url: "https://feeds.reuters.com/reuters/healthNews", source: "Reuters Health", sourceUrl: "https://reuters.com/business/healthcare-pharmaceuticals" },
     { url: "https://feeds.bbci.co.uk/news/health/rss.xml", source: "BBC Health", sourceUrl: "https://bbc.com/news/health" },
+    { url: "https://www.theguardian.com/society/health/rss", source: "The Guardian Health", sourceUrl: "https://theguardian.com/society/health" },
+    { url: "https://feeds.ap.org/rss/apf-Health", source: "AP Health", sourceUrl: "https://apnews.com/health" },
   ],
   Defense: [
-    { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters World", sourceUrl: "https://reuters.com/world" },
+    { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters", sourceUrl: "https://reuters.com/world" },
     { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC World", sourceUrl: "https://bbc.com/news/world" },
+    { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera", sourceUrl: "https://aljazeera.com" },
+    { url: "https://feeds.ap.org/rss/apf-topnews", source: "AP News", sourceUrl: "https://apnews.com" },
   ],
 };
 
@@ -182,16 +196,19 @@ app.get("/api/rss/breaking", async (req, res) => {
   const feeds = [
     { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters", sourceUrl: "https://reuters.com" },
     { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC", sourceUrl: "https://bbc.com/news" },
+    { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera", sourceUrl: "https://aljazeera.com" },
+    { url: "https://feeds.ap.org/rss/apf-topnews", source: "AP News", sourceUrl: "https://apnews.com" },
     { url: "https://feeds.reuters.com/reuters/businessNews", source: "Reuters Business", sourceUrl: "https://reuters.com/business" },
+    { url: "https://www.theguardian.com/world/rss", source: "The Guardian", sourceUrl: "https://theguardian.com/world" },
   ];
   const items = [];
   for (const feed of feeds) {
     try {
       const rssItems = await fetchRSS(feed.url);
-      rssItems.slice(0, 3).forEach(item => items.push({ ...item, source: feed.source, sourceUrl: feed.sourceUrl }));
+      rssItems.slice(0, 2).forEach(item => items.push({ ...item, source: feed.source, sourceUrl: feed.sourceUrl }));
     } catch (e) { console.warn("Breaking RSS failed:", e.message); }
   }
-  res.json({ items: items.slice(0, 12) });
+  res.json({ items: items.slice(0, 15) });
 });
 
 // ── BRIEFING ─────────────────────────────────────────────────────────────
