@@ -662,7 +662,7 @@ function initAirspace(){
   // Init Leaflet map
   if(!leafletMap){
     leafletMap=L.map('airspaceMap',{zoomControl:true,scrollWheelZoom:false}).setView([26,44],5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:10}).addTo(leafletMap);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:10,subdomains:'abcd'}).addTo(leafletMap);
     // Add country markers
     ME_COUNTRIES.forEach(c=>{
       const m=L.circleMarker([c.lat,c.lng],{radius:10,color:'#888',fillColor:'#aaa',fillOpacity:0.7,weight:2})
