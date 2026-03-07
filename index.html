@@ -91,6 +91,7 @@ main{max-width:1120px;margin:0 auto;padding:0 20px;}
 .brief-content strong{font-weight:600;color:var(--text);}
 .brief-source{color:var(--muted);font-size:12px;font-style:italic;}
 .ai-badge{display:inline-flex;align-items:center;gap:4px;background:#f0f4ff;color:#4f46e5;border:1px solid #c7d2fe;border-radius:20px;font-size:10px;font-weight:600;padding:2px 8px;margin-left:6px;vertical-align:middle;text-decoration:none;}
+[data-theme="dark"] .refresh-indicator{background:rgba(22,163,74,0.15);border-color:rgba(22,163,74,0.3);color:#4ade80;}
 [data-theme="dark"] .ai-badge{background:rgba(79,70,229,0.15);border-color:rgba(79,70,229,0.3);color:#818cf8;}
 .ai-badge:hover{opacity:.8;}
 .citation-bar{font-size:11px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
@@ -126,9 +127,18 @@ main{max-width:1120px;margin:0 auto;padding:0 20px;}
 .section-heading{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-size:19px;font-weight:700;margin-bottom:10px;}
 .section-heading::before{content:'';width:4px;height:21px;background:var(--text);border-radius:2px;flex-shrink:0;}
 .section-body{font-family:var(--body);font-size:15px;line-height:1.85;color:var(--text2);}
-.refresh-indicator{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
-.refresh-dot{width:6px;height:6px;border-radius:50%;background:#16a34a;animation:rpulse 2s infinite;}
-@keyframes rpulse{0%,100%{opacity:1}50%{opacity:.4}}
+.refresh-indicator{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#16a34a;background:#dcfce7;border:1px solid #86efac;border-radius:20px;padding:3px 10px;letter-spacing:.02em;position:relative;}
+.refresh-dot{width:6px;height:6px;border-radius:50%;background:#16a34a;flex-shrink:0;animation:rpulse 2s infinite;}
+@keyframes rpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.refresh-settings-btn{background:none;border:none;cursor:pointer;font-size:12px;padding:0 2px;color:#16a34a;line-height:1;opacity:.7;transition:opacity .15s;}
+.refresh-settings-btn:hover{opacity:1;}
+.refresh-popover{display:none;position:absolute;top:calc(100% + 8px);left:0;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow-md);z-index:300;min-width:200px;}
+.refresh-popover.open{display:block;}
+.refresh-popover-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;}
+.refresh-option{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text);transition:background .15s;}
+.refresh-option:hover{background:var(--bg2);}
+.refresh-option.active{background:var(--bg2);color:#16a34a;font-weight:700;}
+.refresh-option input[type=radio]{accent-color:#16a34a;}
 
 /* ── AIRSPACE ── */
 .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
@@ -273,6 +283,13 @@ main{max-width:1120px;margin:0 auto;padding:0 20px;}
 .settings-row{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--border);}
 .settings-row:last-child{border-bottom:none;}
 .settings-label{font-size:15px;font-weight:500;}
+.settings-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.settings-section-title{font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:4px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.interval-btn{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;}
+.interval-btn:hover{border-color:#aaa;color:var(--text);}
+.interval-btn.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+.btn-outline{background:none;border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--sans);cursor:pointer;transition:all .15s;}
+.btn-outline:hover{background:var(--bg2);}
 .settings-sub{font-size:12px;color:var(--muted);margin-top:2px;}
 .toggle{width:46px;height:27px;background:#ccc;border-radius:14px;position:relative;cursor:pointer;transition:background .25s;border:none;flex-shrink:0;}
 .toggle.on{background:var(--text);}
@@ -476,15 +493,98 @@ main{max-width:1120px;margin:0 auto;padding:0 20px;}
 
 <!-- SETTINGS -->
 <div id="tab-settings" class="hidden">
-  <div class="card">
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
-      <div class="news-icon">⚙️</div><div class="news-headline">Settings</div>
+  <div style="max-width:680px;margin:0 auto;">
+
+    <!-- APPEARANCE -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="settings-section-title">🎨 Appearance</div>
+      <div class="settings-row">
+        <div><div class="settings-label">Dark Mode</div><div class="settings-sub">Switch to dark theme</div></div>
+        <button class="toggle" id="darkModeToggle" onclick="toggleDarkMode()"></button>
+      </div>
     </div>
-    <div class="settings-row"><div><div class="settings-label">🌙 Dark Mode</div><div class="settings-sub">Switch to dark theme</div></div><button class="toggle" id="darkModeToggle" onclick="toggleDarkMode()"></button></div>
-    <div class="settings-row"><div><div class="settings-label">🔄 Auto-Refresh Briefings</div><div class="settings-sub">Refresh every 15 minutes</div></div><button class="toggle on" id="autoRefreshToggle" onclick="this.classList.toggle('on')"></button></div>
-    <div class="settings-row"><div><div class="settings-label">📬 Daily Briefing</div><div class="settings-sub">Morning intelligence digest</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
-    <div class="settings-row"><div><div class="settings-label">🚨 Breaking Alerts</div><div class="settings-sub">Notify on major developments</div></div><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
-    <div class="settings-row"><div><div class="settings-label">📎 Source Citations</div><div class="settings-sub">Show sources alongside briefings</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+
+    <!-- REFRESH -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="settings-section-title">🔄 Auto-Refresh</div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Auto-Refresh Briefings</div>
+          <div class="settings-sub" id="autoRefreshSub">Refreshes every <strong id="settingsRefreshLabel">15</strong> minutes</div>
+        </div>
+        <button class="toggle on" id="autoRefreshToggle" onclick="toggleAutoRefresh()"></button>
+      </div>
+      <div id="refreshIntervalRow" style="padding:12px 0 4px">
+        <div class="settings-sub" style="margin-bottom:10px">Refresh interval</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${[5,10,15,30,60].map(m=>`<button class="interval-btn${m===15?' active':''}" id="ibtn-${m}" onclick="setRefreshInterval(${m})">${m}min</button>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- SOURCE CITATIONS -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="settings-section-title">📎 Source Citations</div>
+      <div class="settings-row">
+        <div><div class="settings-label">Show source citations</div><div class="settings-sub">Display verify links below each news item and briefing section</div></div>
+        <button class="toggle on" id="citationsToggle" onclick="toggleCitations()"></button>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-label">Show AI badge</div><div class="settings-sub">Display 🤖 AI Analysis badge on news cards</div></div>
+        <button class="toggle on" id="aiBadgeToggle" onclick="toggleAiBadge()"></button>
+      </div>
+    </div>
+
+    <!-- DEFAULT TOPIC -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="settings-section-title">🌐 Default News Topic</div>
+      <div class="settings-sub" style="margin-bottom:12px">Which topic loads when you open the News tab</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="defaultTopicBtns">
+        ${['World','Technology','Finance','Geopolitics','Science','Climate','Health','Defense'].map(t=>`<button class="interval-btn" id="dtbtn-${t}" onclick="setDefaultTopic('${t}')">${t}</button>`).join('')}
+      </div>
+    </div>
+
+    <!-- NEWS SOURCES -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="settings-section-title">📡 Preferred News Sources</div>
+      <div class="settings-sub" style="margin-bottom:12px">Sources to prioritise in the News tab and breaking ticker</div>
+      <div id="sourceToggles">
+        ${[
+          {id:'src-reuters', label:'Reuters', sub:'Global wire service'},
+          {id:'src-bbc',     label:'BBC News', sub:'International broadcast'},
+          {id:'src-alj',     label:'Al Jazeera', sub:'Middle East focus'},
+          {id:'src-ap',      label:'AP News', sub:'US wire service'},
+          {id:'src-guardian',label:'The Guardian', sub:'In-depth reporting'},
+          {id:'src-fp',      label:'Foreign Policy', sub:'Geopolitics specialist'},
+        ].map(s=>`
+        <div class="settings-row">
+          <div><div class="settings-label">${s.label}</div><div class="settings-sub">${s.sub}</div></div>
+          <button class="toggle on" id="${s.id}" onclick="toggleSource('${s.id}',this)"></button>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- CLEAR CACHE -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="settings-section-title">🗄 Data & Cache</div>
+      <div class="settings-row">
+        <div><div class="settings-label">Clear cached data</div><div class="settings-sub">Force all tabs to reload fresh data on next visit</div></div>
+        <button class="btn-outline" onclick="clearAllCache()" style="font-size:13px;padding:7px 16px">Clear Cache</button>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-label">Reset all settings</div><div class="settings-sub">Restore defaults and clear session memory</div></div>
+        <button class="btn-outline" onclick="resetAllSettings()" style="font-size:13px;padding:7px 16px;border-color:var(--red);color:var(--red)">Reset</button>
+      </div>
+    </div>
+
+    <!-- ABOUT -->
+    <div class="card">
+      <div class="settings-section-title">ℹ️ About</div>
+      <div class="settings-row" style="border:none">
+        <div><div class="settings-label">Briefly Intelligence</div><div class="settings-sub">AI-powered analysis · Live RSS from Reuters, BBC, Al Jazeera, AP, The Guardian · Powered by Claude (Anthropic)</div></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -567,7 +667,36 @@ const MENA = [{s:"TADAWUL.SR",n:"Tadawul (KSA)"},{s:"ADX.AD",n:"ADX (UAE)"},{s:"
 // ── STATE ──────────────────────────────────────────────────────────────────
 let activeTopic="World", currentBriefingTopic="World";
 let briefingCache={}, newsCache={}, airspaceCache={}, advisoryCache={};
-let autoRefreshTimer=null;
+let currentRefreshMins=15;
+
+function toggleRefreshPopover(e){
+  e.stopPropagation();
+  document.getElementById('refreshPopover').classList.toggle('open');
+}
+function setRefreshInterval(mins){
+  currentRefreshMins=mins;
+  MEM.set('refreshMins',mins);
+  // Update indicator badge
+  document.getElementById('refreshLabel').textContent=`Live · Auto-refresh ${mins}min`;
+  // Update settings page label
+  const sl=document.getElementById('settingsRefreshLabel');if(sl)sl.textContent=mins;
+  // Update interval buttons in both places
+  document.querySelectorAll('.refresh-option,[id^="ibtn-"]').forEach(el=>{
+    const v=parseInt(el.querySelector?.('input')?.value||el.id.replace('ibtn-',''));
+    el.classList.toggle('active',v===mins);
+    const inp=el.querySelector?.('input');if(inp)inp.checked=(v===mins);
+  });
+  // Restart timer
+  if(autoRefreshTimer)clearInterval(autoRefreshTimer);
+  autoRefreshTimer=setInterval(()=>{
+    if(document.getElementById('autoRefreshToggle').classList.contains('on')){
+      briefingCache[currentBriefingTopic]=null;fetchLiveBriefing(currentBriefingTopic);
+    }
+  },mins*60*1000);
+  document.getElementById('refreshPopover').classList.remove('open');
+}
+// Close popover when clicking outside
+document.addEventListener('click',()=>document.getElementById('refreshPopover')?.classList.remove('open'));
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 let selectedCalDate=new Date(), selectedCountry=null;
 let leafletMap=null, mapMarkers=[];
@@ -611,8 +740,15 @@ function init(){
   // Restore last briefing topic
   if(lastBriefTopic)currentBriefingTopic=lastBriefTopic;
 
+  // Restore saved refresh interval
+  const savedMins=MEM.get('refreshMins',15);
+  if(savedMins!==15)setRefreshInterval(savedMins);
+
   // Restore last tab and trigger its content
   setTimeout(()=>switchTab(lastTab,true),50);
+
+  // Init settings UI state
+  setTimeout(()=>initSettingsUI(),100);
 
   // Background preload all tabs after 3s so switching feels instant
   setTimeout(()=>{
@@ -787,7 +923,19 @@ function renderBriefingPage(topic){
   document.getElementById('briefingTopMeta').innerHTML=`
     <div style="margin-bottom:4px">
       <div class="brief-topic-title">${topic} <span style="font-size:24px">✦</span>
-        <span class="refresh-indicator"><span class="refresh-dot"></span>Live · Auto-refresh 15min</span>
+        <span class="refresh-indicator" id="refreshIndicator">
+          <span class="refresh-dot"></span>
+          <span id="refreshLabel">Live · Auto-refresh 15min</span>
+          <button class="refresh-settings-btn" onclick="toggleRefreshPopover(event)" title="Change refresh interval">⚙</button>
+          <div class="refresh-popover" id="refreshPopover">
+            <div class="refresh-popover-title">Refresh Interval</div>
+            <label class="refresh-option" onclick="setRefreshInterval(5)"><input type="radio" name="ri" value="5"> Every 5 minutes</label>
+            <label class="refresh-option" onclick="setRefreshInterval(10)"><input type="radio" name="ri" value="10"> Every 10 minutes</label>
+            <label class="refresh-option active" onclick="setRefreshInterval(15)"><input type="radio" name="ri" value="15" checked> Every 15 minutes</label>
+            <label class="refresh-option" onclick="setRefreshInterval(30)"><input type="radio" name="ri" value="30"> Every 30 minutes</label>
+            <label class="refresh-option" onclick="setRefreshInterval(60)"><input type="radio" name="ri" value="60"> Every 60 minutes</label>
+          </div>
+        </span>
       </div>
       <div class="brief-actions">
         <button class="btn-outline" onclick="window.print()">🖨 Print</button>
@@ -810,7 +958,7 @@ function renderBriefingPage(topic){
   if(autoRefreshTimer)clearInterval(autoRefreshTimer);
   autoRefreshTimer=setInterval(()=>{
     if(document.getElementById('autoRefreshToggle').classList.contains('on')){briefingCache[topic]=null;fetchLiveBriefing(topic);}
-  },15*60*1000);
+  },currentRefreshMins*60*1000);
 }
 
 async function fetchLiveBriefing(topic){
@@ -1154,7 +1302,97 @@ async function sendChat(){
 }
 
 // ── DARK MODE ──────────────────────────────────────────────────────────────
-function toggleDarkMode(){
+function toggleAutoRefresh(){
+  const btn=document.getElementById('autoRefreshToggle');
+  btn.classList.toggle('on');
+  const on=btn.classList.contains('on');
+  MEM.set('autoRefresh',on);
+  if(!on&&autoRefreshTimer){clearInterval(autoRefreshTimer);autoRefreshTimer=null;}
+  else if(on) setRefreshInterval(currentRefreshMins);
+}
+
+function toggleCitations(){
+  const btn=document.getElementById('citationsToggle');
+  btn.classList.toggle('on');
+  const on=btn.classList.contains('on');
+  MEM.set('citations',on);
+  document.querySelectorAll('.citation-bar').forEach(el=>el.style.display=on?'':'none');
+}
+
+function toggleAiBadge(){
+  const btn=document.getElementById('aiBadgeToggle');
+  btn.classList.toggle('on');
+  const on=btn.classList.contains('on');
+  MEM.set('aiBadge',on);
+  document.querySelectorAll('.ai-badge').forEach(el=>el.style.display=on?'':'none');
+}
+
+function setDefaultTopic(t){
+  MEM.set('defaultTopic',t);
+  document.querySelectorAll('[id^="dtbtn-"]').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('dtbtn-'+t);if(btn)btn.classList.add('active');
+}
+
+function toggleSource(id,btn){
+  btn.classList.toggle('on');
+  const sources=MEM.get('disabledSources',[]);
+  if(btn.classList.contains('on')){
+    MEM.set('disabledSources',sources.filter(s=>s!==id));
+  } else {
+    if(!sources.includes(id))sources.push(id);
+    MEM.set('disabledSources',sources);
+  }
+}
+
+function clearAllCache(){
+  newsCache={};briefingCache={};advisoryCache={};airspaceCache={};window._marketsCache=null;
+  const btn=event.target;
+  btn.textContent='✓ Cleared!';btn.style.color='var(--green)';
+  setTimeout(()=>{btn.textContent='Clear Cache';btn.style.color='';},2000);
+}
+
+function resetAllSettings(){
+  if(!confirm('Reset all settings and clear session memory?'))return;
+  ['lastTab','lastTopic','lastSearch','lastBriefTopic','darkMode','refreshMins',
+   'autoRefresh','citations','aiBadge','defaultTopic','disabledSources'].forEach(k=>localStorage.removeItem('briefly_'+k));
+  location.reload();
+}
+
+function initSettingsUI(){
+  // Restore interval buttons
+  const mins=MEM.get('refreshMins',15);
+  document.querySelectorAll('[id^="ibtn-"]').forEach(b=>b.classList.remove('active'));
+  const ib=document.getElementById('ibtn-'+mins);if(ib)ib.classList.add('active');
+  document.getElementById('settingsRefreshLabel').textContent=mins;
+
+  // Restore default topic button
+  const dt=MEM.get('defaultTopic','World');
+  const db=document.getElementById('dtbtn-'+dt);if(db)db.classList.add('active');
+
+  // Restore citations toggle
+  const cit=MEM.get('citations',true);
+  const cb=document.getElementById('citationsToggle');
+  if(cb&&!cit)cb.classList.remove('on');
+  if(!cit)document.querySelectorAll('.citation-bar').forEach(el=>el.style.display='none');
+
+  // Restore AI badge toggle
+  const aib=MEM.get('aiBadge',true);
+  const ab=document.getElementById('aiBadgeToggle');
+  if(ab&&!aib)ab.classList.remove('on');
+  if(!aib)document.querySelectorAll('.ai-badge').forEach(el=>el.style.display='none');
+
+  // Restore disabled sources
+  const disabled=MEM.get('disabledSources',[]);
+  disabled.forEach(id=>{
+    const btn=document.getElementById(id);
+    if(btn)btn.classList.remove('on');
+  });
+
+  // Restore auto-refresh toggle state
+  const ar=MEM.get('autoRefresh',true);
+  const arb=document.getElementById('autoRefreshToggle');
+  if(arb&&!ar)arb.classList.remove('on');
+}
   const isDark=document.documentElement.getAttribute('data-theme')==='dark';
   document.documentElement.setAttribute('data-theme',isDark?'light':'dark');
   document.getElementById('darkModeToggle').classList.toggle('on',!isDark);
