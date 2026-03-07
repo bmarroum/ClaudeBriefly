@@ -112,3 +112,36 @@ Market prices use Yahoo Finance's unofficial v8 API. Middle East markets (^TASI.
 Render cold start — first request after inactivity takes ~30 seconds.
 All AI-generated content should be verified with official sources before operational use.
 
+
+v2.1 Bug Fixes
+1. News search — raw URLs in body (index.html)
+Added a cleanBody() helper function that strips HTML tags and raw URLs from RSS description text before displaying. Google News RSS sometimes returns <a href="..."> markup in descriptions — this now gets cleaned client-side as a safety net, and the server also strips them.
+2. Brief tab HTTP 500 + Search button (index.html + server.js)
+
+Removed the Search button entirely from the Brief tab — it now only has Full Brief
+Deleted the entire briefSearch() function
+Fixed the root cause of the HTTP 500: the old /api/briefing prompt included a full JSON template with ${encTopic} variable substitutions — the entire prompt was being built with string concatenation now, which is clean and reliable
+The prompt now uses <angle-bracket> placeholders instead of JSON values, which tells Claude exactly what to fill in
+
+3. Airspace — pills replaced with free-text search (index.html)
+
+Country pills completely removed and replaced with a text input field
+Added 6 quick-tap chips (US, Ukraine, Israel, Iran, Saudi, Russia) for common lookups
+Any country in the world is now searchable
+Map coordinate lookup extended to 30+ countries with a world-view fallback for unknown ones
+Saved last-searched country persists across sessions
+
+4. Advisory not working (server.js)
+
+Removed the unreliable web-scraping of State Dept and FCDO pages (those sites block scrapers on Render's IPs, silently returning empty content that broke the prompt)
+Now uses a clean AI-only prompt with proper string concatenation — no more context pollution from failed scrapes
+
+5. Markets not working (server.js)
+
+The old AI fallback sent one enormous JSON template (14 symbols, 800+ chars) causing timeouts
+Now uses a per-group AI fallback with a small targeted prompt per region (US / Europe / Asia / Middle East / Commodities)
+
+6. Press not working (server.js)
+
+Simplified the prompt structure — removed complex nested JSON template that Claude was misinterpreting
+Added live Google News context injection before the prompt
