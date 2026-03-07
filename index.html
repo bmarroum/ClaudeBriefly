@@ -6,7 +6,6 @@
 <title>Briefly | Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -653,6 +652,13 @@ function initAirspace(){
       <span class="cs-flag">${c.flag}</span>${c.name}
     </button>`).join('');
 
+  // Wait for Leaflet if not yet loaded
+  if(typeof L==='undefined'){
+    document.getElementById('airspaceMap').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:14px;background:var(--card);border-radius:16px"><span class="spinner"></span>&nbsp;Loading map…</div>';
+    setTimeout(initAirspace,600);
+    return;
+  }
+
   // Init Leaflet map
   if(!leafletMap){
     leafletMap=L.map('airspaceMap',{zoomControl:true,scrollWheelZoom:false}).setView([26,44],5);
@@ -985,5 +991,6 @@ function skels(){return['80%','60%','90%','70%'].map(w=>`<div class="skeleton" s
 
 init();
 </script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </body>
 </html>
