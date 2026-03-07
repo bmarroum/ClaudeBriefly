@@ -479,16 +479,14 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
       <div class="ai-badge">🤖 AI Analysis</div>
     </div>
     <div class="brief-search-row">
-      <input class="brief-search-input" id="briefSearchInput" type="text" placeholder="Search all sources or enter a topic for a full brief…" autocomplete="off"/>
-      <button class="btn-outline" onclick="briefSearch()">🔍 Search</button>
+      <input class="brief-search-input" id="briefSearchInput" type="text" placeholder="Enter a topic for a full intelligence brief…" autocomplete="off"/>
       <button class="btn-solid" onclick="generateBrief()">📋 Full Brief</button>
     </div>
-    <div id="briefSearchResults" style="display:none;margin-bottom:20px;"></div>
     <div id="briefContent">
       <div style="text-align:center;padding:50px 20px;color:var(--muted);">
         <div style="font-size:36px;margin-bottom:12px;">📋</div>
         <div style="font-size:15px;margin-bottom:8px;font-weight:600;color:var(--text);">Enter a topic to generate an intelligence brief</div>
-        <div style="font-size:13px;">Type in the search box above and click <strong>Full Brief</strong> for a comprehensive analysis,<br>or click <strong>Search</strong> to find headlines on the topic.</div>
+        <div style="font-size:13px;">Type a topic above and click <strong>Full Brief</strong> for a comprehensive AI analysis.</div>
       </div>
     </div>
   </div>
@@ -503,19 +501,22 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
     </div>
     <button class="btn-outline" onclick="refreshAirspace()">🔄 Refresh</button>
   </div>
-  <div class="country-selector" id="airspaceCountrySelector">
-    <button class="cs-btn active" onclick="selectAirspaceCountry(this,'United States')"><span class="cs-flag">🇺🇸</span>US</button>
-    <button class="cs-btn" onclick="selectAirspaceCountry(this,'United Kingdom')"><span class="cs-flag">🇬🇧</span>UK</button>
-    <button class="cs-btn" onclick="selectAirspaceCountry(this,'France')"><span class="cs-flag">🇫🇷</span>France</button>
-    <button class="cs-btn" onclick="selectAirspaceCountry(this,'Germany')"><span class="cs-flag">🇩🇪</span>Germany</button>
-    <button class="cs-btn" onclick="selectAirspaceCountry(this,'Israel')"><span class="cs-flag">🇮🇱</span>Israel</button>
-    <button class="cs-btn" onclick="selectAirspaceCountry(this,'Ukraine')"><span class="cs-flag">🇺🇦</span>Ukraine</button>
-    <button class="cs-btn" onclick="selectAirspaceCountry(this,'Russia')"><span class="cs-flag">🇷🇺</span>Russia</button>
-    <button class="cs-btn" onclick="selectAirspaceCountry(this,'Saudi Arabia')"><span class="cs-flag">🇸🇦</span>Saudi Arabia</button>
-    <button class="cs-btn" onclick="selectAirspaceCountry(this,'UAE')"><span class="cs-flag">🇦🇪</span>UAE</button>
-    <button class="cs-btn" onclick="selectAirspaceCountry(this,'Jordan')"><span class="cs-flag">🇯🇴</span>Jordan</button>
-    <button class="cs-btn" onclick="selectAirspaceCountry(this,'Lebanon')"><span class="cs-flag">🇱🇧</span>Lebanon</button>
-    <button class="cs-btn" onclick="selectAirspaceCountry(this,'China')"><span class="cs-flag">🇨🇳</span>China</button>
+  <div class="country-selector" id="airspaceCountrySelector" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:220px;max-width:500px;background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:8px 14px;">
+      <span style="font-size:16px;">✈️</span>
+      <input id="airspaceSearchInput" type="text" placeholder="Search any country… (e.g. Ukraine, Iran, Japan)" autocomplete="off"
+        style="border:none;background:transparent;outline:none;font-family:var(--sans);font-size:14px;color:var(--text);width:100%;"
+        onkeydown="if(event.key==='Enter') searchAirspaceCountry()"/>
+    </div>
+    <button class="btn-solid" onclick="searchAirspaceCountry()">Search</button>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--muted);">
+      <span style="cursor:pointer;padding:3px 8px;border-radius:8px;background:var(--bg2);" onclick="setAirspaceSearch('United States')">🇺🇸 US</span>
+      <span style="cursor:pointer;padding:3px 8px;border-radius:8px;background:var(--bg2);" onclick="setAirspaceSearch('Ukraine')">🇺🇦 Ukraine</span>
+      <span style="cursor:pointer;padding:3px 8px;border-radius:8px;background:var(--bg2);" onclick="setAirspaceSearch('Israel')">🇮🇱 Israel</span>
+      <span style="cursor:pointer;padding:3px 8px;border-radius:8px;background:var(--bg2);" onclick="setAirspaceSearch('Iran')">🇮🇷 Iran</span>
+      <span style="cursor:pointer;padding:3px 8px;border-radius:8px;background:var(--bg2);" onclick="setAirspaceSearch('Saudi Arabia')">🇸🇦 Saudi</span>
+      <span style="cursor:pointer;padding:3px 8px;border-radius:8px;background:var(--bg2);" onclick="setAirspaceSearch('Russia')">🇷🇺 Russia</span>
+    </div>
   </div>
   <div id="airspaceMap"></div>
   <div id="airspaceContent"></div>
@@ -726,7 +727,7 @@ const LS = {
 // ── STATE ──────────────────────────────────────────────────────
 let currentTab = LS.get('lastTab', 'news');
 let currentRegion = LS.get('lastRegion', LS.get('defaultTopic', 'Global/World'));
-let currentAirspace = LS.get('lastAirspace', 'United States');
+let currentAirspace = LS.get('lastAirspace', '');
 let currentAdvisory = LS.get('lastAdvisory', 'Jordan');
 let currentPressRegion = LS.get('lastPressRegion', 'Global/World');
 let currentBriefTopic = LS.get('lastBrief', '');
@@ -767,7 +768,13 @@ function switchTab(tab) {
   // Load content
   if (tab === 'news') loadNews(currentRegion);
   else if (tab === 'brief') { /* user-driven */ }
-  else if (tab === 'airspace') loadAirspace(currentAirspace);
+  else if (tab === 'airspace') {
+    if (currentAirspace) loadAirspace(currentAirspace);
+    else {
+      const el = document.getElementById('airspaceContent');
+      el.innerHTML = '<div style="text-align:center;padding:50px 20px;color:var(--muted);"><div style="font-size:36px;margin-bottom:12px;">✈️</div><div style="font-size:15px;font-weight:600;color:var(--text);">Search for a country above</div><div style="font-size:13px;margin-top:6px;">Type any country name and click Search for live airspace status.</div></div>';
+    }
+  }
   else if (tab === 'advisory') loadAdvisory(currentAdvisory);
   else if (tab === 'markets') loadMarkets();
   else if (tab === 'press') loadPress(currentPressRegion);
@@ -833,7 +840,7 @@ function renderNews(el, data, region) {
       <div>
         <div class="brief-content">
           <strong><a ${linkTarget} style="color:inherit;text-decoration:none;${item.link ? 'text-decoration:underline dotted;' : ''}">${esc(item.title)}</a></strong> ${badge}
-          <br/>${esc(item.body || '')}
+          <br/>${esc(cleanBody(item.body || ''))}
           ${item.sources ? `<div class="brief-source">— ${esc(item.sources)}${item.pubDate ? ' · ' + formatDate(item.pubDate) : ''}</div>` : ''}
         </div>
         ${showCitations && item.sourceUrl ? `<div class="citation-bar">📎 Verify: <a class="citation-link" href="${esc(item.sourceUrl)}" target="_blank" rel="noopener">${esc(item.sources || 'Source')}</a>${item.link ? ` · <a class="citation-link" href="${esc(item.link)}" target="_blank" rel="noopener">Full article →</a>` : ''}</div>` : ''}
@@ -867,30 +874,6 @@ document.getElementById('headerSearchInput').addEventListener('keydown', e => { 
 document.getElementById('mobileSearchInput').addEventListener('keydown', e => { if (e.key === 'Enter') searchHeadlinesMobile(); });
 
 // ── BRIEF TAB ──────────────────────────────────────────────────
-async function briefSearch() {
-  const q = document.getElementById('briefSearchInput').value.trim();
-  if (!q) return;
-  const el = document.getElementById('briefSearchResults');
-  el.style.display = 'block';
-  showLoading(el);
-  try {
-    const data = await apiFetch('/api/news', { body: JSON.stringify({ topic: 'Global/World', search: q }) }, 'bsearch_' + q, 5 * 60000);
-    let html = `<div style="font-weight:700;margin-bottom:12px;font-size:14px;">Search results for: <em>"${esc(q)}"</em></div>`;
-    (data.items || []).forEach(item => {
-      const lk = item.link ? `href="${esc(item.link)}" target="_blank" rel="noopener"` : '';
-      html += `<div class="brief-item">
-        <div class="brief-arrow">→</div>
-        <div>
-          <div class="brief-content"><strong><a ${lk} style="color:inherit;">${esc(item.title)}</a></strong><br/>${esc(item.body || '')}</div>
-          <div class="brief-source">— ${esc(item.sources || '')}${item.pubDate ? ' · ' + formatDate(item.pubDate) : ''}</div>
-        </div>
-      </div>`;
-    });
-    el.innerHTML = html;
-  } catch (e) {
-    showError(el, 'Search failed. Try again.');
-  }
-}
 
 async function generateBrief() {
   const q = document.getElementById('briefSearchInput').value.trim() || currentBriefTopic;
@@ -900,7 +883,6 @@ async function generateBrief() {
   document.getElementById('briefTitleText').textContent = q;
   const el = document.getElementById('briefContent');
   showLoading(el);
-  document.getElementById('briefSearchResults').style.display = 'none';
   try {
     const data = await apiFetch('/api/briefing', { body: JSON.stringify({ topic: q }) }, 'brief_' + q);
     const a = data.analysis || {};
@@ -934,7 +916,7 @@ async function generateBrief() {
     showError(el, 'Failed to generate brief. ' + e.message);
   }
 }
-document.getElementById('briefSearchInput').addEventListener('keydown', e => { if (e.key === 'Enter') briefSearch(); });
+document.getElementById('briefSearchInput').addEventListener('keydown', e => { if (e.key === 'Enter') generateBrief(); });
 
 // ── ARCHIVE ────────────────────────────────────────────────────
 function archiveSave(topic, analysis) {
@@ -996,16 +978,20 @@ function loadFromArchive(id) {
     if (a[s.key]) html += `<div class="section-block"><div class="section-heading">${s.label}</div><div class="section-body">${esc(a[s.key])}</div></div>`;
   });
   el.innerHTML = html;
-  document.getElementById('briefSearchResults').style.display = 'none';
 }
 
 // ── AIRSPACE ───────────────────────────────────────────────────
-function selectAirspaceCountry(btn, country) {
-  document.querySelectorAll('#airspaceCountrySelector .cs-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentAirspace = country;
-  LS.set('lastAirspace', country);
-  loadAirspace(country);
+function setAirspaceSearch(country) {
+  document.getElementById('airspaceSearchInput').value = country;
+  searchAirspaceCountry();
+}
+
+function searchAirspaceCountry() {
+  const q = document.getElementById('airspaceSearchInput').value.trim();
+  if (!q) return;
+  currentAirspace = q;
+  LS.set('lastAirspace', q);
+  loadAirspace(q);
 }
 
 async function loadAirspace(country) {
@@ -1025,9 +1011,14 @@ function initMap(country) {
     'United States':[37,-95,4],'United Kingdom':[54,-2,6],'France':[46,2,6],
     'Germany':[51,10,6],'Israel':[31,35,7],'Ukraine':[49,31,6],'Russia':[62,100,3],
     'Saudi Arabia':[24,45,5],'UAE':[24,54,7],'Jordan':[31,36,7],'Lebanon':[33,35,8],
-    'China':[35,105,4],
+    'China':[35,105,4],'Iran':[32,53,5],'Iraq':[33,44,6],'Syria':[35,38,6],
+    'Pakistan':[30,70,5],'Afghanistan':[33,65,5],'Egypt':[27,30,5],'Turkey':[39,35,5],
+    'Japan':[37,138,5],'South Korea':[36,128,6],'India':[20,79,4],'Australia':[-25,133,4],
+    'Canada':[56,-96,3],'Brazil':[-10,-53,4],'South Africa':[-29,25,5],
+    'Libya':[27,17,5],'Yemen':[15,48,5],'Sudan':[15,30,5],'Ethiopia':[9,40,5],
+    'Somalia':[6,46,5],'Nigeria':[9,8,5],'Venezuela':[8,-66,5],'Mexico':[24,-102,5],
   };
-  const [lat, lng, zoom] = coords[country] || [26, 44, 4];
+  const [lat, lng, zoom] = coords[country] || [20, 0, 2];
   const mapEl = document.getElementById('airspaceMap');
   if (leafletMap) { leafletMap.setView([lat, lng], zoom); return; }
   leafletMap = L.map(mapEl, { zoomControl: true }).setView([lat, lng], zoom);
@@ -1420,6 +1411,16 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// Strip HTML tags and raw URLs from news body text (safety net for RSS descriptions)
+function cleanBody(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/<[^>]+>/g, ' ')         // strip HTML tags
+    .replace(/https?:\/\/\S+/g, '')   // strip URLs
+    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#\d+;/g,'')
+    .replace(/\s+/g, ' ').trim().slice(0, 220);
+}
+
 function formatDate(str) {
   try {
     const d = new Date(str);
@@ -1475,6 +1476,12 @@ async function backgroundPreload() {
 
   // Load ticker immediately
   loadBreakingTicker();
+
+  // Pre-populate airspace search if we have a saved country
+  if (currentAirspace) {
+    const asi = document.getElementById('airspaceSearchInput');
+    if (asi) asi.value = currentAirspace;
+  }
 
   // Background preload after 3s
   setTimeout(backgroundPreload, 3000);
