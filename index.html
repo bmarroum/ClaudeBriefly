@@ -517,7 +517,11 @@ main{max-width:1120px;margin:0 auto;padding:0 20px;}
       <div id="refreshIntervalRow" style="padding:12px 0 4px">
         <div class="settings-sub" style="margin-bottom:10px">Refresh interval</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          ${[5,10,15,30,60].map(m=>`<button class="interval-btn${m===15?' active':''}" id="ibtn-${m}" onclick="setRefreshInterval(${m})">${m}min</button>`).join('')}
+          <button class="interval-btn" id="ibtn-5"  onclick="setRefreshInterval(5)">5min</button>
+          <button class="interval-btn" id="ibtn-10" onclick="setRefreshInterval(10)">10min</button>
+          <button class="interval-btn active" id="ibtn-15" onclick="setRefreshInterval(15)">15min</button>
+          <button class="interval-btn" id="ibtn-30" onclick="setRefreshInterval(30)">30min</button>
+          <button class="interval-btn" id="ibtn-60" onclick="setRefreshInterval(60)">60min</button>
         </div>
       </div>
     </div>
@@ -540,7 +544,14 @@ main{max-width:1120px;margin:0 auto;padding:0 20px;}
       <div class="settings-section-title">🌐 Default News Topic</div>
       <div class="settings-sub" style="margin-bottom:12px">Which topic loads when you open the News tab</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap" id="defaultTopicBtns">
-        ${['World','Technology','Finance','Geopolitics','Science','Climate','Health','Defense'].map(t=>`<button class="interval-btn" id="dtbtn-${t}" onclick="setDefaultTopic('${t}')">${t}</button>`).join('')}
+        <button class="interval-btn" id="dtbtn-World"       onclick="setDefaultTopic('World')">World</button>
+        <button class="interval-btn" id="dtbtn-Technology"  onclick="setDefaultTopic('Technology')">Technology</button>
+        <button class="interval-btn" id="dtbtn-Finance"     onclick="setDefaultTopic('Finance')">Finance</button>
+        <button class="interval-btn" id="dtbtn-Geopolitics" onclick="setDefaultTopic('Geopolitics')">Geopolitics</button>
+        <button class="interval-btn" id="dtbtn-Science"     onclick="setDefaultTopic('Science')">Science</button>
+        <button class="interval-btn" id="dtbtn-Climate"     onclick="setDefaultTopic('Climate')">Climate</button>
+        <button class="interval-btn" id="dtbtn-Health"      onclick="setDefaultTopic('Health')">Health</button>
+        <button class="interval-btn" id="dtbtn-Defense"     onclick="setDefaultTopic('Defense')">Defense</button>
       </div>
     </div>
 
@@ -549,18 +560,12 @@ main{max-width:1120px;margin:0 auto;padding:0 20px;}
       <div class="settings-section-title">📡 Preferred News Sources</div>
       <div class="settings-sub" style="margin-bottom:12px">Sources to prioritise in the News tab and breaking ticker</div>
       <div id="sourceToggles">
-        ${[
-          {id:'src-reuters', label:'Reuters', sub:'Global wire service'},
-          {id:'src-bbc',     label:'BBC News', sub:'International broadcast'},
-          {id:'src-alj',     label:'Al Jazeera', sub:'Middle East focus'},
-          {id:'src-ap',      label:'AP News', sub:'US wire service'},
-          {id:'src-guardian',label:'The Guardian', sub:'In-depth reporting'},
-          {id:'src-fp',      label:'Foreign Policy', sub:'Geopolitics specialist'},
-        ].map(s=>`
-        <div class="settings-row">
-          <div><div class="settings-label">${s.label}</div><div class="settings-sub">${s.sub}</div></div>
-          <button class="toggle on" id="${s.id}" onclick="toggleSource('${s.id}',this)"></button>
-        </div>`).join('')}
+        <div class="settings-row"><div><div class="settings-label">Reuters</div><div class="settings-sub">Global wire service</div></div><button class="toggle on" id="src-reuters" onclick="toggleSource('src-reuters',this)"></button></div>
+        <div class="settings-row"><div><div class="settings-label">BBC News</div><div class="settings-sub">International broadcast</div></div><button class="toggle on" id="src-bbc" onclick="toggleSource('src-bbc',this)"></button></div>
+        <div class="settings-row"><div><div class="settings-label">Al Jazeera</div><div class="settings-sub">Middle East focus</div></div><button class="toggle on" id="src-alj" onclick="toggleSource('src-alj',this)"></button></div>
+        <div class="settings-row"><div><div class="settings-label">AP News</div><div class="settings-sub">US wire service</div></div><button class="toggle on" id="src-ap" onclick="toggleSource('src-ap',this)"></button></div>
+        <div class="settings-row"><div><div class="settings-label">The Guardian</div><div class="settings-sub">In-depth reporting</div></div><button class="toggle on" id="src-guardian" onclick="toggleSource('src-guardian',this)"></button></div>
+        <div class="settings-row"><div><div class="settings-label">Foreign Policy</div><div class="settings-sub">Geopolitics specialist</div></div><button class="toggle on" id="src-fp" onclick="toggleSource('src-fp',this)"></button></div>
       </div>
     </div>
 
@@ -1393,6 +1398,8 @@ function initSettingsUI(){
   const arb=document.getElementById('autoRefreshToggle');
   if(arb&&!ar)arb.classList.remove('on');
 }
+
+function toggleDarkMode(){
   const isDark=document.documentElement.getAttribute('data-theme')==='dark';
   document.documentElement.setAttribute('data-theme',isDark?'light':'dark');
   document.getElementById('darkModeToggle').classList.toggle('on',!isDark);
