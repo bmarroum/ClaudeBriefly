@@ -6,7 +6,7 @@ app.use(cors());
 app.use(express.json());
 
 const ANTHROPIC_VERSION = "2023-06-01";
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-sonnet-4-6";
 
 // ── CLAUDE HELPER ──────────────────────────────────────────────────────────
 async function callClaude(system, user, maxTokens = 1024) {
@@ -365,7 +365,7 @@ JSON: {
     {"label": "EUROCONTROL NOTAMs", "url": "https://www.eurocontrol.int/publication/notam-summary"},
     {"label": "EASA Safety", "url": "https://www.easa.europa.eu/en/domains/air-operations"},
     {"label": "ICAO", "url": "https://www.icao.int/safety/airnavigation/pages/notam.aspx"},
-    {"label": "Search ${country} NOTAMs", "url": "https://www.google.com/search?q=${encCountry}+airspace+NOTAM+2025"}
+    {"label": "Search ${country} NOTAMs", "url": "https://www.google.com/search?q=${encCountry}+airspace+NOTAM+${new Date().getFullYear()}"}
   ]
 }
 status: OPEN|RESTRICTED|CLOSED|CONFLICT_ZONE. alert_level: GREEN|AMBER|RED|BLACK`,
