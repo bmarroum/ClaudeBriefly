@@ -562,15 +562,22 @@ function doSearch(){
   renderBriefingPage(v);
 }
 
-async function loadNews(topic){
+async function loadNews(topic, attempt=1){
   const el=document.getElementById('newsContent');
-  el.innerHTML=`<div class="card">${skels()}</div>`;
+  if(attempt===1) el.innerHTML=`<div class="card">${skels()}<div style="font-size:12px;color:var(--muted);margin-top:8px">⏳ Connecting to intelligence server…</div></div>`;
   if(newsCache[topic]&&Date.now()-newsCache[topic].ts<15*60*1000){renderNewsData(newsCache[topic].data,topic);return;}
   try{
     const r=await post('/api/news',{topic});
     newsCache[topic]={data:r,ts:Date.now()};
     renderNewsData(r,topic);
-  }catch{el.innerHTML=`<div class="card"><p class="load-msg">Unable to load live news. Check backend.</p></div>`;}
+  }catch(e){
+    if(attempt<4){
+      el.innerHTML=`<div class="card">${skels()}<div style="font-size:12px;color:var(--muted);margin-top:8px">⏳ Server waking up… retry ${attempt}/3</div></div>`;
+      setTimeout(()=>loadNews(topic,attempt+1), 8000);
+    } else {
+      el.innerHTML=`<div class="card"><p class="load-msg">Unable to load. Server may be starting up — refresh in 30s.</p></div>`;
+    }
+  }
 }
 
 function renderNewsData(data,topic){
@@ -680,7 +687,10 @@ async function loadAllAirspace(){
       <div class="ac-header"><div class="ac-country">${c.flag} ${c.name}</div></div>
       <div class="ac-summary"><span class="spinner"></span>Loading…</div>
     </div>`).join('');
-  for(const c of ME_COUNTRIES){await loadAirspaceCountry(c.name);}
+  for(const c of ME_COUNTRIES){
+    await loadAirspaceCountry(c.name);
+    await new Promise(r=>setTimeout(r,1500));
+  }
 }
 
 async function loadAirspaceCountry(country){
@@ -745,7 +755,10 @@ async function loadAllAdvisories(){
       <div class="adv-country">${c.flag} ${c.name}</div>
       <div class="load-msg"><span class="spinner"></span>Fetching advisories…</div>
     </div>`).join('');
-  for(const c of ME_COUNTRIES){await loadAdvisoryCountry(c.name);}
+  for(const c of ME_COUNTRIES){
+    await loadAdvisoryCountry(c.name);
+    await new Promise(r=>setTimeout(r,1500));
+  }
 }
 
 async function loadAdvisoryCountry(country){
