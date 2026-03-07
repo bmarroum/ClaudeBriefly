@@ -32,6 +32,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .disclaimer-banner a:hover{text-decoration:underline;}
 .disclaimer-close{background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:14px;padding:0 0 0 8px;line-height:1;}
 .disclaimer-close:hover{color:#fff;}
+.preload-badge{display:none;position:fixed;bottom:90px;right:16px;background:rgba(0,0,0,0.72);color:#fff;font-size:11px;padding:5px 12px;border-radius:20px;z-index:200;align-items:center;gap:5px;backdrop-filter:blur(6px);}
 
 /* BREAKING BANNER */
 .breaking-banner{background:#111;color:#fff;padding:8px 0;overflow:hidden;border-bottom:1px solid rgba(255,255,255,0.06);}
@@ -302,6 +303,9 @@ main{max-width:1120px;margin:0 auto;padding:0 20px;}
 </style>
 </head>
 <body>
+
+<!-- PRELOAD STATUS BADGE -->
+<div class="preload-badge" id="preloadBadge"></div>
 
 <!-- DISCLAIMER BANNER -->
 <div class="disclaimer-banner" id="disclaimerBanner">
@@ -609,6 +613,65 @@ function init(){
 
   // Restore last tab and trigger its content
   setTimeout(()=>switchTab(lastTab,true),50);
+
+  // Background preload all tabs after 3s so switching feels instant
+  setTimeout(()=>{
+    const badge=document.getElementById('preloadBadge');
+    if(badge){badge.style.display='flex';badge.textContent='⚙ Loading tabs…';}
+    preloadAllTabs().then(()=>{
+      if(badge){badge.textContent='✓ All tabs ready';setTimeout(()=>badge.style.display='none',2500);}
+    });
+  },3000);
+}
+
+async function preloadAllTabs(){
+  // 1. News — all topic pills
+  for(const topic of TOPICS){
+    if(!newsCache[topic]){
+      try{
+        const r=await post('/api/news',{topic});
+        newsCache[topic]={data:r,ts:Date.now()};
+      }catch{}
+      await new Promise(r=>setTimeout(r,1200)); // stagger to avoid rate limits
+    }
+  }
+
+  // 2. Briefing — preload current topic
+  if(currentBriefingTopic&&!briefingCache[currentBriefingTopic]){
+    try{
+      const r=await post('/api/briefing',{topic:currentBriefingTopic});
+      briefingCache[currentBriefingTopic]={data:r.analysis,ts:Date.now()};
+    }catch{}
+  }
+
+  // 3. Markets — preload prices + commentary
+  try{
+    const symbols=[...COMMODITIES,...INDICES,...FX,...MENA].map(x=>x.s).join(',');
+    const r=await fetch(`${B}/api/markets/quote?symbols=${encodeURIComponent(symbols)}`);
+    if(r.ok) window._marketsCache={data:await r.json(),ts:Date.now()};
+  }catch{}
+
+  // 4. Advisories — preload all 11 countries
+  for(const c of ME_COUNTRIES){
+    if(!advisoryCache[c.name]){
+      try{
+        const data=await post('/api/advisories',{country:c.name});
+        advisoryCache[c.name]={data,ts:Date.now()};
+      }catch{}
+      await new Promise(r=>setTimeout(r,1500));
+    }
+  }
+
+  // 5. Airspace — preload all 11 countries
+  for(const c of ME_COUNTRIES){
+    if(!airspaceCache[c.name]){
+      try{
+        const data=await post('/api/airspace',{country:c.name});
+        airspaceCache[c.name]={data,ts:Date.now()};
+      }catch{}
+      await new Promise(r=>setTimeout(r,1500));
+    }
+  }
 }
 
 function renderTicker(){
@@ -1110,7 +1173,19 @@ function switchTab(tab, isRestore=false){
   if(tab==='airspace'&&!leafletMap)initAirspace();
   else if(tab==='airspace'&&leafletMap)setTimeout(()=>leafletMap.invalidateSize(),100);
   if(tab==='advisories'&&!document.getElementById('advGrid').innerHTML.includes('adv-country'))initAdvisories();
-  if(tab==='markets'&&!document.getElementById('tickerCommodities').innerHTML.includes('ticker-card'))loadMarkets();
+  if(tab==='markets'&&!document.getElementById('tickerCommodities').innerHTML.includes('ticker-card')){
+    if(window._marketsCache&&Date.now()-window._marketsCache.ts<5*60*1000){
+      const quotes=window._marketsCache.data.quotes||[];
+      renderTickerGroup('tickerCommodities',COMMODITIES,quotes);
+      renderTickerGroup('tickerIndices',INDICES,quotes);
+      renderTickerGroup('tickerFX',FX,quotes);
+      renderTickerGroup('tickerMENA',MENA,quotes);
+      document.getElementById('marketsLastRefresh').textContent=`Live prices · Last updated ${new Date().toLocaleTimeString()}`;
+      loadMarketCommentary();
+    } else {
+      loadMarkets();
+    }
+  }
   if(tab==='briefing'&&!document.getElementById('briefingMain').innerHTML.trim())renderBriefingPage(currentBriefingTopic);
   if(tab==='news')loadNews(activeTopic);
 }
