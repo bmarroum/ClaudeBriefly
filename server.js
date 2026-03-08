@@ -3,11 +3,36 @@ const cors = require("cors");
 
 const app = express();
 app.use(cors());
+
+// Gzip compress all responses
+const zlib = require('zlib');
+app.use((req, res, next) => {
+  const ae = req.headers['accept-encoding'] || '';
+  if (!ae.includes('gzip')) return next();
+  const _json = res.json.bind(res);
+  res.json = (data) => {
+    const buf = Buffer.from(JSON.stringify(data));
+    zlib.gzip(buf, (err, compressed) => {
+      if (err) return _json(data);
+      res.set({ 'Content-Encoding': 'gzip', 'Content-Type': 'application/json', 'Vary': 'Accept-Encoding' });
+      res.send(compressed);
+    });
+  };
+  next();
+});
 app.use(express.json());
 
 const ANTHROPIC_VERSION = "2023-06-01";
 const MODEL = "claude-sonnet-4-20250514";
 const GEMINI_MODEL = "gemini-2.0-flash";
+
+// ── CACHE HELPER ──────────────────────────────────────────────────────────────
+function setCache(res, seconds) {
+  res.set({
+    'Cache-Control': `public, max-age=${seconds}, stale-while-revalidate=${seconds * 2}`,
+    'Vary': 'Accept-Encoding',
+  });
+}
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL   = "llama-3.3-70b-versatile";
 const VERSION = "3.7";
@@ -326,6 +351,7 @@ async function callGeminiSimple(prompt, maxTokens = 800) {
 
 
 app.post("/api/news", async (req, res) => {
+  setCache(res, 300); // 5 min
   const { topic, search } = req.body;
   if (!topic) return res.status(400).json({ error: "Topic required" });
 
@@ -450,6 +476,7 @@ app.get("/api/og-image", async (req, res) => {
 
 // ── BREAKING TICKER ───────────────────────────────────────────────────────────
 app.get("/api/rss/breaking", async (req, res) => {
+  setCache(res, 120); // 2 min
   const items = [];
   for (const feed of BREAKING_FEEDS) {
     try {
@@ -679,6 +706,7 @@ async function fetchLiveRSS(topic) {
 
 // ── PRESS RELEASES ────────────────────────────────────────────────────────────
 app.post("/api/press-releases", async (req, res) => {
+  setCache(res, 900); // 15 min
   const { region } = req.body;
   if (!region) return res.status(400).json({ error: "Region required" });
 
@@ -708,6 +736,7 @@ app.post("/api/press-releases", async (req, res) => {
 
 // ── AIRSPACE / NOTAMs ─────────────────────────────────────────────────────────
 app.post("/api/airspace", async (req, res) => {
+  setCache(res, 900); // 15 min
   const { country } = req.body;
   if (!country) return res.status(400).json({ error: "Country required" });
 
@@ -740,6 +769,7 @@ app.post("/api/airspace", async (req, res) => {
 
 // ── TRAVEL ADVISORIES ─────────────────────────────────────────────────────────
 app.post("/api/advisories", async (req, res) => {
+  setCache(res, 1800); // 30 min
   const { country } = req.body;
   if (!country) return res.status(400).json({ error: "Country required" });
 
@@ -790,6 +820,7 @@ const TD_SYMBOL_MAP = {
 };
 
 app.get("/api/markets/quote", async (req, res) => {
+  setCache(res, 300); // 5 min
   const { symbols } = req.query;
   if (!symbols) return res.status(400).json({ error: "Symbols required" });
   const symList = symbols.split(",");
@@ -842,6 +873,7 @@ app.get("/api/markets/quote", async (req, res) => {
   for (const base of ["https://query1.finance.yahoo.com", "https://query2.finance.yahoo.com"]) {
     try {
       const r = await fetch(base + "/v8/finance/quote?symbols=" + encodeURIComponent(symbols), {
+        signal: AbortSignal.timeout(5000),
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/121.0.0.0 Safari/537.36",
           "Accept": "application/json",
@@ -891,6 +923,7 @@ app.get("/api/markets/quote", async (req, res) => {
 // ── ASK / Q&A with conversation history ──────────────────────────────────────
 // ── MARKETS SPARKLINE (real price history from Twelve Data) ──────────────────
 app.get("/api/markets/sparkline", async (req, res) => {
+  setCache(res, 600); // 10 min
   const { symbol, interval = "1day", outputsize = "30" } = req.query;
   if (!symbol) return res.status(400).json({ error: "Symbol required" });
 
