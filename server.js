@@ -778,10 +778,67 @@ app.post("/api/markets/commentary", async (req, res) => {
 });
 
 // ── MARKETS PRICES ────────────────────────────────────────────────────────────
+// ── TWELVE DATA symbol map (Yahoo symbols → Twelve Data format) ──────────────
+const TD_SYMBOL_MAP = {
+  "^GSPC": "SPX", "^DJI": "DJI", "^IXIC": "IXIC", "^RUT": "RUT",
+  "^FTSE": "FTSE", "^GDAXI": "DAX", "^FCHI": "CAC40", "^IBEX": "IBEX35",
+  "^N225": "N225", "^HSI": "HSI", "^AXJO": "AS51", "000001.SS": "SHCOMP",
+  "^TASI": "TASI", "^DFMGI": "DFMGI", "^KWSE": "KWSE",
+  "GC=F": "XAU/USD", "SI=F": "XAG/USD", "CL=F": "WTI", "BZ=F": "BRENT", "NG=F": "NG",
+  "BTC-USD": "BTC/USD", "ETH-USD": "ETH/USD",
+  "EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD", "JPY=X": "USD/JPY",
+};
+
 app.get("/api/markets/quote", async (req, res) => {
   const { symbols } = req.query;
   if (!symbols) return res.status(400).json({ error: "Symbols required" });
+  const symList = symbols.split(",");
 
+  // ── SOURCE 1: Twelve Data (real live prices) ─────────────────────────────
+  const tdKey = process.env.TWELVE_DATA_API_KEY;
+  if (tdKey) {
+    try {
+      // Map symbols to Twelve Data format
+      const tdSymbols = symList.map(s => TD_SYMBOL_MAP[s] || s.replace("^","").replace("=X","").replace("-USD","/USD"));
+      const tdQuery = tdSymbols.join(",");
+      const tdUrl = `https://api.twelvedata.com/price?symbol=${encodeURIComponent(tdQuery)}&apikey=${tdKey}`;
+      const tdR = await fetch(tdUrl, { signal: AbortSignal.timeout(8000) });
+      if (tdR.ok) {
+        const tdData = await tdR.json();
+        // Also fetch previous close for change calculation
+        const tdPrevUrl = `https://api.twelvedata.com/eod?symbol=${encodeURIComponent(tdQuery)}&apikey=${tdKey}`;
+        const tdPrevR = await fetch(tdPrevUrl, { signal: AbortSignal.timeout(8000) });
+        const tdPrev = tdPrevR.ok ? await tdPrevR.json() : {};
+
+        const quotes = symList.map((origSym, i) => {
+          const tdSym = tdSymbols[i];
+          const entry = tdSymbols.length === 1 ? tdData : (tdData[tdSym] || tdData[origSym]);
+          const prevEntry = tdSymbols.length === 1 ? tdPrev : (tdPrev[tdSym] || tdPrev[origSym]);
+          if (!entry || entry.code === 400 || !entry.price) return null;
+          const price = parseFloat(entry.price);
+          const prevClose = prevEntry?.close ? parseFloat(prevEntry.close) : null;
+          const change = prevClose ? price - prevClose : 0;
+          const changePercent = prevClose ? ((price - prevClose) / prevClose) * 100 : 0;
+          return {
+            symbol: origSym,
+            name: origSym.replace("^","").replace("=X","").replace("-USD",""),
+            price,
+            change: parseFloat(change.toFixed(4)),
+            changePercent: parseFloat(changePercent.toFixed(4)),
+            currency: origSym.includes("=X") ? "FX" : "USD",
+            source: "twelvedata"
+          };
+        }).filter(q => q && q.price);
+
+        if (quotes.length > 0) {
+          console.log(`Twelve Data: ${quotes.length}/${symList.length} quotes`);
+          return res.json({ quotes, source: "twelvedata" });
+        }
+      }
+    } catch (e) { console.warn("Twelve Data failed:", e.message); }
+  }
+
+  // ── SOURCE 2: Yahoo Finance (fallback) ───────────────────────────────────
   for (const base of ["https://query1.finance.yahoo.com", "https://query2.finance.yahoo.com"]) {
     try {
       const r = await fetch(base + "/v8/finance/quote?symbols=" + encodeURIComponent(symbols), {
@@ -832,6 +889,31 @@ app.get("/api/markets/quote", async (req, res) => {
 });
 
 // ── ASK / Q&A with conversation history ──────────────────────────────────────
+// ── MARKETS SPARKLINE (real price history from Twelve Data) ──────────────────
+app.get("/api/markets/sparkline", async (req, res) => {
+  const { symbol, interval = "1day", outputsize = "30" } = req.query;
+  if (!symbol) return res.status(400).json({ error: "Symbol required" });
+
+  const tdKey = process.env.TWELVE_DATA_API_KEY;
+  if (!tdKey) return res.status(503).json({ error: "Twelve Data not configured" });
+
+  const tdSym = TD_SYMBOL_MAP[symbol] || symbol.replace("^","").replace("=X","").replace("-USD","/USD");
+
+  try {
+    const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(tdSym)}&interval=${interval}&outputsize=${outputsize}&apikey=${tdKey}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) throw new Error("Twelve Data " + r.status);
+    const d = await r.json();
+    if (!d.values || d.status === "error") throw new Error(d.message || "No data");
+    const prices = d.values.map(v => parseFloat(v.close)).reverse();
+    return res.json({ symbol, prices, source: "twelvedata" });
+  } catch (e) {
+    console.warn("Sparkline error:", e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+
 app.post("/api/ask", async (req, res) => {
   const { question, history, engine } = req.body;
   if (!question) return res.status(400).json({ error: "Question required" });

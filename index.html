@@ -603,6 +603,17 @@ input:focus,button:focus-visible{outline:2px solid rgba(200,168,75,0.4);outline-
   .chat-sidebar{display:none;}
   .chat-layout-wrap{grid-template-columns:1fr!important;}
 }
+
+/* ── Markets v4 styles ─────────────────────────────────────────── */
+.tc-badge { font-size:9px; font-weight:700; padding:2px 5px; border-radius:4px; letter-spacing:.5px; display:inline-block; margin-top:3px; }
+.tc-badge-live { background:#4caf84; color:#fff; animation: livePulse 2s infinite; }
+.tc-badge-yahoo { background:var(--border); color:var(--text-muted); }
+.tc-badge-ai { background:var(--ai-badge-bg,#6c5ce7); color:#fff; }
+@keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+.tc-sparkline-real { filter: drop-shadow(0 1px 2px rgba(0,0,0,.15)); }
+.tv-int-btn { background:var(--border); border:none; border-radius:6px; padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer; color:var(--text-muted); transition:all .2s; }
+.tv-int-btn.active { background:var(--accent,#4caf84); color:#fff; }
+.tv-int-btn:hover:not(.active) { background:var(--border-hover,#444); }
 </style>
 </head>
 <body>
@@ -1976,20 +1987,24 @@ function makeSparkline(changePercent, up) {
 let WATCHLIST = [];
 try { WATCHLIST = JSON.parse(localStorage.getItem('briefly_watchlist') || '[]'); } catch(e) {}
 
-function buildTickerCard(q, name, up, pr, pct, chg, isAI) {
+function buildTickerCard(q, name, up, pr, pct, chg, isAI, realPrices) {
   const sym = q.symbol.split('.')[0].replace('^','');
   const isWatched = WATCHLIST.includes(sym);
-  return '<div class="ticker-card'+(isWatched?' watchlisted':'')+'" id="tc-'+sym+'">' +
-    '<button class="tc-watch-btn'+(isWatched?' active':'')+'" onclick="event.stopPropagation();toggleWatch(\''+sym+'\')" title="'+(isWatched?'Remove from watchlist':'Add to watchlist')+'">'+(isWatched?'★':'☆')+'</button>' +
+  const sourceBadge = isAI ? '<span class="tc-badge tc-badge-ai">AI Est.</span>' :
+    (q.source === 'twelvedata' ? '<span class="tc-badge tc-badge-live">&#x25CF; LIVE</span>' :
+    '<span class="tc-badge tc-badge-yahoo">Yahoo</span>');
+  const watchTitle = isWatched ? 'Remove from watchlist' : 'Add to watchlist';
+  const watchIcon = isWatched ? '&#x2605;' : '&#x2606;';
+  return '<div class="ticker-card'+(isWatched?' watchlisted':'')+'" id="tc-'+sym+'" data-sym="'+sym+'" data-name="'+esc(name)+'" onclick="openChartModal(this.dataset.sym,this.dataset.name)" style="cursor:pointer">' +
+    '<button class="tc-watch-btn'+(isWatched?' active':'')+'" onclick="event.stopPropagation();toggleWatch(\''+sym+'\')" title="'+watchTitle+'">'+watchIcon+'</button>' +
     '<div class="tc-symbol">'+esc(sym)+'</div>' +
     '<div class="tc-name">'+esc(name)+'</div>' +
-    makeSparkline(q.changePercent, up) +
+    makeSparkline(q.changePercent, up, realPrices) +
     '<div class="tc-price '+(up?'tc-up':'tc-down')+'">'+pr+'</div>' +
     '<div class="tc-change '+(up?'tc-up':'tc-down')+'">'+pct+(chg?' ('+chg+')':'')+'</div>' +
-    (isAI ? '<div class="tc-source"><span class="ai-estimate-badge">EST.</span></div>' : '<div class="tc-source"><span style="font-family:var(--cond);font-size:9px;color:#4caf84;letter-spacing:.06em;font-weight:700;">LIVE</span></div>') +
+    sourceBadge +
     '</div>';
 }
-
 function toggleWatch(sym) {
   const idx = WATCHLIST.indexOf(sym);
   if (idx > -1) WATCHLIST.splice(idx, 1); else WATCHLIST.push(sym);
@@ -2061,21 +2076,34 @@ async function loadMarketGroup(g) {
       { method: 'GET' }, 'mkt_'+g.id, CACHE_TTL.markets);
     const quotes = data.quotes || [];
     const isAI = data.source === 'ai_estimate';
-    updateMarketsSummaryBar(g.id, quotes);
+    const isLive = data.source === 'twelvedata';
     updateMarketsSummaryBar(quotes);
+
+    // Fetch real sparkline data for each symbol if Twelve Data available
+    const sparklineData = {};
+    if (isLive) {
+      await Promise.all(quotes.map(async q => {
+        try {
+          const sd = await apiFetch('/api/markets/sparkline?symbol='+encodeURIComponent(q.symbol)+'&interval=1day&outputsize=30',
+            { method: 'GET' }, 'spark_'+q.symbol, CACHE_TTL.markets);
+          if (sd && sd.prices) sparklineData[q.symbol] = sd.prices;
+        } catch(e) { /* use simulated */ }
+      }));
+    }
+
     el.innerHTML = quotes.map(q => {
       const name = g.names[q.symbol] || q.name || q.symbol;
       const up = q.change >= 0;
-      const pct = q.changePercent != null ? (up?'+':'')+q.changePercent.toFixed(2)+'%' : '';
+      const pr = q.price != null ? q.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+      const pct = q.changePercent != null ? (up?'+':'')+q.changePercent.toFixed(2)+'%' : '—';
       const chg = q.change != null ? (up?'+':'')+q.change.toFixed(2) : '';
-      const pr = q.price != null ? q.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : 'N/A';
-      return buildTickerCard(q, name, up, pr, pct, chg, isAI, g.id);
-    }).join('') || '<div style="color:var(--muted);font-size:12px;padding:10px;">No data available</div>';
-  } catch (e) {
-    el.innerHTML = '<div style="color:var(--red);font-size:12px;padding:10px;">⚠ Load failed</div>';
+      return buildTickerCard(q, name, up, pr, pct, chg, isAI, sparklineData[q.symbol] || null);
+    }).join('') || '<div class="error-state">No data available</div>';
+    updateWatchlistSection();
+  } catch(e) {
+    showError(el, 'Markets unavailable — '+e.message, null);
   }
 }
-
 async function loadMarketCommentary() {
   const el = document.getElementById('marketCommentary');
   try {
@@ -2430,6 +2458,86 @@ function copyChat(msgId) {
   });
 }
 
+// ── TradingView Chart Modal ────────────────────────────────────────────────────
+let tvCurrentSymbol = '';
+let tvCurrentInterval = '1D';
+
+function openChartModal(sym, name) {
+  tvCurrentSymbol = sym;
+  tvCurrentInterval = '1D';
+  document.getElementById('tvChartSymbol').textContent = sym;
+  document.getElementById('tvChartName').textContent = name || '';
+  document.getElementById('tvChartModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  // Reset interval buttons
+  document.querySelectorAll('.tv-int-btn').forEach(b => b.classList.toggle('active', b.dataset.int === '1D'));
+  loadTVChart(sym, '1D');
+}
+
+function closeTVModal() {
+  document.getElementById('tvChartModal').style.display = 'none';
+  document.body.style.overflow = '';
+  document.getElementById('tvChartContainer').innerHTML = '';
+}
+
+function setTVInterval(interval) {
+  tvCurrentInterval = interval;
+  document.querySelectorAll('.tv-int-btn').forEach(b => b.classList.toggle('active', b.dataset.int === interval));
+  loadTVChart(tvCurrentSymbol, interval);
+}
+
+function loadTVChart(sym, interval) {
+  const container = document.getElementById('tvChartContainer');
+  container.innerHTML = '';
+  // Map our symbols to TradingView format
+  const tvSymMap = {
+    'GSPC':'SP:SPX','DJI':'DJ:DJI','IXIC':'NASDAQ:NDX','RUT':'TVC:RUT',
+    'FTSE':'TVC:UKX','DAX':'TVC:DAX','FCHI':'TVC:CAC40','IBEX':'TVC:IBEX35',
+    'N225':'TVC:NI225','HSI':'TVC:HSI','AS51':'TVC:ASX200','SHCOMP':'SSE:000001',
+    'TASI':'TADAWUL:TASI','DFMGI':'DFM:DFMGI',
+    'GC=F':'TVC:GOLD','SI=F':'TVC:SILVER','CL=F':'TVC:USOIL','BZ=F':'TVC:UKOIL',
+    'BTC-USD':'COINBASE:BTCUSD','ETH-USD':'COINBASE:ETHUSD',
+    'EURUSD=X':'FX:EURUSD','GBPUSD=X':'FX:GBPUSD','JPY=X':'FX:USDJPY',
+    'AAPL':'NASDAQ:AAPL','MSFT':'NASDAQ:MSFT','GOOGL':'NASDAQ:GOOGL',
+    'AMZN':'NASDAQ:AMZN','NVDA':'NASDAQ:NVDA','TSLA':'NASDAQ:TSLA',
+  };
+  const tvSym = tvSymMap[sym] || sym;
+  const script = document.createElement('script');
+  script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+  script.async = true;
+  script.innerHTML = JSON.stringify({
+    autosize: true,
+    symbol: tvSym,
+    interval: interval,
+    timezone: 'Etc/UTC',
+    theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
+    style: '1',
+    locale: 'en',
+    hide_top_toolbar: false,
+    hide_legend: false,
+    allow_symbol_change: true,
+    save_image: false,
+    calendar: false,
+    height: 420,
+    width: '100%',
+  });
+  const wrapper = document.createElement('div');
+  wrapper.className = 'tradingview-widget-container';
+  wrapper.style.cssText = 'height:420px;width:100%;';
+  const innerDiv = document.createElement('div');
+  innerDiv.className = 'tradingview-widget-container__widget';
+  innerDiv.style.cssText = 'height:420px;width:100%;';
+  wrapper.appendChild(innerDiv);
+  wrapper.appendChild(script);
+  container.appendChild(wrapper);
+}
+
+// Close modal on backdrop click
+document.addEventListener('click', e => {
+  const modal = document.getElementById('tvChartModal');
+  if (modal && e.target === modal) closeTVModal();
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   const ci = document.getElementById('chatInput');
   if (ci) ci.addEventListener('keydown', e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();} });
@@ -2521,5 +2629,28 @@ function initSettingsUI() {
 })();
 
 </script>
+
+<!-- TradingView Chart Modal -->
+<div id="tvChartModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--card-bg);border-radius:16px;width:min(800px,95vw);max-height:90vh;overflow:hidden;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+      <div>
+        <span id="tvChartSymbol" style="font-weight:700;font-size:18px;"></span>
+        <span id="tvChartName" style="color:var(--text-muted);font-size:13px;margin-left:8px;"></span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div style="display:flex;gap:4px;" id="tvIntervalBtns">
+          <button onclick="setTVInterval('1D')" class="tv-int-btn active" data-int="1D">1D</button>
+          <button onclick="setTVInterval('1W')" class="tv-int-btn" data-int="1W">1W</button>
+          <button onclick="setTVInterval('1M')" class="tv-int-btn" data-int="1M">1M</button>
+          <button onclick="setTVInterval('12M')" class="tv-int-btn" data-int="12M">1Y</button>
+        </div>
+        <button onclick="closeTVModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);padding:4px 8px;">✕</button>
+      </div>
+    </div>
+    <div id="tvChartContainer" style="flex:1;min-height:400px;padding:0;"></div>
+  </div>
+</div>
+
 </body>
 </html>
