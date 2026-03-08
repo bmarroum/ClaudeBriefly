@@ -247,6 +247,84 @@ const BREAKING_FEEDS = [
 ];
 
 // ── LIVE NEWS ─────────────────────────────────────────────────────────────────
+// ── MULTI-ENGINE HELPERS ───────────────────────────────────────────────────────
+
+// Run Claude + Groq in parallel, return first successful result
+async function raceAI(systemPrompt, userPrompt, maxTokens = 800) {
+  const attempts = [];
+  if (process.env.ANTHROPIC_API_KEY) {
+    attempts.push(
+      callClaude(systemPrompt, userPrompt, maxTokens)
+        .then(text => ({ text, engine: 'claude' }))
+        .catch(e => { console.warn('raceAI Claude failed:', e.message); return null; })
+    );
+  }
+  if (process.env.GROQ_API_KEY) {
+    attempts.push(
+      callGroq(systemPrompt, [{ role: 'user', content: userPrompt }], maxTokens)
+        .then(text => ({ text, engine: 'groq' }))
+        .catch(e => { console.warn('raceAI Groq failed:', e.message); return null; })
+    );
+  }
+  if (!attempts.length) throw new Error('No AI engines configured');
+  // Return first non-null result
+  const results = await Promise.all(attempts);
+  const winner = results.find(r => r && r.text && r.text.trim().length > 20);
+  if (!winner) throw new Error('All AI engines failed');
+  return winner;
+}
+
+// Run all three engines in parallel and collect all results (for briefing)
+async function parallelAI(systemPrompt, userPrompt, maxTokens = 1024) {
+  const tasks = [];
+  if (process.env.ANTHROPIC_API_KEY) {
+    tasks.push(
+      callClaude(systemPrompt, userPrompt, maxTokens)
+        .then(text => ({ text, engine: 'claude' }))
+        .catch(e => { console.warn('parallelAI Claude:', e.message); return null; })
+    );
+  }
+  if (process.env.GEMINI_API_KEY) {
+    tasks.push(
+      callGeminiSimple(userPrompt, maxTokens)
+        .then(text => ({ text, engine: 'gemini' }))
+        .catch(e => { console.warn('parallelAI Gemini:', e.message); return null; })
+    );
+  }
+  if (process.env.GROQ_API_KEY) {
+    tasks.push(
+      callGroq(systemPrompt, [{ role: 'user', content: userPrompt }], maxTokens)
+        .then(text => ({ text, engine: 'groq' }))
+        .catch(e => { console.warn('parallelAI Groq:', e.message); return null; })
+    );
+  }
+  const results = await Promise.all(tasks);
+  return results.filter(r => r && r.text && r.text.trim().length > 20);
+}
+
+// Simple Gemini text call (no grounding, just completion)
+async function callGeminiSimple(prompt, maxTokens = 800) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY not set');
+  const r = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3 }
+      })
+    }
+  );
+  if (!r.ok) throw new Error('Gemini ' + r.status);
+  const d = await r.json();
+  const text = d.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error('Gemini empty response');
+  return text;
+}
+
+
 app.post("/api/news", async (req, res) => {
   const { topic, search } = req.body;
   if (!topic) return res.status(400).json({ error: "Topic required" });
@@ -397,15 +475,23 @@ app.post("/api/briefing", async (req, res) => {
   const hasGemini = !!process.env.GEMINI_API_KEY;
 
   // ── STEP 1: Parallel live intelligence gathering ─────────────────────────
-  const [claudeSearchResult, geminiResult, rssResult] = await Promise.allSettled([
+  const hasGroq = !!process.env.GROQ_API_KEY;
+  const [claudeSearchResult, geminiResult, rssResult, groqResult] = await Promise.allSettled([
     callClaudeSearch(topic),
     hasGemini ? callGemini(topic, null) : Promise.reject("No Gemini key"),
     fetchLiveRSS(topic),
+    hasGroq ? callGroq(
+      "You are an intelligence analyst. Today: " + todayStr() + ". Provide factual, concise analysis.",
+      [{ role: "user", content: "Summarize the latest developments, key actors, and significance of: " + topic }],
+      600
+    ) : Promise.reject("No Groq key"),
   ]);
 
   const claudeSearchData = claudeSearchResult.status === "fulfilled" ? claudeSearchResult.value : null;
   const geminiData       = geminiResult.status       === "fulfilled" ? geminiResult.value       : null;
+  const groqBriefData    = groqResult?.status         === "fulfilled" ? groqResult.value         : null;
   const rssData          = rssResult.status          === "fulfilled" ? rssResult.value          : null;
+  const groqContextText  = groqResult?.status        === "fulfilled" ? groqResult.value         : null;
 
   // ── STEP 2: Build combined intelligence dossier ──────────────────────────
   let combinedContext = "=== LIVE INTELLIGENCE DOSSIER — " + todayStr() + " ===\n";
@@ -430,6 +516,11 @@ app.post("/api/briefing", async (req, res) => {
     combinedContext += geminiData.groundedSummary + "\n\n";
     geminiSources = geminiData.sources || [];
     searchUsed = true;
+    dataSourceCount++;
+  }
+  if (groqContextText && typeof groqContextText === "string" && groqContextText.length > 50) {
+    combinedContext += "--- SOURCE 3: GROQ/LLAMA INTELLIGENCE (Llama 3.3 70B) ---\n";
+    combinedContext += groqContextText + "\n\n";
     dataSourceCount++;
   }
 
@@ -516,7 +607,10 @@ app.post("/api/briefing", async (req, res) => {
     }
 
     analysis.data_sources = dataSourceCount;
-    const engineUsed = searchUsed ? "gemini+claude" : "claude";
+    const engines = ["claude"];
+    if (searchUsed) engines.push("gemini");
+    if (groqContextText) engines.push("groq");
+    const engineUsed = engines.join("+");
     res.json({ analysis, liveHeadlines, engine: engineUsed, searchUsed, dataSourceCount });
   } catch (e) {
     console.error("Briefing synthesis error:", e.message);
@@ -632,7 +726,7 @@ app.post("/api/airspace", async (req, res) => {
   const googleSearch = "https://www.google.com/search?q=" + encodeURIComponent(country + " airspace NOTAM " + new Date().getFullYear());
 
   try {
-    const text = await callClaude(
+    const { text, engine: aiEngine } = await raceAI(
       "You are an aviation safety analyst with knowledge of FlightRadar24, FAA, EUROCONTROL, and ICAO data. Today: " + todayStr() + ". Respond ONLY with a valid JSON object. No markdown or extra text.",
       liveContext + "Provide current airspace status and NOTAM summary for " + country + ". Reference FlightRadar24 live flight data and official NOTAM systems.\n\nRespond with this JSON:\n{\"country\":\"" + country + "\",\"status\":\"<OPEN|RESTRICTED|CLOSED|CONFLICT_ZONE>\",\"alert_level\":\"<GREEN|AMBER|RED|BLACK>\",\"summary\":\"<2-3 sentences on current airspace status, referencing live flight activity where known>\",\"notams\":[{\"id\":\"<ID or N/A>\",\"title\":\"<NOTAM title>\",\"detail\":\"<1-2 sentences>\",\"effective\":\"<date or ongoing>\",\"authority\":\"<FAA|EASA|ICAO|GCAA|CAA>\"}],\"restrictions\":[\"<restriction1>\",\"<restriction2>\"],\"airlines_affected\":[\"<airline>\"],\"last_updated\":\"" + todayStr() + "\",\"data_sources\":\"FlightRadar24, FAA NOTAM System, EUROCONTROL, ICAO, EASA\",\"verifyLinks\":[{\"label\":\"FlightRadar24\",\"url\":\"" + fr24Url + "\"},{\"label\":\"FAA NOTAMs\",\"url\":\"https://notams.aim.faa.gov/notamSearch/\"},{\"label\":\"EUROCONTROL\",\"url\":\"https://www.eurocontrol.int/publication/notam-summary\"},{\"label\":\"EASA Safety\",\"url\":\"https://www.easa.europa.eu/en/domains/air-operations\"},{\"label\":\"ICAO\",\"url\":\"https://www.icao.int/safety/airnavigation/pages/notam.aspx\"}]}",
       1200
@@ -656,7 +750,7 @@ app.post("/api/advisories", async (req, res) => {
   const ukEmbassySearch = "https://www.google.com/search?q=UK+embassy+" + encodeURIComponent(country) + "+site:gov.uk";
 
   try {
-    const text = await callClaude(
+    const { text, engine: aiEngine } = await raceAI(
       "You are a travel safety analyst with direct knowledge of US State Department, US Embassy advisories, UK FCDO, and UK Embassy travel warnings worldwide. Today: " + todayStr() + ". Respond ONLY with a valid JSON object. No markdown or extra text.",
       "Provide the current US State Department / US Embassy and UK FCDO / UK Embassy travel advisories for " + country + ". Include both the official government advisory level and any specific warnings issued by the US and UK embassies in-country.\n\nRespond with this JSON:\n{\"country\":\"" + country + "\",\"us\":{\"level\":\"<e.g. Level 2: Exercise Increased Caution>\",\"level_number\":<1-4>,\"summary\":\"<2-3 sentences including any US Embassy-specific warnings>\",\"key_risks\":[\"<risk1>\",\"<risk2>\",\"<risk3>\"],\"embassy_note\":\"<1 sentence: any specific US Embassy alert or warning if applicable, else empty string>\",\"last_updated\":\"" + todayStr() + "\",\"url\":\"" + usUrl + "\",\"embassy_url\":\"https://www." + slug + ".usembassy.gov\",\"source\":\"U.S. Department of State / U.S. Embassy\"},\"uk\":{\"level\":\"<e.g. Advise against all but essential travel>\",\"summary\":\"<2-3 sentences including any UK Embassy-specific warnings>\",\"key_risks\":[\"<risk1>\",\"<risk2>\",\"<risk3>\"],\"embassy_note\":\"<1 sentence: any specific UK Embassy alert if applicable, else empty string>\",\"last_updated\":\"" + todayStr() + "\",\"url\":\"" + ukUrl + "\",\"source\":\"UK Foreign, Commonwealth & Development Office / UK Embassy\"}}\nUS level_number: 1=Normal, 2=Caution, 3=Reconsider, 4=Do Not Travel",
       1200
@@ -671,7 +765,7 @@ app.post("/api/advisories", async (req, res) => {
 // ── MARKETS COMMENTARY ────────────────────────────────────────────────────────
 app.post("/api/markets/commentary", async (req, res) => {
   try {
-    const text = await callClaude(
+    const { text, engine: aiEngine } = await raceAI(
       "You are a senior markets analyst. Today: " + todayStr() + ". Respond ONLY with a valid JSON object. No markdown or extra text.",
       "Write a global market intelligence commentary based on your knowledge of current market conditions.\n\nRespond with this JSON:\n{\"headline\":\"Market Intelligence — " + todayStr() + "\",\"summary\":\"<2-3 sentences on overall global market sentiment>\",\"us_commentary\":\"<2-3 sentences on US equities including S&P 500, Dow, Nasdaq>\",\"europe_commentary\":\"<1-2 sentences on European markets>\",\"asia_commentary\":\"<1-2 sentences on Asian markets>\",\"mideast_commentary\":\"<1-2 sentences on Middle East markets including Tadawul and DFM>\",\"oil_commentary\":\"<1-2 sentences on crude oil WTI and Brent>\",\"gold_commentary\":\"<1-2 sentences on gold and silver>\",\"fx_commentary\":\"<1-2 sentences on USD and major currencies>\",\"sources\":[{\"name\":\"Yahoo Finance\",\"url\":\"https://finance.yahoo.com\"},{\"name\":\"Bloomberg Markets\",\"url\":\"https://bloomberg.com/markets\"},{\"name\":\"Reuters Markets\",\"url\":\"https://reuters.com/markets\"},{\"name\":\"TradingView\",\"url\":\"https://www.tradingview.com/markets/\"},{\"name\":\"Tadawul\",\"url\":\"https://www.saudiexchange.sa\"},{\"name\":\"DFM\",\"url\":\"https://www.dfm.ae\"}]}",
       900
@@ -777,26 +871,32 @@ app.post("/api/ask", async (req, res) => {
     }
   }
 
-  // Groq fallback (or primary if requested)
+  // Groq + Gemini fallback (or primary if requested)
+  const fallbackTasks = [];
+  if (process.env.GROQ_API_KEY) {
+    fallbackTasks.push(
+      callGroq(systemPrompt, messages, 800)
+        .then(text => ({ text, engine: "groq" }))
+        .catch(() => null)
+    );
+  }
+  if (process.env.GEMINI_API_KEY) {
+    const geminiPrompt = systemPrompt + "\n\nUser question: " + question;
+    fallbackTasks.push(
+      callGeminiSimple(geminiPrompt, 800)
+        .then(text => ({ text, engine: "gemini" }))
+        .catch(() => null)
+    );
+  }
   try {
-    const text = await callGroq(systemPrompt, messages, 800);
-    return res.json({ answer: text, engine: "groq" });
-  } catch (groqErr) {
-    console.error("Groq Ask error:", groqErr.message);
-    // Last resort: try Claude if we haven't yet
-    if (preferGroq && process.env.ANTHROPIC_API_KEY) {
-      try {
-        const r = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": ANTHROPIC_VERSION },
-          body: JSON.stringify({ model: MODEL, max_tokens: 800, system: systemPrompt, messages }),
-        });
-        const d = await r.json();
-        const text = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
-        return res.json({ answer: text, engine: "claude-fallback" });
-      } catch (e) {}
-    }
-    res.status(500).json({ error: groqErr.message });
+    const fallbackResults = await Promise.all(fallbackTasks);
+    const winner = fallbackResults.find(r => r && r.text && r.text.trim().length > 20);
+    if (winner) return res.json({ answer: winner.text, engine: winner.engine });
+    const text = "All AI engines are currently unavailable. Please try again.";
+    return res.json({ answer: text, engine: "none" });
+  } catch (fallbackErr) {
+    console.error("All engines failed:", fallbackErr.message);
+    res.status(500).json({ error: "All AI engines unavailable" });
   }
 });
 
