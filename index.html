@@ -496,13 +496,11 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
       <span class="brief-sugg" onclick="quickBrief('Sudan civil war')">Sudan</span>
       <span class="brief-sugg" onclick="quickBrief('Taiwan strait')">Taiwan Strait</span>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(200,168,75,0.15);">
-      <div class="engine-toggle">
-        <span class="engine-label">Engine</span>
-        <button class="engine-btn active" id="engineClaudeBtn" onclick="setEngine('claude')">🤖 Claude</button>
-        <button class="engine-btn" id="engineGeminiBtn" onclick="setEngine('gemini')">✨ Gemini + Live Search</button>
-      </div>
-      <div id="engineStatusLabel" style="font-family:var(--cond);font-size:10px;color:rgba(232,213,163,0.4);letter-spacing:.06em;">Claude · RSS context</div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid rgba(200,168,75,0.15);">
+      <span id="engineStatusBadge" style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;background:rgba(200,168,75,0.12);border:1px solid rgba(200,168,75,0.25);border-radius:20px;font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(232,213,163,0.7);">
+        ✨ Gemini Live Search + 🤖 Claude Analysis
+      </span>
+      <span style="font-family:var(--cond);font-size:10px;color:rgba(232,213,163,0.35);letter-spacing:.05em;">Both engines run in parallel for maximum accuracy</span>
     </div>
   </div>
   <div id="briefContent">
@@ -884,15 +882,7 @@ function quickBrief(topic) {
   generateBrief();
 }
 
-let briefEngine = 'claude';
-
-function setEngine(engine) {
-  briefEngine = engine;
-  document.getElementById('engineClaudeBtn').classList.toggle('active', engine === 'claude');
-  document.getElementById('engineGeminiBtn').classList.toggle('active', engine === 'gemini');
-  const lbl = document.getElementById('engineStatusLabel');
-  if (lbl) lbl.textContent = engine === 'gemini' ? 'Gemini 2.0 Flash · Live Google Search' : 'Claude Sonnet · RSS context';
-}
+// Dual-engine mode: Gemini searches live, Claude synthesises — no toggle needed
 
 const THREAT_ICONS = { CRITICAL:'🔴', HIGH:'🟠', ELEVATED:'🟡', MODERATE:'🔵', LOW:'🟢' };
 
@@ -906,7 +896,7 @@ async function generateBrief() {
   const btn = document.getElementById('briefGenerateBtn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Analyzing…'; }
   try {
-    const data = await apiFetch('/api/briefing', { body: JSON.stringify({ topic: q, engine: briefEngine }) }, null);
+    const data = await apiFetch('/api/briefing', { body: JSON.stringify({ topic: q }) }, null);
     const a = data.analysis || {};
     const liveHeadlines = data.liveHeadlines || [];
     const ts = new Date().toLocaleString('en-US',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'}) + ' UTC';

@@ -8,7 +8,7 @@ app.use(express.json());
 const ANTHROPIC_VERSION = "2023-06-01";
 const MODEL = "claude-sonnet-4-20250514";
 const GEMINI_MODEL = "gemini-2.0-flash";
-const VERSION = "3.4";
+const VERSION = "3.5";
 
 // ── CLAUDE HELPER ─────────────────────────────────────────────────────────────
 async function callClaude(system, user, maxTokens = 1024) {
@@ -299,120 +299,117 @@ app.get("/api/rss/breaking", async (req, res) => {
   res.json({ items: items.slice(0, 18) });
 });
 
-// ── INTELLIGENCE BRIEFING ─────────────────────────────────────────────────────
+// ── INTELLIGENCE BRIEFING (dual-engine: Gemini live search + Claude synthesis) ──
 app.post("/api/briefing", async (req, res) => {
-  const { topic, engine } = req.body;
+  const { topic } = req.body;
   if (!topic) return res.status(400).json({ error: "Topic required" });
 
-  const useGemini = engine === "gemini" && !!process.env.GEMINI_API_KEY;
   const su = encodeURIComponent(topic);
+  const hasGemini = !!process.env.GEMINI_API_KEY;
 
+  // Run Gemini live search + RSS fetch in parallel
+  const [geminiResult, rssResult] = await Promise.allSettled([
+    hasGemini ? callGemini(topic, null) : Promise.reject("No Gemini key"),
+    fetchLiveRSS(topic),
+  ]);
+
+  const geminiData = geminiResult.status === "fulfilled" ? geminiResult.value : null;
+  const rssData    = rssResult.status    === "fulfilled" ? rssResult.value    : null;
+
+  // Build combined intelligence context
+  let combinedContext = "=== LIVE INTELLIGENCE DOSSIER — " + todayStr() + " ===\n\n";
+  let liveHeadlines = [];
+  let geminiSources = [];
+  let searchUsed = false;
+
+  if (geminiData && geminiData.groundedSummary) {
+    combinedContext += "--- GEMINI LIVE WEB SEARCH (Google-grounded, current) ---\n";
+    combinedContext += geminiData.groundedSummary + "\n\n";
+    geminiSources = geminiData.sources || [];
+    searchUsed = geminiData.searchUsed || false;
+  }
+
+  if (rssData && rssData.headlines && rssData.headlines.length) {
+    liveHeadlines = rssData.headlines;
+    combinedContext += "--- RSS NEWS FEED (past 7 days) ---\n";
+    combinedContext += rssData.headlines.map((i, idx) =>
+      (idx + 1) + ". [" +
+      (i.pubDate ? new Date(i.pubDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Recent") +
+      "] " + i.title + (i.body ? " — " + i.body.slice(0, 200) : "")
+    ).join("\n") + "\n\n";
+  }
+
+  if (!geminiData && !rssData) {
+    combinedContext += "NOTE: No live data available. Use training knowledge with explicit uncertainty markers.\n\n";
+  }
+
+  combinedContext += "=== END OF LIVE INTELLIGENCE ===\n";
+
+  // JSON schema for Claude to fill
   const JSON_SCHEMA =
     "{" +
     "\"classification\":\"INTELLIGENCE BRIEF\"," +
     "\"threat_level\":\"<CRITICAL|HIGH|ELEVATED|MODERATE|LOW>\"," +
-    "\"threat_level_reason\":\"<one sentence>\", " +
+    "\"threat_level_reason\":\"<one sentence>\"," +
     "\"confidence\":<integer 1-100>," +
-    "\"executive\":\"<4-5 sentence executive summary>\"," +
-    "\"situation\":\"<3-4 sentences on current situation>\"," +
-    "\"geopolitical\":\"<3-4 sentences on key actors and implications>\"," +
-    "\"key_actors\":[{\"name\":\"<name>\",\"role\":\"<role>\",\"stance\":\"<stance>\"}]," +
-    "\"humanitarian\":\"<2-3 sentences on humanitarian impact>\"," +
+    "\"executive\":\"<4-5 sentence executive summary — lead with most recent development>\"," +
+    "\"situation\":\"<3-4 sentences — current situation and latest developments>\"," +
+    "\"geopolitical\":\"<3-4 sentences on key actors, interests, alliances>\"," +
+    "\"key_actors\":[{\"name\":\"<full name>\",\"role\":\"<title>\",\"stance\":\"<current position>\"}]," +
+    "\"humanitarian\":\"<2-3 sentences on civilian impact>\"," +
     "\"economic\":\"<2-3 sentences on economic impact>\"," +
-    "\"strategic\":\"<3-4 sentences on strategic outlook>\", " +
-    "\"timeline\":[{\"date\":\"<date>\",\"event\":\"<event>\"}]," +
-    "\"key_risks\":[\"<risk>\"]," +
-    "\"watch_points\":[\"<watch point>\"]," +
-    "\"related_topics\":[\"<topic>\"]," +
-    "\"sources\":[{\"name\":\"Reuters\",\"url\":\"https://reuters.com/search/news?blob=" + su + "\"},{\"name\":\"AP News\",\"url\":\"https://apnews.com/search?q=" + su + "\"},{\"name\":\"BBC News\",\"url\":\"https://bbc.com/search?q=" + su + "\"},{\"name\":\"Bloomberg\",\"url\":\"https://bloomberg.com/search?query=" + su + "\"},{\"name\":\"Foreign Policy\",\"url\":\"https://foreignpolicy.com/search/?q=" + su + "\"}]" +
+    "\"strategic\":\"<3-4 sentences on outlook and key risks>\"," +
+    "\"timeline\":[{\"date\":\"<specific date>\",\"event\":\"<factual event>\"}]," +
+    "\"key_risks\":[\"<specific risk>\"]," +
+    "\"watch_points\":[\"<indicator to monitor>\"]," +
+    "\"related_topics\":[\"<related topic>\"]," +
+    "\"sources\":[{\"name\":\"Reuters\",\"url\":\"https://reuters.com/search/news?blob=" + su + "\"},{\"name\":\"AP News\",\"url\":\"https://apnews.com/search?q=" + su + "\"},{\"name\":\"BBC\",\"url\":\"https://bbc.com/search?q=" + su + "\"},{\"name\":\"Bloomberg\",\"url\":\"https://bloomberg.com/search?query=" + su + "\"},{\"name\":\"Foreign Policy\",\"url\":\"https://foreignpolicy.com/search/?q=" + su + "\"}}]" +
     "}";
 
-  // ── GEMINI PATH (2-step: live search → structured JSON) ─────────────────
-  if (useGemini) {
-    try {
-      const { text, sources: geminiSources, searchUsed, groundedSummary } = await callGemini(topic, JSON_SCHEMA);
-      const analysis = parseJSON(text);
-
-      // Attach real grounding sources (actual URLs Gemini searched)
-      if (geminiSources.length > 0) {
-        analysis.sources = [...geminiSources, ...(analysis.sources || [])].slice(0, 8);
-      }
-
-      // Pass grounded summary as liveHeadlines context for the UI
-      const liveHeadlines = groundedSummary
-        ? [{ title: "Gemini searched live web sources for this brief", body: groundedSummary.slice(0, 300) }]
-        : [];
-
-      res.json({ analysis, liveHeadlines, engine: "gemini", searchUsed });
-    } catch (e) {
-      console.error("Gemini briefing error:", e.message);
-      console.log("Falling back to Claude...");
-      return handleClaudeBriefing(topic, su, JSON_SCHEMA, res);
-    }
-    return;
-  }
-
-  // ── CLAUDE PATH (RSS context injection) ──────────────────────────────────
-  return handleClaudeBriefing(topic, su, JSON_SCHEMA, res);
-});
-
-async function handleClaudeBriefing(topic, su, JSON_SCHEMA, res) {
-  let liveContext = "";
-  let liveHeadlines = [];
-  let rssSuccess = false;
-
-  // Try multiple RSS feeds for richer context — date-scoped to past week
-  const rssUrls = [
-    "https://news.google.com/rss/search?q=" + encodeURIComponent(topic) + "&hl=en-US&gl=US&ceid=US:en&tbs=qdr:w",
-    "https://news.google.com/rss/search?q=" + encodeURIComponent(topic) + "&hl=en-US&gl=US&ceid=US:en",
-    "https://feeds.reuters.com/reuters/topNews",
-  ];
-
-  for (const url of rssUrls) {
-    try {
-      const items = await fetchRSS(url, 5000);
-      const relevant = items.filter(i =>
-        i.title.toLowerCase().split(" ").some(w => w.length > 4 && topic.toLowerCase().includes(w))
-        || url.includes(encodeURIComponent(topic))
-      );
-      const picked = (relevant.length >= 3 ? relevant : items).slice(0, 10);
-      if (picked.length > 0) {
-        liveHeadlines = picked;
-        // Include title AND description snippet for richer context
-        liveContext = "LIVE NEWS CONTEXT (past 7 days) — use this as your primary source:\n" +
-          picked.map((i, idx) =>
-            (idx + 1) + ". [" + (i.pubDate ? new Date(i.pubDate).toLocaleDateString("en-US",{month:"short",day:"numeric"}) : "Recent") + "] " +
-            i.title + (i.body ? " — " + i.body.slice(0, 180) : "")
-          ).join("\n") + "\n\n";
-        rssSuccess = true;
-        break;
-      }
-    } catch (e) { /* try next */ }
-  }
-
-  const contextNote = rssSuccess
-    ? "You have " + liveHeadlines.length + " live news items above. Base your analysis primarily on these. Fill gaps with your training knowledge but clearly distinguish what is current vs background context."
-    : "WARNING: No live news could be fetched. Base your analysis on your training knowledge and clearly note that real-time verification is recommended.";
-
+  // Claude synthesises everything into the final brief
   try {
     const text = await callClaude(
-      "You are a senior intelligence analyst at a global risk consultancy. Today: " + todayStr() + ".\n" +
-      "CRITICAL RULES:\n" +
-      "1. Respond ONLY with a valid JSON object. No markdown fences, no preamble, nothing outside the JSON.\n" +
-      "2. Never use placeholder text like <text here> — always write real analytical content.\n" +
-      "3. Be specific: use real names, dates, locations, and figures where known.\n" +
-      "4. If information is uncertain, say so within your analysis rather than omitting it.",
-      liveContext + contextNote + "\n\n" +
-      "Write a comprehensive, current intelligence briefing about: " + topic + "\n\n" +
-      "JSON structure to follow exactly (replace ALL angle-bracket placeholders with real content):\n" + JSON_SCHEMA,
-      3000
+      "You are a senior intelligence analyst synthesising a final brief from multiple live intelligence sources. Today: " + todayStr() + ".\n" +
+      "RULES:\n" +
+      "1. Respond ONLY with a valid JSON object. No markdown, no preamble, nothing outside the JSON.\n" +
+      "2. Prioritise information from the live dossier. Supplement with training knowledge but label uncertainty.\n" +
+      "3. Never write placeholder text — every field must contain real, specific content.\n" +
+      "4. Lead every section with the most current information available.\n" +
+      "5. Use real names, real dates, real locations, real figures.",
+      combinedContext +
+      "\nSynthesize the above into a comprehensive intelligence brief about: " + topic +
+      "\n\nOutput this exact JSON (fill EVERY field with real analytical content):\n" + JSON_SCHEMA,
+      3500
     );
+
     const analysis = parseJSON(text);
-    res.json({ analysis, liveHeadlines, engine: "claude", searchUsed: rssSuccess });
+
+    // Merge Gemini grounding sources
+    if (geminiSources.length > 0) {
+      analysis.sources = [...geminiSources, ...(analysis.sources || [])].slice(0, 10);
+    }
+
+    const engineUsed = (hasGemini && searchUsed) ? "gemini+claude" : "claude";
+    res.json({ analysis, liveHeadlines, engine: engineUsed, searchUsed });
   } catch (e) {
-    console.error("Briefing error:", e.message);
+    console.error("Briefing synthesis error:", e.message);
     res.status(500).json({ error: e.message });
   }
+});
+
+// ── RSS helper for briefing live context ─────────────────────────────────────
+async function fetchLiveRSS(topic) {
+  const urls = [
+    "https://news.google.com/rss/search?q=" + encodeURIComponent(topic) + "&hl=en-US&gl=US&ceid=US:en&tbs=qdr:w",
+    "https://news.google.com/rss/search?q=" + encodeURIComponent(topic) + "&hl=en-US&gl=US&ceid=US:en",
+  ];
+  for (const url of urls) {
+    try {
+      const items = await fetchRSS(url, 5000);
+      if (items.length > 0) return { headlines: items.slice(0, 10) };
+    } catch (e) { /* try next */ }
+  }
+  return { headlines: [] };
 }
 
 // ── PRESS RELEASES ────────────────────────────────────────────────────────────
