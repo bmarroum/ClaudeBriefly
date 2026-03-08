@@ -287,6 +287,60 @@ app.post("/api/news", async (req, res) => {
   }
 });
 
+// ── OG IMAGE SCRAPER ─────────────────────────────────────────────────────────
+// Fetches Open Graph / Twitter Card image from an article URL (server-side to avoid CORS)
+app.get("/api/og-image", async (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.status(400).json({ error: "url required" });
+
+  // Only allow http/https URLs
+  if (!/^https?:\/\//i.test(url)) return res.status(400).json({ error: "invalid url" });
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    const r = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; BrieflyBot/3.0; +https://bmarroum.github.io/ClaudeBriefly/)",
+        "Accept": "text/html,application/xhtml+xml,*/*",
+      },
+    });
+    clearTimeout(timer);
+    if (!r.ok) return res.json({ image: null });
+
+    // Read only the <head> — stop after </head> to avoid downloading entire page
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let html = "";
+    let done = false;
+    while (!done) {
+      const { value, done: streamDone } = await reader.read();
+      done = streamDone;
+      if (value) html += decoder.decode(value, { stream: true });
+      if (html.includes("</head>") || html.length > 30000) break;
+    }
+    reader.cancel();
+
+    // Extract OG/Twitter image
+    const ogMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+                 || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
+                 || html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i)
+                 || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
+
+    const image = ogMatch ? ogMatch[1] : null;
+
+    // Only return http/https image URLs
+    if (image && /^https?:\/\//i.test(image)) {
+      res.setHeader("Cache-Control", "public, max-age=86400"); // cache 24h
+      return res.json({ image });
+    }
+    return res.json({ image: null });
+  } catch (e) {
+    return res.json({ image: null }); // silent fail — images are non-critical
+  }
+});
+
 // ── BREAKING TICKER ───────────────────────────────────────────────────────────
 app.get("/api/rss/breaking", async (req, res) => {
   const items = [];

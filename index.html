@@ -391,6 +391,32 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
 .gemini-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:linear-gradient(135deg,rgba(66,133,244,0.2),rgba(52,168,83,0.2));border:1px solid rgba(66,133,244,0.3);border-radius:20px;font-family:var(--cond);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7cb8ff;}
 .claude-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:rgba(200,168,75,0.15);border:1px solid rgba(200,168,75,0.3);border-radius:20px;font-family:var(--cond);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);}
 .search-grounded-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:rgba(52,168,83,0.15);border:1px solid rgba(52,168,83,0.3);border-radius:20px;font-family:var(--cond);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#52c78b;}
+
+/* ── NEWS IMAGES ──────────────────────────────────────────────────────────── */
+.news-item-img{width:90px;height:68px;object-fit:cover;border-radius:6px;flex-shrink:0;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);}
+.news-item-img-placeholder{width:90px;height:68px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);}
+.brief-item{display:flex;gap:14px;align-items:flex-start;}
+.brief-item-body{flex:1;min-width:0;}
+
+/* ── SEARCH IMPROVEMENTS ──────────────────────────────────────────────────── */
+.news-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+.news-filter-btn{padding:4px 12px;border-radius:20px;border:1px solid rgba(200,168,75,0.25);background:transparent;color:rgba(232,213,163,0.55);font-family:var(--cond);font-size:11px;font-weight:700;letter-spacing:.06em;cursor:pointer;transition:all .18s;text-transform:uppercase;}
+.news-filter-btn.active{background:rgba(200,168,75,0.18);border-color:rgba(200,168,75,0.5);color:var(--gold);}
+.news-filter-btn:hover{border-color:rgba(200,168,75,0.4);color:rgba(232,213,163,0.85);}
+.news-search-bar{display:flex;gap:8px;margin-bottom:10px;position:relative;}
+.news-search-bar input{flex:1;padding:9px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(200,168,75,0.2);border-radius:8px;color:var(--text);font-family:var(--body);font-size:13px;outline:none;transition:border .2s;}
+.news-search-bar input:focus{border-color:rgba(200,168,75,0.5);}
+.news-search-bar button{padding:9px 18px;background:var(--gold);border:none;border-radius:8px;color:#0f1623;font-family:var(--cond);font-size:11px;font-weight:800;letter-spacing:.08em;cursor:pointer;text-transform:uppercase;}
+.search-autocomplete{position:absolute;top:100%;left:0;right:60px;background:#1a2236;border:1px solid rgba(200,168,75,0.3);border-radius:8px;z-index:100;overflow:hidden;margin-top:2px;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.search-autocomplete-item{padding:9px 14px;font-family:var(--body);font-size:12px;color:rgba(232,213,163,0.7);cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,0.04);}
+.search-autocomplete-item:last-child{border-bottom:none;}
+.search-autocomplete-item:hover{background:rgba(200,168,75,0.1);color:var(--gold);}
+.search-autocomplete-item .search-hist-icon{opacity:.4;font-size:11px;}
+.highlight{background:rgba(200,168,75,0.25);color:var(--gold);border-radius:2px;padding:0 2px;}
+.news-date-badge{display:inline-block;padding:2px 7px;background:rgba(255,255,255,0.07);border-radius:4px;font-family:var(--cond);font-size:10px;letter-spacing:.05em;color:rgba(232,213,163,0.5);margin-left:6px;}
+.news-search-meta{font-family:var(--cond);font-size:10px;color:rgba(232,213,163,0.4);letter-spacing:.06em;margin-bottom:10px;}
+.news-clear-search{padding:3px 10px;border-radius:12px;border:1px solid rgba(255,100,100,0.3);background:transparent;color:rgba(255,130,130,0.7);font-family:var(--cond);font-size:10px;cursor:pointer;margin-left:8px;}
+.news-clear-search:hover{background:rgba(255,100,100,0.1);}
 </style>
 </head>
 <body>
@@ -417,7 +443,7 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
   <div class="header-search">
     <div class="search-box">
       <span class="search-icon">🔍</span>
-      <input class="search-input" id="headerSearchInput" type="text" placeholder="Search all headlines…" autocomplete="off"/>
+      <input class="search-input" id="headerSearchInput" type="text" placeholder="Search all headlines…" autocomplete="off" onkeydown="if(event.key==='Enter')searchHeadlines()"/>
       <button class="search-btn" onclick="searchHeadlines()">Search</button>
     </div>
   </div>
@@ -460,6 +486,27 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
         <button class="pill" onclick="selectRegion(this,'Asia')">🌏 Asia</button>
         <button class="pill" onclick="selectRegion(this,'South America')">🌎 S. America</button>
       </div>
+      <!-- News search bar -->
+      <div class="news-search-bar" id="newsSearchBar">
+        <input type="text" id="newsSearchInput" placeholder="Search headlines, topics, countries…" autocomplete="off"
+          oninput="newsSearchAutocomplete(this.value)"
+          onkeydown="if(event.key==='Enter')doNewsSearch()"
+          onfocus="showNewsAutocomplete()" onblur="setTimeout(hideNewsAutocomplete,200)"/>
+        <button onclick="doNewsSearch()">Search</button>
+        <div class="search-autocomplete" id="newsAutocomplete" style="display:none;"></div>
+      </div>
+      <!-- Date + source filters -->
+      <div class="news-filters" id="newsFilters">
+        <span style="font-family:var(--cond);font-size:10px;color:rgba(232,213,163,0.35);letter-spacing:.06em;text-transform:uppercase;">Filter:</span>
+        <button class="news-filter-btn active" onclick="setNewsDateFilter(this,'all')">All Time</button>
+        <button class="news-filter-btn" onclick="setNewsDateFilter(this,'day')">24h</button>
+        <button class="news-filter-btn" onclick="setNewsDateFilter(this,'week')">7 Days</button>
+        <button class="news-filter-btn" onclick="setNewsDateFilter(this,'month')">30 Days</button>
+        <span style="flex:1"></span>
+        <button class="news-filter-btn" id="sortNewestBtn" onclick="setNewsSort('newest')" title="Sort newest first">↓ Newest</button>
+        <button class="news-filter-btn" id="sortOldestBtn" onclick="setNewsSort('oldest')" title="Sort oldest first">↑ Oldest</button>
+      </div>
+      <div id="newsSearchMeta" style="display:none;" class="news-search-meta"></div>
       <div id="newsContent"><div class="card"><div class="loading-state"><div class="loading-spinner"></div>Loading live news…</div></div></div>
     </div>
     <div>
@@ -840,42 +887,249 @@ async function loadNews(region, search) {
   const cKey = search ? 'search_'+search : 'news_'+currentRegion;
   try {
     const data = await apiFetch('/api/news', { body: JSON.stringify({ topic: currentRegion, search: search||undefined }) }, cKey, CACHE_TTL.news);
-    renderNews(data, el);
+    el._lastData = data; el._lastQuery = search||null; renderNews(data, el, search||null);
   } catch (e) {
     el.innerHTML = '<div class="card"><div class="error-state">⚠ Failed to load news. Backend may be warming up (30s). <button class="error-retry" onclick="loadNews(currentRegion)">Retry</button></div></div>';
   }
 }
 
-function renderNews(data, el) {
-  const items = data.items || [];
-  let html = '<div class="card">';
-  html += '<div class="news-label">' + esc(data.isLive ? '🔴 Live Feed' : '📋 AI Summary') + '</div>';
-  html += '<div class="news-header-row"><div class="news-headline">' + esc(data.headline||'Headlines') + '</div>';
-  html += '<button class="news-refresh" onclick="delete CACHE[\'news_\'+currentRegion];loadNews(currentRegion)" title="Refresh">↺</button></div>';
-  html += '<div class="news-summary">' + esc(data.summary||'') + (data.fetchedAt ? ' <span style="opacity:.5">· '+formatDate(data.fetchedAt)+'</span>' : '') + '</div>';
-  html += '<div class="news-count">' + items.length + ' headlines</div>';
+function renderNews(data, el, searchQuery) {
+  const allItems = data.items || [];
+  // Apply date filter
+  const now = Date.now();
+  const dateMs = { all: 0, day: 86400000, week: 604800000, month: 2592000000 };
+  const cutoff = dateMs[newsDateFilter] || 0;
+  let items = cutoff
+    ? allItems.filter(i => i.pubDate && (now - new Date(i.pubDate).getTime()) < cutoff)
+    : allItems;
+  // Apply sort
+  if (newsSort === 'oldest') items = [...items].sort((a,b) => new Date(a.pubDate||0) - new Date(b.pubDate||0));
+  else items = [...items].sort((a,b) => new Date(b.pubDate||0) - new Date(a.pubDate||0));
+
+  let h = '<div class="card">';
+  h += '<div class="news-label">' + esc(data.isLive ? '🔴 Live Feed' : '📋 AI Summary') + '</div>';
+  h += '<div class="news-header-row"><div class="news-headline">' + esc(data.headline||'Headlines') + '</div>';
+  h += '<button class="news-refresh" onclick="delete CACHE[\'news_\'+currentRegion];loadNews(currentRegion)" title="Refresh">↺</button></div>';
+  h += '<div class="news-summary">' + esc(data.summary||'') + (data.fetchedAt ? ' <span style="opacity:.5">· '+formatDate(data.fetchedAt)+'</span>' : '') + '</div>';
+  h += '<div class="news-count">' + items.length + ' of ' + allItems.length + ' headlines';
+  if (cutoff) h += ' (filtered to ' + ({day:'24h',week:'7 days',month:'30 days'}[newsDateFilter]) + ')';
+  h += '</div>';
+
   items.forEach((item, i) => {
     const body = cleanBody(item.body);
     const lk = item.link ? ' href="'+esc(item.link)+'" target="_blank" rel="noopener"' : '';
-    html += '<div class="brief-item"><div class="brief-num">'+(i+1).toString().padStart(2,'0')+'</div><div>';
-    html += '<div class="brief-content"><strong><a'+lk+'>'+esc(item.title)+'</a></strong>';
-    if (body) html += '<br/>'+esc(body);
-    html += '</div><div class="brief-source">';
-    if (item.sourceUrl) html += '<a href="'+esc(item.sourceUrl)+'" target="_blank" rel="noopener">'+esc(item.sources)+'</a>';
-    else html += esc(item.sources||'');
-    if (item.pubDate) html += ' · '+formatDate(item.pubDate);
-    if (item.isLive) html += ' <span class="live-badge">● Live</span>';
-    else if (showAiBadge) html += ' <span class="ai-badge">AI</span>';
-    html += '</div></div></div>';
+    const imgId = 'nimg_' + i;
+    // Highlight search terms in title
+    const titleHtml = searchQuery ? highlightTerms(esc(item.title), searchQuery) : esc(item.title);
+    const bodyHtml  = searchQuery && body ? highlightTerms(esc(body), searchQuery) : (body ? esc(body) : '');
+
+    h += '<div class="brief-item">';
+    // Image slot — will be lazy-loaded after render
+    if (item.link && item.isLive) {
+      h += '<div class="news-item-img-placeholder" id="'+imgId+'" data-url="'+esc(item.link)+'">📰</div>';
+    }
+    h += '<div class="brief-item-body">';
+    h += '<div class="brief-content"><strong><a'+lk+'>'+titleHtml+'</a></strong>';
+    if (bodyHtml) h += '<br/><span style="opacity:.8">'+bodyHtml+'</span>';
+    h += '</div><div class="brief-source">';
+    if (item.sourceUrl) h += '<a href="'+esc(item.sourceUrl)+'" target="_blank" rel="noopener">'+esc(item.sources)+'</a>';
+    else h += esc(item.sources||'');
+    if (item.pubDate) h += '<span class="news-date-badge">'+formatDate(item.pubDate)+'</span>';
+    if (item.isLive) h += ' <span class="live-badge">● Live</span>';
+    else if (showAiBadge) h += ' <span class="ai-badge">AI</span>';
+    h += '</div></div></div>';
   });
-  html += '</div>';
-  el.innerHTML = html;
+  h += '</div>';
+  el.innerHTML = h;
+
+  // Lazy-load OG images after render
+  if (data.isLive) lazyLoadNewsImages(items);
+}
+
+function highlightTerms(text, query) {
+  if (!query) return text;
+  const terms = query.trim().split(/\s+/).filter(t => t.length > 2);
+  let result = text;
+  terms.forEach(term => {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp('(' + escaped + ')', 'gi'), '<span class="highlight">$1</span>');
+  });
+  return result;
+}
+
+async function lazyLoadNewsImages(items) {
+  const BE = 'https://claudebriefly.onrender.com';
+  for (let i = 0; i < Math.min(items.length, 8); i++) {
+    const item = items[i];
+    if (!item.link) continue;
+    const el = document.getElementById('nimg_' + i);
+    if (!el) continue;
+    try {
+      const r = await fetch(BE + '/api/og-image?url=' + encodeURIComponent(item.link));
+      const d = await r.json();
+      if (d.image) {
+        const img = document.createElement('img');
+        img.className = 'news-item-img';
+        img.alt = '';
+        img.loading = 'lazy';
+        img.onerror = () => { img.style.display='none'; el.style.display='flex'; };
+        img.src = d.image;
+        el.parentNode.replaceChild(img, el);
+      }
+    } catch(e) { /* keep placeholder */ }
+  }
 }
 
 function searchHeadlines() { const q = document.getElementById('headerSearchInput').value.trim(); if (q) { switchTab('news'); loadNews(currentRegion, q); } }
 function searchHeadlinesMobile() { const q = document.getElementById('mobileSearchInput').value.trim(); if (q) { switchTab('news'); loadNews(currentRegion, q); } }
 document.getElementById('headerSearchInput').addEventListener('keydown', e => { if (e.key==='Enter') searchHeadlines(); });
 document.getElementById('mobileSearchInput').addEventListener('keydown', e => { if (e.key==='Enter') searchHeadlinesMobile(); });
+
+// ── NEWS SEARCH + FILTER STATE ────────────────────────────────────────────────
+let newsDateFilter = 'all';
+let newsSort = 'newest';
+const NEWS_SEARCH_HISTORY_KEY = 'briefly_search_history';
+
+function getSearchHistory() {
+  try { return JSON.parse(localStorage.getItem(NEWS_SEARCH_HISTORY_KEY) || '[]'); } catch(e) { return []; }
+}
+function addSearchHistory(q) {
+  if (!q || q.length < 2) return;
+  let hist = getSearchHistory().filter(h => h.toLowerCase() !== q.toLowerCase());
+  hist.unshift(q);
+  hist = hist.slice(0, 12);
+  try { localStorage.setItem(NEWS_SEARCH_HISTORY_KEY, JSON.stringify(hist)); } catch(e) {}
+}
+
+function setNewsDateFilter(btn, filter) {
+  newsDateFilter = filter;
+  document.querySelectorAll('.news-filters .news-filter-btn').forEach(b => {
+    if (['all','day','week','month'].some(f => b.getAttribute('onclick')?.includes("'"+f+"'"))) b.classList.remove('active');
+  });
+  btn.classList.add('active');
+  // Re-render with current data if available
+  const el = document.getElementById('newsContent');
+  if (el && el._lastData) renderNews(el._lastData, el, el._lastQuery);
+}
+
+function setNewsSort(sort) {
+  newsSort = sort;
+  document.getElementById('sortNewestBtn')?.classList.toggle('active', sort === 'newest');
+  document.getElementById('sortOldestBtn')?.classList.toggle('active', sort === 'oldest');
+  const el = document.getElementById('newsContent');
+  if (el && el._lastData) renderNews(el._lastData, el, el._lastQuery);
+}
+
+function doNewsSearch() {
+  const q = document.getElementById('newsSearchInput')?.value?.trim();
+  hideNewsAutocomplete();
+  if (!q) {
+    clearNewsSearch();
+    return;
+  }
+  addSearchHistory(q);
+  // Show meta
+  const meta = document.getElementById('newsSearchMeta');
+  if (meta) {
+    meta.style.display = 'block';
+    meta.innerHTML = 'Searching for <strong style="color:var(--gold)">"'+esc(q)+'"</strong>' +
+      '<button class="news-clear-search" onclick="clearNewsSearch()">✕ Clear</button>';
+  }
+  loadNews(null, q);
+}
+
+function clearNewsSearch() {
+  const input = document.getElementById('newsSearchInput');
+  if (input) input.value = '';
+  const meta = document.getElementById('newsSearchMeta');
+  if (meta) meta.style.display = 'none';
+  loadNews(currentRegion);
+}
+
+function newsSearchAutocomplete(val) {
+  const box = document.getElementById('newsAutocomplete');
+  if (!box) return;
+  if (!val || val.length < 2) {
+    showRecentSearches();
+    return;
+  }
+  const hist = getSearchHistory().filter(h => h.toLowerCase().includes(val.toLowerCase())).slice(0, 6);
+  const suggestions = [
+    ...hist,
+    ...['Gaza ceasefire','Russia Ukraine war','US China trade','Iran nuclear','Oil prices','Taiwan strait',
+        'North Korea','Sudan conflict','NATO summit','Federal Reserve','Middle East','Climate summit']
+      .filter(s => s.toLowerCase().includes(val.toLowerCase()) && !hist.includes(s))
+      .slice(0, 4 - hist.length)
+  ];
+  if (!suggestions.length) { hideNewsAutocomplete(); return; }
+  box.innerHTML = suggestions.map(s =>
+    '<div class="search-autocomplete-item" onmousedown="selectAutocomplete(\''+esc(s)+'\')">' +
+    '<span class="search-hist-icon">' + (hist.includes(s) ? '🕐' : '🔍') + '</span>' +
+    highlightTerms(esc(s), val) + '</div>'
+  ).join('');
+  box.style.display = 'block';
+}
+
+function showRecentSearches() {
+  const box = document.getElementById('newsAutocomplete');
+  if (!box) return;
+  const hist = getSearchHistory().slice(0, 6);
+  if (!hist.length) { hideNewsAutocomplete(); return; }
+  box.innerHTML = '<div style="padding:6px 14px;font-family:var(--cond);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:rgba(232,213,163,0.3);">Recent searches</div>' +
+    hist.map(s =>
+      '<div class="search-autocomplete-item" onmousedown="selectAutocomplete(\''+esc(s)+'\')">' +
+      '<span class="search-hist-icon">🕐</span>' + esc(s) + '</div>'
+    ).join('');
+  box.style.display = 'block';
+}
+
+function showNewsAutocomplete() {
+  const val = document.getElementById('newsSearchInput')?.value || '';
+  if (val.length >= 2) newsSearchAutocomplete(val);
+  else showRecentSearches();
+}
+
+function hideNewsAutocomplete() {
+  const box = document.getElementById('newsAutocomplete');
+  if (box) box.style.display = 'none';
+}
+
+function selectAutocomplete(val) {
+  const input = document.getElementById('newsSearchInput');
+  if (input) { input.value = val; }
+  hideNewsAutocomplete();
+  addSearchHistory(val);
+  const meta = document.getElementById('newsSearchMeta');
+  if (meta) {
+    meta.style.display = 'block';
+    meta.innerHTML = 'Searching for <strong style="color:var(--gold)">"'+esc(val)+'"</strong>' +
+      '<button class="news-clear-search" onclick="clearNewsSearch()">✕ Clear</button>';
+  }
+  loadNews(null, val);
+}
+
+// ── PATCH: also wire up the header search to switch to news tab ───────────────
+function searchHeadlines() {
+  const q = document.getElementById('headerSearchInput')?.value?.trim();
+  if (!q) return;
+  // Switch to news tab
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const newsTab = document.getElementById('tab-news');
+  if (newsTab) newsTab.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => { if(b.getAttribute('onclick')?.includes('news')) b.classList.add('active'); });
+  // Fill and fire news search
+  const newsInput = document.getElementById('newsSearchInput');
+  if (newsInput) { newsInput.value = q; }
+  addSearchHistory(q);
+  const meta = document.getElementById('newsSearchMeta');
+  if (meta) {
+    meta.style.display = 'block';
+    meta.innerHTML = 'Searching for <strong style="color:var(--gold)">"'+esc(q)+'"</strong>' +
+      '<button class="news-clear-search" onclick="clearNewsSearch()">✕ Clear</button>';
+  }
+  loadNews(null, q);
+}
 
 function quickBrief(topic) {
   document.getElementById('briefSearchInput').value = topic;
