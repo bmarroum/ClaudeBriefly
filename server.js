@@ -8,7 +8,7 @@ app.use(express.json());
 const ANTHROPIC_VERSION = "2023-06-01";
 const MODEL = "claude-sonnet-4-20250514";
 const GEMINI_MODEL = "gemini-2.0-flash";
-const VERSION = "3.3";
+const VERSION = "3.4";
 
 // ── CLAUDE HELPER ─────────────────────────────────────────────────────────────
 async function callClaude(system, user, maxTokens = 1024) {
@@ -38,39 +38,71 @@ async function callClaude(system, user, maxTokens = 1024) {
 }
 
 
-// ── GEMINI HELPER (with Google Search grounding) ──────────────────────────────
-async function callGemini(prompt, maxTokens = 2400) {
+// ── GEMINI HELPER (2-step: search first, then structured analysis) ────────────
+async function callGemini(topic, jsonSchema) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY not set");
 
-  const body = {
-    contents: [{ parts: [{ text: prompt }] }],
-    tools: [{ google_search: {} }],
-    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3 },
+  const geminiPost = async (body) => {
+    const r = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent?key=" + apiKey,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+    );
+    if (!r.ok) {
+      const t = await r.text();
+      throw new Error("Gemini API " + r.status + ": " + t.slice(0, 300));
+    }
+    return r.json();
   };
 
-  const r = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent?key=" + apiKey,
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
-  );
-  if (!r.ok) {
-    const t = await r.text();
-    throw new Error("Gemini API " + r.status + ": " + t.slice(0, 200));
-  }
-  const d = await r.json();
-  const text = d.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
-  if (!text.trim()) throw new Error("Empty Gemini response");
+  // ── STEP 1: Grounded search — let Gemini search freely, return a prose summary ──
+  const searchBody = {
+    contents: [{
+      parts: [{ text:
+        "Search for the very latest news and developments about: \"" + topic + "\"\n" +
+        "Today is " + todayStr() + ". Focus on events from the past 2 weeks.\n" +
+        "Return a detailed factual summary of what you find: key events, key people involved, " +
+        "current status, recent developments, and any significant changes. Be specific with dates and facts."
+      }]
+    }],
+    tools: [{ google_search: {} }],
+    generationConfig: { maxOutputTokens: 1500, temperature: 0.1 },
+  };
 
-  // Extract search queries used (for transparency)
-  const searchQueries = [];
-  d.candidates?.[0]?.groundingMetadata?.searchEntryPoint?.renderedContent && searchQueries.push("Google Search");
-  const groundingChunks = d.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-  const sources = groundingChunks.slice(0, 6).map(c => ({
+  let groundedSummary = "";
+  let groundingSources = [];
+
+  const d1 = await geminiPost(searchBody);
+  groundedSummary = d1.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+  const groundingChunks = d1.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+  groundingSources = groundingChunks.slice(0, 8).map(c => ({
     name: c.web?.title || "Web Source",
     url: c.web?.uri || "#"
   }));
+  const searchUsed = groundingChunks.length > 0;
 
-  return { text, sources, searchUsed: groundingChunks.length > 0 };
+  if (!groundedSummary.trim()) throw new Error("Gemini search returned no content");
+
+  // ── STEP 2: Structure the grounded content into JSON — NO search tool this time ──
+  const structureBody = {
+    contents: [{
+      parts: [{ text:
+        "You are a senior intelligence analyst. Today is " + todayStr() + ".\n\n" +
+        "Based ONLY on the following verified, current intelligence gathered from live sources, " +
+        "write a structured intelligence brief. Do NOT use your training data — use ONLY what is below.\n\n" +
+        "=== LIVE INTELLIGENCE ===\n" + groundedSummary + "\n=== END ===\n\n" +
+        "Now respond with ONLY a valid JSON object using this exact structure. " +
+        "No markdown fences, no preamble, no text outside the JSON:\n" + jsonSchema
+      }]
+    }],
+    generationConfig: { maxOutputTokens: 3000, temperature: 0.2 },
+  };
+
+  const d2 = await geminiPost(structureBody);
+  const text = d2.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+  if (!text.trim()) throw new Error("Gemini structuring returned no content");
+
+  return { text, sources: groundingSources, searchUsed, groundedSummary };
 }
 
 // Fixed parseJSON: finds outermost { } correctly for nested objects
@@ -295,29 +327,25 @@ app.post("/api/briefing", async (req, res) => {
     "\"sources\":[{\"name\":\"Reuters\",\"url\":\"https://reuters.com/search/news?blob=" + su + "\"},{\"name\":\"AP News\",\"url\":\"https://apnews.com/search?q=" + su + "\"},{\"name\":\"BBC News\",\"url\":\"https://bbc.com/search?q=" + su + "\"},{\"name\":\"Bloomberg\",\"url\":\"https://bloomberg.com/search?query=" + su + "\"},{\"name\":\"Foreign Policy\",\"url\":\"https://foreignpolicy.com/search/?q=" + su + "\"}]" +
     "}";
 
-  // ── GEMINI PATH (live Google Search grounding) ────────────────────────────
+  // ── GEMINI PATH (2-step: live search → structured JSON) ─────────────────
   if (useGemini) {
     try {
-      const prompt =
-        "You are a senior intelligence analyst. Today is " + todayStr() + ".\n" +
-        "Use Google Search to find the LATEST news and information about: \"" + topic + "\"\n\n" +
-        "Search for recent developments, current status, key actors, and latest events.\n" +
-        "Then write a comprehensive, CURRENT intelligence briefing based on what you find.\n\n" +
-        "CRITICAL: Respond ONLY with a valid JSON object. No markdown fences, no preamble.\n" +
-        "Use this exact structure:\n" + JSON_SCHEMA;
-
-      const { text, sources: geminiSources, searchUsed } = await callGemini(prompt, 2400);
+      const { text, sources: geminiSources, searchUsed, groundedSummary } = await callGemini(topic, JSON_SCHEMA);
       const analysis = parseJSON(text);
 
-      // Merge Gemini grounding sources into analysis sources if available
+      // Attach real grounding sources (actual URLs Gemini searched)
       if (geminiSources.length > 0) {
         analysis.sources = [...geminiSources, ...(analysis.sources || [])].slice(0, 8);
       }
 
-      res.json({ analysis, liveHeadlines: [], engine: "gemini", searchUsed });
+      // Pass grounded summary as liveHeadlines context for the UI
+      const liveHeadlines = groundedSummary
+        ? [{ title: "Gemini searched live web sources for this brief", body: groundedSummary.slice(0, 300) }]
+        : [];
+
+      res.json({ analysis, liveHeadlines, engine: "gemini", searchUsed });
     } catch (e) {
       console.error("Gemini briefing error:", e.message);
-      // Fall back to Claude if Gemini fails
       console.log("Falling back to Claude...");
       return handleClaudeBriefing(topic, su, JSON_SCHEMA, res);
     }
@@ -331,25 +359,56 @@ app.post("/api/briefing", async (req, res) => {
 async function handleClaudeBriefing(topic, su, JSON_SCHEMA, res) {
   let liveContext = "";
   let liveHeadlines = [];
-  try {
-    const items = await fetchRSS(
-      "https://news.google.com/rss/search?q=" + encodeURIComponent(topic) + "&hl=en-US&gl=US&ceid=US:en",
-      5000
-    );
-    if (items.length > 0) {
-      liveHeadlines = items.slice(0, 8);
-      liveContext = "Recent headlines:\n" + liveHeadlines.map(i => "- " + i.title).join("\n") + "\n\n";
-    }
-  } catch (e) { /* silent */ }
+  let rssSuccess = false;
+
+  // Try multiple RSS feeds for richer context — date-scoped to past week
+  const rssUrls = [
+    "https://news.google.com/rss/search?q=" + encodeURIComponent(topic) + "&hl=en-US&gl=US&ceid=US:en&tbs=qdr:w",
+    "https://news.google.com/rss/search?q=" + encodeURIComponent(topic) + "&hl=en-US&gl=US&ceid=US:en",
+    "https://feeds.reuters.com/reuters/topNews",
+  ];
+
+  for (const url of rssUrls) {
+    try {
+      const items = await fetchRSS(url, 5000);
+      const relevant = items.filter(i =>
+        i.title.toLowerCase().split(" ").some(w => w.length > 4 && topic.toLowerCase().includes(w))
+        || url.includes(encodeURIComponent(topic))
+      );
+      const picked = (relevant.length >= 3 ? relevant : items).slice(0, 10);
+      if (picked.length > 0) {
+        liveHeadlines = picked;
+        // Include title AND description snippet for richer context
+        liveContext = "LIVE NEWS CONTEXT (past 7 days) — use this as your primary source:\n" +
+          picked.map((i, idx) =>
+            (idx + 1) + ". [" + (i.pubDate ? new Date(i.pubDate).toLocaleDateString("en-US",{month:"short",day:"numeric"}) : "Recent") + "] " +
+            i.title + (i.body ? " — " + i.body.slice(0, 180) : "")
+          ).join("\n") + "\n\n";
+        rssSuccess = true;
+        break;
+      }
+    } catch (e) { /* try next */ }
+  }
+
+  const contextNote = rssSuccess
+    ? "You have " + liveHeadlines.length + " live news items above. Base your analysis primarily on these. Fill gaps with your training knowledge but clearly distinguish what is current vs background context."
+    : "WARNING: No live news could be fetched. Base your analysis on your training knowledge and clearly note that real-time verification is recommended.";
 
   try {
     const text = await callClaude(
-      "You are a senior intelligence analyst at a global risk consultancy. Today: " + todayStr() + ". Respond ONLY with a valid JSON object. No markdown, no preamble.",
-      liveContext + "Write a comprehensive intelligence briefing about: " + topic + "\n\nRespond with this exact JSON structure:\n" + JSON_SCHEMA,
-      2400
+      "You are a senior intelligence analyst at a global risk consultancy. Today: " + todayStr() + ".\n" +
+      "CRITICAL RULES:\n" +
+      "1. Respond ONLY with a valid JSON object. No markdown fences, no preamble, nothing outside the JSON.\n" +
+      "2. Never use placeholder text like <text here> — always write real analytical content.\n" +
+      "3. Be specific: use real names, dates, locations, and figures where known.\n" +
+      "4. If information is uncertain, say so within your analysis rather than omitting it.",
+      liveContext + contextNote + "\n\n" +
+      "Write a comprehensive, current intelligence briefing about: " + topic + "\n\n" +
+      "JSON structure to follow exactly (replace ALL angle-bracket placeholders with real content):\n" + JSON_SCHEMA,
+      3000
     );
     const analysis = parseJSON(text);
-    res.json({ analysis, liveHeadlines, engine: "claude", searchUsed: liveHeadlines.length > 0 });
+    res.json({ analysis, liveHeadlines, engine: "claude", searchUsed: rssSuccess });
   } catch (e) {
     console.error("Briefing error:", e.message);
     res.status(500).json({ error: e.message });
