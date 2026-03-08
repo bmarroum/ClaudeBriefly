@@ -8,7 +8,9 @@ app.use(express.json());
 const ANTHROPIC_VERSION = "2023-06-01";
 const MODEL = "claude-sonnet-4-20250514";
 const GEMINI_MODEL = "gemini-2.0-flash";
-const VERSION = "3.6";
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_MODEL   = "llama-3.3-70b-versatile";
+const VERSION = "3.7";
 
 // ── CLAUDE HELPER ─────────────────────────────────────────────────────────────
 async function callClaude(system, user, maxTokens = 1024) {
@@ -35,6 +37,33 @@ async function callClaude(system, user, maxTokens = 1024) {
   const text = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
   if (!text.trim()) throw new Error("Empty response");
   return text;
+}
+
+
+// ── GROQ HELPER ───────────────────────────────────────────────────────────────
+async function callGroq(systemPrompt, messages, maxTokens = 800) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error("GROQ_API_KEY not set");
+  const body = {
+    model: GROQ_MODEL,
+    max_tokens: maxTokens,
+    messages: [
+      { role: "system", content: systemPrompt },
+      ...messages
+    ]
+  };
+  const r = await fetch(GROQ_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + apiKey
+    },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) { const t = await r.text(); throw new Error("Groq " + r.status + ": " + t.slice(0, 200)); }
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return d.choices[0].message.content;
 }
 
 
@@ -710,40 +739,64 @@ app.get("/api/markets/quote", async (req, res) => {
 
 // ── ASK / Q&A with conversation history ──────────────────────────────────────
 app.post("/api/ask", async (req, res) => {
-  const { question, history } = req.body;
+  const { question, history, engine } = req.body;
   if (!question) return res.status(400).json({ error: "Question required" });
 
   const messages = [];
   if (history && Array.isArray(history)) {
-    for (const turn of history.slice(-6)) {
+    for (const turn of history.slice(-8)) {
       if (turn.role && turn.content) messages.push({ role: turn.role, content: turn.content });
     }
   }
   messages.push({ role: "user", content: question });
 
+  const systemPrompt = "You are Briefly Intelligence, a senior global intelligence analyst. Today: " + todayStr() + ". Provide concise, factual, well-structured analysis. Use markdown: **bold** for key terms, ## for section headers when needed, bullet points for lists. Be direct and informative.";
+
+  // Try Claude first (unless groq explicitly requested), fall back to Groq
+  const preferGroq = engine === "groq" || !process.env.ANTHROPIC_API_KEY;
+  const preferClaude = !preferGroq;
+
+  if (preferClaude) {
+    try {
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.ANTHROPIC_API_KEY,
+          "anthropic-version": ANTHROPIC_VERSION,
+        },
+        body: JSON.stringify({ model: MODEL, max_tokens: 800, system: systemPrompt, messages }),
+      });
+      if (!r.ok) throw new Error("Claude " + r.status);
+      const d = await r.json();
+      if (d.error) throw new Error(d.error.message);
+      const text = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+      return res.json({ answer: text, engine: "claude" });
+    } catch (claudeErr) {
+      console.warn("Claude Ask failed, falling back to Groq:", claudeErr.message);
+    }
+  }
+
+  // Groq fallback (or primary if requested)
   try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": ANTHROPIC_VERSION,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 800,
-        system: "You are Briefly Intelligence, a senior global intelligence analyst. Today: " + todayStr() + ". Provide concise, factual, well-structured analysis. Be direct and informative.",
-        messages,
-      }),
-    });
-    if (!r.ok) { const t = await r.text(); throw new Error("API " + r.status + ": " + t.slice(0, 200)); }
-    const d = await r.json();
-    if (d.error) throw new Error(d.error.message);
-    const text = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
-    res.json({ answer: text });
-  } catch (e) {
-    console.error("Ask error:", e.message);
-    res.status(500).json({ error: e.message });
+    const text = await callGroq(systemPrompt, messages, 800);
+    return res.json({ answer: text, engine: "groq" });
+  } catch (groqErr) {
+    console.error("Groq Ask error:", groqErr.message);
+    // Last resort: try Claude if we haven't yet
+    if (preferGroq && process.env.ANTHROPIC_API_KEY) {
+      try {
+        const r = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": ANTHROPIC_VERSION },
+          body: JSON.stringify({ model: MODEL, max_tokens: 800, system: systemPrompt, messages }),
+        });
+        const d = await r.json();
+        const text = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+        return res.json({ answer: text, engine: "claude-fallback" });
+      } catch (e) {}
+    }
+    res.status(500).json({ error: groqErr.message });
   }
 });
 
