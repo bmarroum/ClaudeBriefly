@@ -303,6 +303,10 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
 .interval-btn.active{background:var(--text);color:var(--bg);border-color:var(--text);}
 .topic-sel{width:100%;padding:8px 14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;}
 .topic-sel:focus{border-color:var(--gold);}
+
+.app-footer{text-align:center;padding:18px 0 8px;font-family:var(--cond);font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;}
+.app-footer a{color:var(--gold);text-decoration:none;opacity:.7;}
+.app-footer a:hover{opacity:1;}
 </style>
 </head>
 <body>
@@ -405,7 +409,7 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
     <div>
       <div class="page-label">Airspace & NOTAMs</div>
       <div class="page-title">✈️ Airspace Status</div>
-      <div class="page-subtitle">Select up to 7 countries · AI-synthesized NOTAM summaries · verify with official sources</div>
+      <div class="page-subtitle">Select up to 7 countries · FlightRadar24 · NOTAM summaries · verify with official sources</div>
     </div>
     <button class="btn-outline" onclick="clearAirspaceSelections()">✕ Clear All</button>
   </div>
@@ -437,7 +441,7 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
     <div>
       <div class="page-label">Travel Safety</div>
       <div class="page-title">🛡️ Travel Advisories</div>
-      <div class="page-subtitle">Select up to 7 countries · US State Dept + UK FCDO · AI-synthesized</div>
+      <div class="page-subtitle">Select up to 7 countries · US & UK Embassy sources · State Dept + FCDO</div>
     </div>
     <button class="btn-outline" onclick="clearAdvisorySelections()">✕ Clear All</button>
   </div>
@@ -491,96 +495,16 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
     <div><div class="page-label">Official Statements</div><div class="page-title">📰 Press Releases</div><div class="page-subtitle">Government communiqués · filter by country or region</div></div>
     <button class="btn-outline" onclick="refreshPress()">🔄 Refresh</button>
   </div>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
-    <select id="pressCountrySelect" class="topic-sel" style="max-width:300px;" onchange="onPressSelectChange()">
-      <optgroup label="── Regions ──">
-        <option value="Global/World" selected>🌍 Global / World</option>
-        <option value="North America">🌎 North America</option>
-        <option value="Europe">🌍 Europe</option>
-        <option value="Middle East & Africa">🌙 Middle East & Africa</option>
-        <option value="Asia">🌏 Asia</option>
-        <option value="South America">🌎 South America</option>
-      </optgroup>
-      <optgroup label="── North America ──">
-        <option value="United States">🇺🇸 United States</option>
-        <option value="Canada">🇨🇦 Canada</option>
-        <option value="Mexico">🇲🇽 Mexico</option>
-      </optgroup>
-      <optgroup label="── Europe ──">
-        <option value="United Kingdom">🇬🇧 United Kingdom</option>
-        <option value="France">🇫🇷 France</option>
-        <option value="Germany">🇩🇪 Germany</option>
-        <option value="Italy">🇮🇹 Italy</option>
-        <option value="Spain">🇪🇸 Spain</option>
-        <option value="Poland">🇵🇱 Poland</option>
-        <option value="Netherlands">🇳🇱 Netherlands</option>
-        <option value="Sweden">🇸🇪 Sweden</option>
-        <option value="Norway">🇳🇴 Norway</option>
-        <option value="Ukraine">🇺🇦 Ukraine</option>
-        <option value="Turkey">🇹🇷 Turkey</option>
-      </optgroup>
-      <optgroup label="── Middle East ──">
-        <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
-        <option value="United Arab Emirates">🇦🇪 UAE</option>
-        <option value="Israel">🇮🇱 Israel</option>
-        <option value="Iran">🇮🇷 Iran</option>
-        <option value="Iraq">🇮🇶 Iraq</option>
-        <option value="Jordan">🇯🇴 Jordan</option>
-        <option value="Lebanon">🇱🇧 Lebanon</option>
-        <option value="Qatar">🇶🇦 Qatar</option>
-        <option value="Kuwait">🇰🇼 Kuwait</option>
-        <option value="Bahrain">🇧🇭 Bahrain</option>
-        <option value="Oman">🇴🇲 Oman</option>
-        <option value="Egypt">🇪🇬 Egypt</option>
-        <option value="Syria">🇸🇾 Syria</option>
-        <option value="Yemen">🇾🇪 Yemen</option>
-        <option value="Libya">🇱🇾 Libya</option>
-      </optgroup>
-      <optgroup label="── Africa ──">
-        <option value="South Africa">🇿🇦 South Africa</option>
-        <option value="Nigeria">🇳🇬 Nigeria</option>
-        <option value="Kenya">🇰🇪 Kenya</option>
-        <option value="Ethiopia">🇪🇹 Ethiopia</option>
-        <option value="Morocco">🇲🇦 Morocco</option>
-        <option value="Algeria">🇩🇿 Algeria</option>
-        <option value="Sudan">🇸🇩 Sudan</option>
-      </optgroup>
-      <optgroup label="── Asia ──">
-        <option value="China">🇨🇳 China</option>
-        <option value="Japan">🇯🇵 Japan</option>
-        <option value="India">🇮🇳 India</option>
-        <option value="South Korea">🇰🇷 South Korea</option>
-        <option value="North Korea">🇰🇵 North Korea</option>
-        <option value="Pakistan">🇵🇰 Pakistan</option>
-        <option value="Afghanistan">🇦🇫 Afghanistan</option>
-        <option value="Bangladesh">🇧🇩 Bangladesh</option>
-        <option value="Indonesia">🇮🇩 Indonesia</option>
-        <option value="Vietnam">🇻🇳 Vietnam</option>
-        <option value="Thailand">🇹🇭 Thailand</option>
-        <option value="Philippines">🇵🇭 Philippines</option>
-        <option value="Myanmar">🇲🇲 Myanmar</option>
-        <option value="Taiwan">🇹🇼 Taiwan</option>
-      </optgroup>
-      <optgroup label="── South America ──">
-        <option value="Brazil">🇧🇷 Brazil</option>
-        <option value="Argentina">🇦🇷 Argentina</option>
-        <option value="Colombia">🇨🇴 Colombia</option>
-        <option value="Chile">🇨🇱 Chile</option>
-        <option value="Venezuela">🇻🇪 Venezuela</option>
-        <option value="Peru">🇵🇪 Peru</option>
-      </optgroup>
-      <optgroup label="── Oceania ──">
-        <option value="Australia">🇦🇺 Australia</option>
-        <option value="New Zealand">🇳🇿 New Zealand</option>
-      </optgroup>
-      <optgroup label="── Other ──">
-        <option value="Russia">🇷🇺 Russia</option>
-        <option value="NATO">🌐 NATO</option>
-        <option value="European Union">🇪🇺 European Union</option>
-        <option value="United Nations">🌐 United Nations</option>
-      </optgroup>
-    </select>
-    <span style="font-family:var(--cond);font-size:11px;color:var(--muted);letter-spacing:.06em;" id="pressCurrentLabel">Global / World</span>
+  <div style="position:relative;max-width:360px;margin-bottom:16px;" id="pressSearchWrap">
+    <div style="display:flex;align-items:center;background:var(--bg2);border:1.5px solid var(--border);border-radius:40px;padding:5px 5px 5px 16px;transition:border-color .2s;" id="pressSearchBox">
+      <span style="color:var(--muted);font-size:13px;margin-right:8px;">🔍</span>
+      <input id="pressSearchInput" type="text" autocomplete="off" placeholder="Search country or region…"
+        style="flex:1;border:none;outline:none;font-family:var(--sans);font-size:13px;color:var(--text);background:transparent;min-width:0;"
+        oninput="filterPressDropdown()" onfocus="openPressDropdown()" onkeydown="pressDdKeydown(event)"/>
+      <span id="pressSearchCaret" style="padding:0 12px;color:var(--muted);font-size:10px;cursor:pointer;" onclick="togglePressDropdown()">▾</span>
+    </div>
+    <div id="pressDropdown" style="display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--card);border:1.5px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);z-index:200;max-height:280px;overflow-y:auto;">
+    </div>
   </div>
   <div class="press-grid" id="pressContent"></div>
 </div>
@@ -608,6 +532,7 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
 <div id="tab-settings" class="tab-content">
   <div class="page-label">Preferences</div>
   <div class="page-title" style="margin-bottom:18px;">⚙️ Settings</div>
+  <div style="margin-bottom:20px;font-family:var(--cond);font-size:11px;color:var(--muted);letter-spacing:.06em;">Briefly Intelligence &nbsp;·&nbsp; <strong style="color:var(--gold);">v3.2</strong> &nbsp;·&nbsp; Backend: <a href="https://claudebriefly.onrender.com/health" target="_blank" rel="noopener" style="color:var(--gold);">Health Check</a></div>
   <div class="settings-grid">
     <div class="setting-card"><div class="setting-label">🌙 Dark Mode</div><div class="setting-desc">Switch to dark theme for low-light environments</div><div class="setting-row"><span style="font-size:13px;color:var(--muted)">Enable dark theme</span><label class="toggle"><input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()"/><span class="toggle-slider"></span></label></div></div>
     <div class="setting-card"><div class="setting-label">🔄 Auto-Refresh</div><div class="setting-desc">Automatically reload news on a schedule</div><div class="setting-row" style="margin-bottom:12px;"><span style="font-size:13px;color:var(--muted)">Enable auto-refresh</span><label class="toggle"><input type="checkbox" id="autoRefreshToggle" onchange="toggleAutoRefresh()"/><span class="toggle-slider"></span></label></div><div class="interval-btns"><button class="interval-btn" onclick="setRefreshInterval(5)">5m</button><button class="interval-btn" onclick="setRefreshInterval(10)">10m</button><button class="interval-btn active" onclick="setRefreshInterval(15)">15m</button><button class="interval-btn" onclick="setRefreshInterval(30)">30m</button><button class="interval-btn" onclick="setRefreshInterval(60)">60m</button></div></div>
@@ -618,6 +543,9 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
   </div>
 </div>
 </main>
+<div class="app-footer">
+  Briefly Intelligence &nbsp;·&nbsp; v3.2 &nbsp;·&nbsp; Powered by <a href="https://claude.ai" target="_blank" rel="noopener">Claude</a> &nbsp;·&nbsp; AI-generated content — verify with official sources
+</div>
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
   <button class="nav-btn active" id="nav-news" onclick="switchTab('news')"><span class="nav-icon">📰</span>News</button>
@@ -1091,8 +1019,10 @@ function renderAdvisoryCard(c, data) {
     h += '<div class="adv-level">'+esc(data.us.level)+'</div>';
     h += '<div class="adv-summary">'+esc(data.us.summary)+'</div>';
     h += '<div class="adv-risks">'+(data.us.key_risks||[]).map(r=>'<div class="adv-risk">'+esc(r)+'</div>').join('')+'</div>';
+    if (data.us.embassy_note) h += '<div style="margin-top:6px;padding:6px 10px;background:rgba(99,102,241,0.08);border-radius:8px;font-size:11px;color:var(--text2);">🏛 <strong>US Embassy:</strong> '+esc(data.us.embassy_note)+'</div>';
     h += '<div class="adv-updated">'+esc(data.us.last_updated)+'</div>';
-    if (showCitations && data.us.url) h += '<a class="adv-link" href="'+esc(data.us.url)+'" target="_blank" rel="noopener">🔗 Official Source</a>';
+    if (showCitations && data.us.url) h += '<a class="adv-link" href="'+esc(data.us.url)+'" target="_blank" rel="noopener">🔗 State Dept</a>';
+    if (showCitations && data.us.embassy_url) h += ' <a class="adv-link" href="'+esc(data.us.embassy_url)+'" target="_blank" rel="noopener">🏛 US Embassy</a>';
     h += '</div>';
   }
   if (data.uk) {
@@ -1101,8 +1031,9 @@ function renderAdvisoryCard(c, data) {
     h += '<div class="adv-level">'+esc(data.uk.level)+'</div>';
     h += '<div class="adv-summary">'+esc(data.uk.summary)+'</div>';
     h += '<div class="adv-risks">'+(data.uk.key_risks||[]).map(r=>'<div class="adv-risk">'+esc(r)+'</div>').join('')+'</div>';
+    if (data.uk.embassy_note) h += '<div style="margin-top:6px;padding:6px 10px;background:rgba(45,122,79,0.08);border-radius:8px;font-size:11px;color:var(--text2);">🏛 <strong>UK Embassy:</strong> '+esc(data.uk.embassy_note)+'</div>';
     h += '<div class="adv-updated">'+esc(data.uk.last_updated)+'</div>';
-    if (showCitations && data.uk.url) h += '<a class="adv-link" href="'+esc(data.uk.url)+'" target="_blank" rel="noopener">🔗 Official Source</a>';
+    if (showCitations && data.uk.url) h += '<a class="adv-link" href="'+esc(data.uk.url)+'" target="_blank" rel="noopener">🔗 FCDO</a>';
     h += '</div>';
   }
   h += '</div></div>';
@@ -1232,21 +1163,183 @@ async function loadPress(region) {
 }
 
 function selectPressRegion(btn, region) {
-  document.querySelectorAll('#pressRegionPills .pill').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
+  if (btn) {
+    document.querySelectorAll('#pressRegionPills .pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
   delete CACHE['press_'+region];
   loadPress(region);
 }
 
+// ── SEARCHABLE PRESS DROPDOWN ─────────────────────────────────────────────────
+const PRESS_OPTIONS = [
+  { group:'Regions', value:'Global/World', label:'🌍 Global / World' },
+  { group:'Regions', value:'North America', label:'🌎 North America' },
+  { group:'Regions', value:'Europe', label:'🌍 Europe' },
+  { group:'Regions', value:'Middle East & Africa', label:'🌙 Middle East & Africa' },
+  { group:'Regions', value:'Asia', label:'🌏 Asia' },
+  { group:'Regions', value:'South America', label:'🌎 South America' },
+  { group:'North America', value:'United States', label:'🇺🇸 United States' },
+  { group:'North America', value:'Canada', label:'🇨🇦 Canada' },
+  { group:'North America', value:'Mexico', label:'🇲🇽 Mexico' },
+  { group:'Europe', value:'United Kingdom', label:'🇬🇧 United Kingdom' },
+  { group:'Europe', value:'France', label:'🇫🇷 France' },
+  { group:'Europe', value:'Germany', label:'🇩🇪 Germany' },
+  { group:'Europe', value:'Italy', label:'🇮🇹 Italy' },
+  { group:'Europe', value:'Spain', label:'🇪🇸 Spain' },
+  { group:'Europe', value:'Poland', label:'🇵🇱 Poland' },
+  { group:'Europe', value:'Netherlands', label:'🇳🇱 Netherlands' },
+  { group:'Europe', value:'Sweden', label:'🇸🇪 Sweden' },
+  { group:'Europe', value:'Norway', label:'🇳🇴 Norway' },
+  { group:'Europe', value:'Ukraine', label:'🇺🇦 Ukraine' },
+  { group:'Europe', value:'Turkey', label:'🇹🇷 Turkey' },
+  { group:'Middle East', value:'Saudi Arabia', label:'🇸🇦 Saudi Arabia' },
+  { group:'Middle East', value:'United Arab Emirates', label:'🇦🇪 UAE' },
+  { group:'Middle East', value:'Israel', label:'🇮🇱 Israel' },
+  { group:'Middle East', value:'Iran', label:'🇮🇷 Iran' },
+  { group:'Middle East', value:'Iraq', label:'🇮🇶 Iraq' },
+  { group:'Middle East', value:'Jordan', label:'🇯🇴 Jordan' },
+  { group:'Middle East', value:'Lebanon', label:'🇱🇧 Lebanon' },
+  { group:'Middle East', value:'Qatar', label:'🇶🇦 Qatar' },
+  { group:'Middle East', value:'Kuwait', label:'🇰🇼 Kuwait' },
+  { group:'Middle East', value:'Bahrain', label:'🇧🇭 Bahrain' },
+  { group:'Middle East', value:'Oman', label:'🇴🇲 Oman' },
+  { group:'Middle East', value:'Egypt', label:'🇪🇬 Egypt' },
+  { group:'Middle East', value:'Syria', label:'🇸🇾 Syria' },
+  { group:'Middle East', value:'Yemen', label:'🇾🇪 Yemen' },
+  { group:'Middle East', value:'Libya', label:'🇱🇾 Libya' },
+  { group:'Africa', value:'South Africa', label:'🇿🇦 South Africa' },
+  { group:'Africa', value:'Nigeria', label:'🇳🇬 Nigeria' },
+  { group:'Africa', value:'Kenya', label:'🇰🇪 Kenya' },
+  { group:'Africa', value:'Ethiopia', label:'🇪🇹 Ethiopia' },
+  { group:'Africa', value:'Morocco', label:'🇲🇦 Morocco' },
+  { group:'Africa', value:'Algeria', label:'🇩🇿 Algeria' },
+  { group:'Africa', value:'Sudan', label:'🇸🇩 Sudan' },
+  { group:'Asia', value:'China', label:'🇨🇳 China' },
+  { group:'Asia', value:'Japan', label:'🇯🇵 Japan' },
+  { group:'Asia', value:'India', label:'🇮🇳 India' },
+  { group:'Asia', value:'South Korea', label:'🇰🇷 South Korea' },
+  { group:'Asia', value:'North Korea', label:'🇰🇵 North Korea' },
+  { group:'Asia', value:'Pakistan', label:'🇵🇰 Pakistan' },
+  { group:'Asia', value:'Afghanistan', label:'🇦🇫 Afghanistan' },
+  { group:'Asia', value:'Bangladesh', label:'🇧🇩 Bangladesh' },
+  { group:'Asia', value:'Indonesia', label:'🇮🇩 Indonesia' },
+  { group:'Asia', value:'Vietnam', label:'🇻🇳 Vietnam' },
+  { group:'Asia', value:'Thailand', label:'🇹🇭 Thailand' },
+  { group:'Asia', value:'Philippines', label:'🇵🇭 Philippines' },
+  { group:'Asia', value:'Myanmar', label:'🇲🇲 Myanmar' },
+  { group:'Asia', value:'Taiwan', label:'🇹🇼 Taiwan' },
+  { group:'South America', value:'Brazil', label:'🇧🇷 Brazil' },
+  { group:'South America', value:'Argentina', label:'🇦🇷 Argentina' },
+  { group:'South America', value:'Colombia', label:'🇨🇴 Colombia' },
+  { group:'South America', value:'Chile', label:'🇨🇱 Chile' },
+  { group:'South America', value:'Venezuela', label:'🇻🇪 Venezuela' },
+  { group:'South America', value:'Peru', label:'🇵🇪 Peru' },
+  { group:'Oceania', value:'Australia', label:'🇦🇺 Australia' },
+  { group:'Oceania', value:'New Zealand', label:'🇳🇿 New Zealand' },
+  { group:'Other', value:'Russia', label:'🇷🇺 Russia' },
+  { group:'Other', value:'NATO', label:'🌐 NATO' },
+  { group:'Other', value:'European Union', label:'🇪🇺 European Union' },
+  { group:'Other', value:'United Nations', label:'🌐 United Nations' },
+];
+
+let pressDropdownOpen = false;
+let pressHighlightIdx = -1;
+
+function renderPressDropdown(filtered) {
+  const dd = document.getElementById('pressDropdown');
+  if (!dd) return;
+  const groups = {};
+  filtered.forEach(o => { (groups[o.group] = groups[o.group]||[]).push(o); });
+  let h = '', flatIdx = 0;
+  const flatList = [];
+  Object.entries(groups).forEach(([g, opts]) => {
+    h += '<div style="padding:6px 14px 3px;font-family:var(--cond);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--border);margin-top:2px;">'+esc(g)+'</div>';
+    opts.forEach(o => {
+      const active = o.value === currentPressRegion;
+      h += '<div class="press-dd-item" data-value="'+esc(o.value)+'" data-idx="'+flatList.length+'" style="padding:8px 16px;cursor:pointer;font-size:13px;color:var(--text);'+(active?'background:var(--bg2);font-weight:600;':'')+'" onmousedown="selectPressOption(\''+esc(o.value)+'\',\''+esc(o.label)+'\')" onmouseover="highlightPressItem('+flatList.length+')">'
+        + o.label + (active ? ' <span style="float:right;color:var(--gold);">✓</span>' : '') + '</div>';
+      flatList.push(o);
+    });
+  });
+  if (!filtered.length) h = '<div style="padding:14px 16px;color:var(--muted);font-size:13px;">No matches</div>';
+  dd.innerHTML = h;
+  dd._flatList = flatList;
+}
+
+function openPressDropdown() {
+  const dd = document.getElementById('pressDropdown');
+  const box = document.getElementById('pressSearchBox');
+  if (!dd || !box) return;
+  pressDropdownOpen = true;
+  dd.style.display = 'block';
+  box.style.borderColor = 'var(--gold)';
+  box.style.background = 'var(--card)';
+  renderPressDropdown(PRESS_OPTIONS);
+}
+
+function closePressDropdown() {
+  const dd = document.getElementById('pressDropdown');
+  const box = document.getElementById('pressSearchBox');
+  if (dd) dd.style.display = 'none';
+  if (box) { box.style.borderColor = ''; box.style.background = ''; }
+  pressDropdownOpen = false;
+  pressHighlightIdx = -1;
+  // restore display value
+  const inp = document.getElementById('pressSearchInput');
+  if (inp) {
+    const opt = PRESS_OPTIONS.find(o => o.value === currentPressRegion);
+    inp.value = opt ? opt.label.replace(/^\S+\s/,'') : currentPressRegion;
+  }
+}
+
+function togglePressDropdown() {
+  if (pressDropdownOpen) closePressDropdown();
+  else { document.getElementById('pressSearchInput')?.focus(); openPressDropdown(); }
+}
+
+function filterPressDropdown() {
+  const q = (document.getElementById('pressSearchInput')?.value||'').toLowerCase();
+  const filtered = q ? PRESS_OPTIONS.filter(o => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q) || o.group.toLowerCase().includes(q)) : PRESS_OPTIONS;
+  renderPressDropdown(filtered);
+  pressHighlightIdx = -1;
+}
+
+function selectPressOption(value, label) {
+  currentPressRegion = value;
+  const inp = document.getElementById('pressSearchInput');
+  if (inp) inp.value = label.replace(/^\S+\s/,'');
+  closePressDropdown();
+  delete CACHE['press_'+value];
+  loadPress(value);
+}
+
+function highlightPressItem(idx) {
+  pressHighlightIdx = idx;
+  document.querySelectorAll('.press-dd-item').forEach((el,i) => {
+    el.style.background = i===idx ? 'var(--bg2)' : (el.dataset.value===currentPressRegion?'var(--bg2)':'');
+  });
+}
+
+function pressDdKeydown(e) {
+  const dd = document.getElementById('pressDropdown');
+  if (!pressDropdownOpen) { if (e.key==='ArrowDown'||e.key==='Enter') openPressDropdown(); return; }
+  const items = dd?._flatList || [];
+  if (e.key==='ArrowDown') { e.preventDefault(); pressHighlightIdx=Math.min(pressHighlightIdx+1,items.length-1); highlightPressItem(pressHighlightIdx); }
+  else if (e.key==='ArrowUp') { e.preventDefault(); pressHighlightIdx=Math.max(pressHighlightIdx-1,0); highlightPressItem(pressHighlightIdx); }
+  else if (e.key==='Enter') { e.preventDefault(); if (pressHighlightIdx>=0&&items[pressHighlightIdx]) selectPressOption(items[pressHighlightIdx].value, items[pressHighlightIdx].label); }
+  else if (e.key==='Escape') closePressDropdown();
+}
+
 function onPressSelectChange() {
   const sel = document.getElementById('pressCountrySelect');
-  const val = sel?.value;
-  if (!val) return;
-  const label = document.getElementById('pressCurrentLabel');
-  if (label) label.textContent = sel.options[sel.selectedIndex]?.text?.replace(/^[\S]+\s/,'') || val;
-  delete CACHE['press_'+val];
-  loadPress(val);
+  if (!sel) return;
+  selectPressOption(sel.value, sel.options[sel.selectedIndex]?.text||sel.value);
 }
+
+document.addEventListener('click', e => {
+  if (pressDropdownOpen && !e.target.closest('#pressSearchWrap')) closePressDropdown();
+});
 
 function refreshPress() {
   const sel = document.getElementById('pressCountrySelect');
@@ -1354,6 +1447,12 @@ function initSettingsUI() {
   });
   if (currentAirspace) { const el = document.getElementById('airspaceSearchInput'); if (el) el.value = currentAirspace; }
   if (currentBriefTopic) { const el = document.getElementById('briefSearchInput'); if (el) el.value = currentBriefTopic; }
+  // Set press dropdown display
+  const pressInp = document.getElementById('pressSearchInput');
+  if (pressInp) {
+    const opt = PRESS_OPTIONS.find(o => o.value === (currentPressRegion||'Global/World'));
+    pressInp.value = opt ? opt.label.replace(/^\S+\s/,'') : 'Global / World';
+  }
   switchTab(lastTab);
   loadBreakingTicker();
   setupRefreshTimer();

@@ -7,7 +7,7 @@ app.use(express.json());
 
 const ANTHROPIC_VERSION = "2023-06-01";
 const MODEL = "claude-sonnet-4-20250514";
-const VERSION = "3.0";
+const VERSION = "3.2";
 
 // ── CLAUDE HELPER ─────────────────────────────────────────────────────────────
 async function callClaude(system, user, maxTokens = 1024) {
@@ -298,20 +298,21 @@ app.post("/api/airspace", async (req, res) => {
   let liveContext = "";
   try {
     const items = await fetchRSS(
-      "https://news.google.com/rss/search?q=" + encodeURIComponent(country + " airspace NOTAM aviation") + "&hl=en-US&gl=US&ceid=US:en",
+      "https://news.google.com/rss/search?q=" + encodeURIComponent(country + " airspace NOTAM aviation FlightRadar24") + "&hl=en-US&gl=US&ceid=US:en",
       5000
     );
     if (items.length > 0) {
-      liveContext = "Recent aviation news:\n" + items.slice(0, 3).map(i => "- " + i.title).join("\n") + "\n\n";
+      liveContext = "Recent aviation news:\n" + items.slice(0, 4).map(i => "- " + i.title).join("\n") + "\n\n";
     }
   } catch (e) { /* silent */ }
 
-  const googleSearch = "https://www.google.com/search?q=" + encodeURIComponent(country + " airspace NOTAM 2025");
+  const fr24Url = "https://www.flightradar24.com/" + encodeURIComponent(country.toLowerCase().replace(/\s+/g, "-"));
+  const googleSearch = "https://www.google.com/search?q=" + encodeURIComponent(country + " airspace NOTAM " + new Date().getFullYear());
 
   try {
     const text = await callClaude(
-      "You are an aviation safety analyst. Today: " + todayStr() + ". Respond ONLY with a valid JSON object. No markdown or extra text.",
-      liveContext + "Provide current airspace status and NOTAM summary for " + country + ".\n\nRespond with this JSON:\n{\"country\":\"" + country + "\",\"status\":\"<OPEN|RESTRICTED|CLOSED|CONFLICT_ZONE>\",\"alert_level\":\"<GREEN|AMBER|RED|BLACK>\",\"summary\":\"<2-3 sentences on current airspace status>\",\"notams\":[{\"id\":\"<ID or N/A>\",\"title\":\"<NOTAM title>\",\"detail\":\"<1-2 sentences>\",\"effective\":\"<date or ongoing>\",\"authority\":\"<FAA|EASA|ICAO|GCAA>\"}],\"restrictions\":[\"<restriction1>\",\"<restriction2>\"],\"airlines_affected\":[\"<airline>\"],\"last_updated\":\"" + todayStr() + "\",\"data_sources\":\"FAA NOTAM System, EUROCONTROL, ICAO, EASA\",\"verifyLinks\":[{\"label\":\"FAA NOTAMs\",\"url\":\"https://notams.aim.faa.gov/notamSearch/\"},{\"label\":\"EUROCONTROL\",\"url\":\"https://www.eurocontrol.int/publication/notam-summary\"},{\"label\":\"EASA Safety\",\"url\":\"https://www.easa.europa.eu/en/domains/air-operations\"},{\"label\":\"ICAO\",\"url\":\"https://www.icao.int/safety/airnavigation/pages/notam.aspx\"},{\"label\":\"Search NOTAMs\",\"url\":\"" + googleSearch + "\"}]}",
+      "You are an aviation safety analyst with knowledge of FlightRadar24, FAA, EUROCONTROL, and ICAO data. Today: " + todayStr() + ". Respond ONLY with a valid JSON object. No markdown or extra text.",
+      liveContext + "Provide current airspace status and NOTAM summary for " + country + ". Reference FlightRadar24 live flight data and official NOTAM systems.\n\nRespond with this JSON:\n{\"country\":\"" + country + "\",\"status\":\"<OPEN|RESTRICTED|CLOSED|CONFLICT_ZONE>\",\"alert_level\":\"<GREEN|AMBER|RED|BLACK>\",\"summary\":\"<2-3 sentences on current airspace status, referencing live flight activity where known>\",\"notams\":[{\"id\":\"<ID or N/A>\",\"title\":\"<NOTAM title>\",\"detail\":\"<1-2 sentences>\",\"effective\":\"<date or ongoing>\",\"authority\":\"<FAA|EASA|ICAO|GCAA|CAA>\"}],\"restrictions\":[\"<restriction1>\",\"<restriction2>\"],\"airlines_affected\":[\"<airline>\"],\"last_updated\":\"" + todayStr() + "\",\"data_sources\":\"FlightRadar24, FAA NOTAM System, EUROCONTROL, ICAO, EASA\",\"verifyLinks\":[{\"label\":\"FlightRadar24\",\"url\":\"" + fr24Url + "\"},{\"label\":\"FAA NOTAMs\",\"url\":\"https://notams.aim.faa.gov/notamSearch/\"},{\"label\":\"EUROCONTROL\",\"url\":\"https://www.eurocontrol.int/publication/notam-summary\"},{\"label\":\"EASA Safety\",\"url\":\"https://www.easa.europa.eu/en/domains/air-operations\"},{\"label\":\"ICAO\",\"url\":\"https://www.icao.int/safety/airnavigation/pages/notam.aspx\"}]}",
       1200
     );
     res.json(parseJSON(text));
@@ -328,13 +329,15 @@ app.post("/api/advisories", async (req, res) => {
 
   const slug = country.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z-]/g, "");
   const usUrl = "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/" + slug + ".html";
+  const usEmbassySearch = "https://www.google.com/search?q=US+embassy+" + encodeURIComponent(country) + "+site:travel.state.gov";
   const ukUrl = "https://www.gov.uk/foreign-travel-advice/" + slug;
+  const ukEmbassySearch = "https://www.google.com/search?q=UK+embassy+" + encodeURIComponent(country) + "+site:gov.uk";
 
   try {
     const text = await callClaude(
-      "You are a travel safety analyst with knowledge of US State Department and UK FCDO travel advisories. Today: " + todayStr() + ". Respond ONLY with a valid JSON object. No markdown or extra text.",
-      "Provide the current US State Department and UK FCDO travel advisories for " + country + ".\n\nRespond with this JSON:\n{\"country\":\"" + country + "\",\"us\":{\"level\":\"<e.g. Level 2: Exercise Increased Caution>\",\"level_number\":<1-4>,\"summary\":\"<2-3 sentences>\",\"key_risks\":[\"<risk1>\",\"<risk2>\",\"<risk3>\"],\"last_updated\":\"" + todayStr() + "\",\"url\":\"" + usUrl + "\",\"source\":\"U.S. Department of State\"},\"uk\":{\"level\":\"<e.g. Advise against all but essential travel>\",\"summary\":\"<2-3 sentences>\",\"key_risks\":[\"<risk1>\",\"<risk2>\",\"<risk3>\"],\"last_updated\":\"" + todayStr() + "\",\"url\":\"" + ukUrl + "\",\"source\":\"UK Foreign, Commonwealth & Development Office\"}}\nUS level_number: 1=Normal, 2=Caution, 3=Reconsider, 4=Do Not Travel",
-      1000
+      "You are a travel safety analyst with direct knowledge of US State Department, US Embassy advisories, UK FCDO, and UK Embassy travel warnings worldwide. Today: " + todayStr() + ". Respond ONLY with a valid JSON object. No markdown or extra text.",
+      "Provide the current US State Department / US Embassy and UK FCDO / UK Embassy travel advisories for " + country + ". Include both the official government advisory level and any specific warnings issued by the US and UK embassies in-country.\n\nRespond with this JSON:\n{\"country\":\"" + country + "\",\"us\":{\"level\":\"<e.g. Level 2: Exercise Increased Caution>\",\"level_number\":<1-4>,\"summary\":\"<2-3 sentences including any US Embassy-specific warnings>\",\"key_risks\":[\"<risk1>\",\"<risk2>\",\"<risk3>\"],\"embassy_note\":\"<1 sentence: any specific US Embassy alert or warning if applicable, else empty string>\",\"last_updated\":\"" + todayStr() + "\",\"url\":\"" + usUrl + "\",\"embassy_url\":\"https://www." + slug + ".usembassy.gov\",\"source\":\"U.S. Department of State / U.S. Embassy\"},\"uk\":{\"level\":\"<e.g. Advise against all but essential travel>\",\"summary\":\"<2-3 sentences including any UK Embassy-specific warnings>\",\"key_risks\":[\"<risk1>\",\"<risk2>\",\"<risk3>\"],\"embassy_note\":\"<1 sentence: any specific UK Embassy alert if applicable, else empty string>\",\"last_updated\":\"" + todayStr() + "\",\"url\":\"" + ukUrl + "\",\"source\":\"UK Foreign, Commonwealth & Development Office / UK Embassy\"}}\nUS level_number: 1=Normal, 2=Caution, 3=Reconsider, 4=Do Not Travel",
+      1200
     );
     res.json(parseJSON(text));
   } catch (e) {
