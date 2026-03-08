@@ -178,6 +178,7 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
 .airspace-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
 .chip{padding:4px 12px;background:var(--bg2);border:1.5px solid var(--border);border-radius:40px;font-family:var(--cond);font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);cursor:pointer;transition:all .18s;}
 .chip:hover{border-color:var(--gold);color:var(--gold);}
+.chip.active{background:var(--text);color:var(--bg);border-color:var(--text);}
 .alert-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-family:var(--cond);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
 .alert-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;}
 .alert-GREEN{background:var(--green-bg);color:var(--green);}
@@ -404,23 +405,29 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
     <div>
       <div class="page-label">Airspace & NOTAMs</div>
       <div class="page-title">✈️ Airspace Status</div>
-      <div class="page-subtitle">AI-synthesized NOTAM summaries · verify with official sources</div>
+      <div class="page-subtitle">Select up to 7 countries · AI-synthesized NOTAM summaries · verify with official sources</div>
     </div>
+    <button class="btn-outline" onclick="clearAirspaceSelections()">✕ Clear All</button>
   </div>
   <div id="airspaceMap"></div>
   <div class="airspace-search-row">
-    <input class="airspace-input" id="airspaceSearchInput" type="text" placeholder="Enter any country…" autocomplete="off"/>
-    <button class="btn-gold" onclick="loadAirspace()">Check Airspace</button>
+    <input class="airspace-input" id="airspaceSearchInput" type="text" placeholder="Type any country and press Enter or click Add…" autocomplete="off"/>
+    <button class="btn-gold" onclick="addAirspaceCountry()">+ Add</button>
   </div>
+  <div id="airspaceSelectedTags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;min-height:0;"></div>
   <div class="airspace-chips">
-    <span class="chip" onclick="quickAirspace('United States')">🇺🇸 US</span>
-    <span class="chip" onclick="quickAirspace('Ukraine')">🇺🇦 Ukraine</span>
-    <span class="chip" onclick="quickAirspace('Israel')">🇮🇱 Israel</span>
-    <span class="chip" onclick="quickAirspace('Iran')">🇮🇷 Iran</span>
-    <span class="chip" onclick="quickAirspace('Saudi Arabia')">🇸🇦 Saudi</span>
-    <span class="chip" onclick="quickAirspace('Russia')">🇷🇺 Russia</span>
-    <span class="chip" onclick="quickAirspace('Lebanon')">🇱🇧 Lebanon</span>
-    <span class="chip" onclick="quickAirspace('China')">🇨🇳 China</span>
+    <span class="chip" onclick="toggleAirspaceChip(this,'United States')">🇺🇸 US</span>
+    <span class="chip" onclick="toggleAirspaceChip(this,'Ukraine')">🇺🇦 Ukraine</span>
+    <span class="chip" onclick="toggleAirspaceChip(this,'Israel')">🇮🇱 Israel</span>
+    <span class="chip" onclick="toggleAirspaceChip(this,'Iran')">🇮🇷 Iran</span>
+    <span class="chip" onclick="toggleAirspaceChip(this,'Saudi Arabia')">🇸🇦 Saudi</span>
+    <span class="chip" onclick="toggleAirspaceChip(this,'Russia')">🇷🇺 Russia</span>
+    <span class="chip" onclick="toggleAirspaceChip(this,'Lebanon')">🇱🇧 Lebanon</span>
+    <span class="chip" onclick="toggleAirspaceChip(this,'China')">🇨🇳 China</span>
+    <span class="chip" onclick="toggleAirspaceChip(this,'Iraq')">🇮🇶 Iraq</span>
+    <span class="chip" onclick="toggleAirspaceChip(this,'Syria')">🇸🇾 Syria</span>
+    <span class="chip" onclick="toggleAirspaceChip(this,'Yemen')">🇾🇪 Yemen</span>
+    <span class="chip" onclick="toggleAirspaceChip(this,'Jordan')">🇯🇴 Jordan</span>
   </div>
   <div id="airspaceContent"></div>
 </div>
@@ -430,29 +437,39 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
     <div>
       <div class="page-label">Travel Safety</div>
       <div class="page-title">🛡️ Travel Advisories</div>
-      <div class="page-subtitle">US State Department + UK FCDO · AI-synthesized</div>
+      <div class="page-subtitle">Select up to 7 countries · US State Dept + UK FCDO · AI-synthesized</div>
     </div>
+    <button class="btn-outline" onclick="clearAdvisorySelections()">✕ Clear All</button>
   </div>
   <div class="airspace-search-row">
-    <input class="airspace-input" id="advisorySearchInput" type="text" placeholder="Enter any country…" autocomplete="off"/>
-    <button class="btn-gold" onclick="loadAdvisory()">Get Advisory</button>
+    <input class="airspace-input" id="advisorySearchInput" type="text" placeholder="Type any country and press Enter or click Add…" autocomplete="off"/>
+    <button class="btn-gold" onclick="addAdvisoryCountry()">+ Add</button>
   </div>
+  <div id="advisorySelectedTags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;min-height:0;"></div>
   <div class="airspace-chips">
-    <span class="chip" onclick="quickAdvisory('Israel')">🇮🇱 Israel</span>
-    <span class="chip" onclick="quickAdvisory('Ukraine')">🇺🇦 Ukraine</span>
-    <span class="chip" onclick="quickAdvisory('Iran')">🇮🇷 Iran</span>
-    <span class="chip" onclick="quickAdvisory('Russia')">🇷🇺 Russia</span>
-    <span class="chip" onclick="quickAdvisory('Saudi Arabia')">🇸🇦 Saudi</span>
-    <span class="chip" onclick="quickAdvisory('Jordan')">🇯🇴 Jordan</span>
-    <span class="chip" onclick="quickAdvisory('Lebanon')">🇱🇧 Lebanon</span>
-    <span class="chip" onclick="quickAdvisory('Pakistan')">🇵🇰 Pakistan</span>
+    <span class="chip" onclick="toggleAdvisoryChip(this,'Israel')">🇮🇱 Israel</span>
+    <span class="chip" onclick="toggleAdvisoryChip(this,'Ukraine')">🇺🇦 Ukraine</span>
+    <span class="chip" onclick="toggleAdvisoryChip(this,'Iran')">🇮🇷 Iran</span>
+    <span class="chip" onclick="toggleAdvisoryChip(this,'Russia')">🇷🇺 Russia</span>
+    <span class="chip" onclick="toggleAdvisoryChip(this,'Saudi Arabia')">🇸🇦 Saudi</span>
+    <span class="chip" onclick="toggleAdvisoryChip(this,'Jordan')">🇯🇴 Jordan</span>
+    <span class="chip" onclick="toggleAdvisoryChip(this,'Lebanon')">🇱🇧 Lebanon</span>
+    <span class="chip" onclick="toggleAdvisoryChip(this,'Pakistan')">🇵🇰 Pakistan</span>
+    <span class="chip" onclick="toggleAdvisoryChip(this,'Iraq')">🇮🇶 Iraq</span>
+    <span class="chip" onclick="toggleAdvisoryChip(this,'Syria')">🇸🇾 Syria</span>
+    <span class="chip" onclick="toggleAdvisoryChip(this,'Yemen')">🇾🇪 Yemen</span>
+    <span class="chip" onclick="toggleAdvisoryChip(this,'Turkey')">🇹🇷 Turkey</span>
   </div>
   <div class="adv-grid" id="advisoryContent"></div>
 </div>
 <!-- MARKETS TAB -->
 <div id="tab-markets" class="tab-content">
   <div class="page-header">
-    <div><div class="page-label">Financial Intelligence</div><div class="page-title">📈 Markets</div></div>
+    <div>
+      <div class="page-label">Financial Intelligence</div>
+      <div class="page-title">📈 Markets</div>
+      <div class="page-subtitle">Yahoo Finance · Apple Stocks · TradingView · AI estimates when live data unavailable</div>
+    </div>
     <button class="btn-outline" onclick="loadMarkets(true)">🔄 Refresh</button>
   </div>
   <div class="market-section-label">United States</div><div class="market-section-title"></div>
@@ -471,16 +488,99 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
 <!-- PRESS TAB -->
 <div id="tab-press" class="tab-content">
   <div class="page-header">
-    <div><div class="page-label">Official Statements</div><div class="page-title">📰 Press Releases</div><div class="page-subtitle">Government communiqués by region</div></div>
+    <div><div class="page-label">Official Statements</div><div class="page-title">📰 Press Releases</div><div class="page-subtitle">Government communiqués · filter by country or region</div></div>
     <button class="btn-outline" onclick="refreshPress()">🔄 Refresh</button>
   </div>
-  <div class="press-region-pills" id="pressRegionPills">
-    <button class="pill active" onclick="selectPressRegion(this,'Global/World')">🌍 Global</button>
-    <button class="pill" onclick="selectPressRegion(this,'North America')">🌎 N. America</button>
-    <button class="pill" onclick="selectPressRegion(this,'Europe')">🌍 Europe</button>
-    <button class="pill" onclick="selectPressRegion(this,'Middle East & Africa')">🌙 Mid East</button>
-    <button class="pill" onclick="selectPressRegion(this,'Asia')">🌏 Asia</button>
-    <button class="pill" onclick="selectPressRegion(this,'South America')">🌎 S. America</button>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+    <select id="pressCountrySelect" class="topic-sel" style="max-width:300px;" onchange="onPressSelectChange()">
+      <optgroup label="── Regions ──">
+        <option value="Global/World" selected>🌍 Global / World</option>
+        <option value="North America">🌎 North America</option>
+        <option value="Europe">🌍 Europe</option>
+        <option value="Middle East & Africa">🌙 Middle East & Africa</option>
+        <option value="Asia">🌏 Asia</option>
+        <option value="South America">🌎 South America</option>
+      </optgroup>
+      <optgroup label="── North America ──">
+        <option value="United States">🇺🇸 United States</option>
+        <option value="Canada">🇨🇦 Canada</option>
+        <option value="Mexico">🇲🇽 Mexico</option>
+      </optgroup>
+      <optgroup label="── Europe ──">
+        <option value="United Kingdom">🇬🇧 United Kingdom</option>
+        <option value="France">🇫🇷 France</option>
+        <option value="Germany">🇩🇪 Germany</option>
+        <option value="Italy">🇮🇹 Italy</option>
+        <option value="Spain">🇪🇸 Spain</option>
+        <option value="Poland">🇵🇱 Poland</option>
+        <option value="Netherlands">🇳🇱 Netherlands</option>
+        <option value="Sweden">🇸🇪 Sweden</option>
+        <option value="Norway">🇳🇴 Norway</option>
+        <option value="Ukraine">🇺🇦 Ukraine</option>
+        <option value="Turkey">🇹🇷 Turkey</option>
+      </optgroup>
+      <optgroup label="── Middle East ──">
+        <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+        <option value="United Arab Emirates">🇦🇪 UAE</option>
+        <option value="Israel">🇮🇱 Israel</option>
+        <option value="Iran">🇮🇷 Iran</option>
+        <option value="Iraq">🇮🇶 Iraq</option>
+        <option value="Jordan">🇯🇴 Jordan</option>
+        <option value="Lebanon">🇱🇧 Lebanon</option>
+        <option value="Qatar">🇶🇦 Qatar</option>
+        <option value="Kuwait">🇰🇼 Kuwait</option>
+        <option value="Bahrain">🇧🇭 Bahrain</option>
+        <option value="Oman">🇴🇲 Oman</option>
+        <option value="Egypt">🇪🇬 Egypt</option>
+        <option value="Syria">🇸🇾 Syria</option>
+        <option value="Yemen">🇾🇪 Yemen</option>
+        <option value="Libya">🇱🇾 Libya</option>
+      </optgroup>
+      <optgroup label="── Africa ──">
+        <option value="South Africa">🇿🇦 South Africa</option>
+        <option value="Nigeria">🇳🇬 Nigeria</option>
+        <option value="Kenya">🇰🇪 Kenya</option>
+        <option value="Ethiopia">🇪🇹 Ethiopia</option>
+        <option value="Morocco">🇲🇦 Morocco</option>
+        <option value="Algeria">🇩🇿 Algeria</option>
+        <option value="Sudan">🇸🇩 Sudan</option>
+      </optgroup>
+      <optgroup label="── Asia ──">
+        <option value="China">🇨🇳 China</option>
+        <option value="Japan">🇯🇵 Japan</option>
+        <option value="India">🇮🇳 India</option>
+        <option value="South Korea">🇰🇷 South Korea</option>
+        <option value="North Korea">🇰🇵 North Korea</option>
+        <option value="Pakistan">🇵🇰 Pakistan</option>
+        <option value="Afghanistan">🇦🇫 Afghanistan</option>
+        <option value="Bangladesh">🇧🇩 Bangladesh</option>
+        <option value="Indonesia">🇮🇩 Indonesia</option>
+        <option value="Vietnam">🇻🇳 Vietnam</option>
+        <option value="Thailand">🇹🇭 Thailand</option>
+        <option value="Philippines">🇵🇭 Philippines</option>
+        <option value="Myanmar">🇲🇲 Myanmar</option>
+        <option value="Taiwan">🇹🇼 Taiwan</option>
+      </optgroup>
+      <optgroup label="── South America ──">
+        <option value="Brazil">🇧🇷 Brazil</option>
+        <option value="Argentina">🇦🇷 Argentina</option>
+        <option value="Colombia">🇨🇴 Colombia</option>
+        <option value="Chile">🇨🇱 Chile</option>
+        <option value="Venezuela">🇻🇪 Venezuela</option>
+        <option value="Peru">🇵🇪 Peru</option>
+      </optgroup>
+      <optgroup label="── Oceania ──">
+        <option value="Australia">🇦🇺 Australia</option>
+        <option value="New Zealand">🇳🇿 New Zealand</option>
+      </optgroup>
+      <optgroup label="── Other ──">
+        <option value="Russia">🇷🇺 Russia</option>
+        <option value="NATO">🌐 NATO</option>
+        <option value="European Union">🇪🇺 European Union</option>
+        <option value="United Nations">🌐 United Nations</option>
+      </optgroup>
+    </select>
+    <span style="font-family:var(--cond);font-size:11px;color:var(--muted);letter-spacing:.06em;" id="pressCurrentLabel">Global / World</span>
   </div>
   <div class="press-grid" id="pressContent"></div>
 </div>
@@ -799,108 +899,216 @@ function initMap() {
   }).addTo(leafletMap);
 }
 
-function quickAirspace(country) { document.getElementById('airspaceSearchInput').value = country; loadAirspace(country); }
+// ── AIRSPACE MULTI-SELECT (up to 7) ──────────────────────────────────────────
+let airspaceSelected = [];
 
-async function loadAirspace(country) {
+function renderAirspaceTags() {
+  const el = document.getElementById('airspaceSelectedTags');
+  if (!el) return;
+  el.innerHTML = airspaceSelected.map(c =>
+    '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;background:var(--text);color:var(--bg);border-radius:20px;font-family:var(--cond);font-size:11px;font-weight:700;">'
+    +esc(c)+'<button onclick="removeAirspaceCountry(\''+esc(c)+'\');" style="background:none;border:none;color:inherit;cursor:pointer;font-size:13px;line-height:1;padding:0 0 0 3px;opacity:.7;">✕</button></span>'
+  ).join('');
+  // sync chip active states
+  document.querySelectorAll('#tab-airspace .chip').forEach(ch => {
+    const country = ch.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    if (country) ch.classList.toggle('active', airspaceSelected.includes(country));
+  });
+}
+
+function addAirspaceCountry(country) {
   const c = country || document.getElementById('airspaceSearchInput').value.trim();
   if (!c) return;
-  currentAirspace = c; LS.set('lastAirspace', c);
-  document.getElementById('airspaceSearchInput').value = c;
-  const el = document.getElementById('airspaceContent');
-  showLoading(el, 'Checking airspace for '+c+'…');
+  if (airspaceSelected.includes(c)) { loadAllAirspace(); return; }
+  if (airspaceSelected.length >= 7) { alert('Maximum 7 countries selected. Remove one first.'); return; }
+  airspaceSelected.push(c);
+  document.getElementById('airspaceSearchInput').value = '';
+  renderAirspaceTags();
+  loadAllAirspace();
+}
+
+function removeAirspaceCountry(c) {
+  airspaceSelected = airspaceSelected.filter(x => x !== c);
+  renderAirspaceTags();
+  loadAllAirspace();
+}
+
+function toggleAirspaceChip(btn, country) {
+  if (airspaceSelected.includes(country)) {
+    removeAirspaceCountry(country);
+  } else {
+    addAirspaceCountry(country);
+  }
+}
+
+function clearAirspaceSelections() {
+  airspaceSelected = [];
+  renderAirspaceTags();
+  document.getElementById('airspaceContent').innerHTML = '';
+  if (leafletMap) leafletMap.eachLayer(l => { if (l instanceof L.Marker) leafletMap.removeLayer(l); });
+}
+
+async function loadAllAirspace() {
+  if (!airspaceSelected.length) { document.getElementById('airspaceContent').innerHTML = ''; return; }
   if (!leafletMap) initMap();
-  const coords = COUNTRY_COORDS[c];
-  if (coords && leafletMap) leafletMap.setView(coords, 5);
+  if (leafletMap) leafletMap.eachLayer(l => { if (l instanceof L.Marker) leafletMap.removeLayer(l); });
+  const el = document.getElementById('airspaceContent');
+  el.innerHTML = '<div style="display:grid;grid-template-columns:1fr;gap:14px;" id="airspaceGrid">'
+    + airspaceSelected.map(c => '<div id="air_card_'+c.replace(/\s+/g,'_')+'"><div class="card"><div class="loading-state"><div class="loading-spinner"></div>Loading '+esc(c)+'…</div></div></div>').join('')
+    + '</div>';
+  airspaceSelected.forEach(c => loadSingleAirspace(c));
+}
+
+async function loadSingleAirspace(c) {
+  const cardEl = document.getElementById('air_card_'+c.replace(/\s+/g,'_'));
+  if (!cardEl) return;
   try {
     const data = await apiFetch('/api/airspace', { body: JSON.stringify({ country: c }) }, 'air_'+c, 10*60000);
     const lvl = data.alert_level || 'GREEN';
     const lvlColor = lvl==='GREEN'?'var(--green)':lvl==='AMBER'?'var(--amber)':lvl==='RED'?'var(--red)':'#111';
-    let html = '<div class="card" style="border-left:4px solid '+lvlColor+'">';
-    html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">';
-    html += '<span style="font-family:var(--serif);font-size:18px;font-weight:700;">'+esc(data.country)+'</span>';
-    html += '<span class="alert-badge alert-'+esc(lvl)+'">'+esc(lvl)+'</span>';
-    html += '<span class="status-badge status-'+esc(data.status)+'">'+esc((data.status||'').replace(/_/g,' '))+'</span></div>';
-    html += '<p style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:14px;">'+esc(data.summary)+'</p>';
+    let h = '<div class="card" style="margin-bottom:0;border-left:4px solid '+lvlColor+'">';
+    h += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">';
+    h += '<span style="font-family:var(--serif);font-size:17px;font-weight:700;">'+esc(data.country)+'</span>';
+    h += '<span class="alert-badge alert-'+esc(lvl)+'">'+esc(lvl)+'</span>';
+    h += '<span class="status-badge status-'+esc(data.status)+'">'+esc((data.status||'').replace(/_/g,' '))+'</span>';
+    h += '<button onclick="removeAirspaceCountry(\''+esc(c)+'\');" style="margin-left:auto;background:none;border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-family:var(--cond);font-size:10px;cursor:pointer;color:var(--muted);">✕ Remove</button></div>';
+    h += '<p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:12px;">'+esc(data.summary)+'</p>';
     if (data.notams?.length) {
-      html += '<div style="margin-bottom:12px;">';
-      data.notams.forEach(n => {
-        html += '<div class="notam-item"><div class="notam-title">NOTAM '+esc(n.id)+': '+esc(n.title)+'</div>';
-        html += '<div class="notam-detail">'+esc(n.detail)+'</div>';
-        html += '<div class="notam-meta">'+esc(n.effective)+' · '+esc(n.authority)+'</div></div>';
+      data.notams.slice(0,3).forEach(n => {
+        h += '<div class="notam-item"><div class="notam-title">'+esc(n.id)+': '+esc(n.title)+'</div>';
+        h += '<div class="notam-detail">'+esc(n.detail)+'</div>';
+        h += '<div class="notam-meta">'+esc(n.effective)+' · '+esc(n.authority)+'</div></div>';
       });
-      html += '</div>';
     }
     if (data.restrictions?.length) {
-      html += '<div class="restrictions-wrap">';
-      data.restrictions.forEach(r => { html += '<span class="restriction-tag">⚠ '+esc(r)+'</span>'; });
-      html += '</div>';
+      h += '<div class="restrictions-wrap" style="margin-top:8px;">';
+      data.restrictions.forEach(r => { h += '<span class="restriction-tag">⚠ '+esc(r)+'</span>'; });
+      h += '</div>';
     }
     if (showCitations && data.verifyLinks?.length) {
-      html += '<div class="verify-links">';
-      data.verifyLinks.forEach(l => { html += '<a class="verify-link" href="'+esc(l.url)+'" target="_blank" rel="noopener">🔗 '+esc(l.label)+'</a>'; });
-      html += '</div>';
+      h += '<div class="verify-links">';
+      data.verifyLinks.slice(0,3).forEach(l => { h += '<a class="verify-link" href="'+esc(l.url)+'" target="_blank" rel="noopener">🔗 '+esc(l.label)+'</a>'; });
+      h += '</div>';
     }
-    html += '<div style="font-family:var(--cond);font-size:10px;color:var(--muted);margin-top:12px;letter-spacing:.06em;">LAST UPDATED: '+esc(data.last_updated)+' · SOURCE: '+esc(data.data_sources)+'</div>';
-    html += '</div>';
-    el.innerHTML = html;
+    h += '</div>';
+    cardEl.innerHTML = h;
+    const coords = COUNTRY_COORDS[c];
     if (coords && leafletMap) {
-      leafletMap.eachLayer(l => { if (l instanceof L.Marker) leafletMap.removeLayer(l); });
-      const icon = L.divIcon({
-        html: '<div style="width:20px;height:20px;background:'+lvlColor+';border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.3);"></div>',
-        iconSize:[20,20],iconAnchor:[10,10],className:''
-      });
-      L.marker(coords,{icon}).addTo(leafletMap).bindPopup('<strong>'+c+'</strong><br>'+lvl).openPopup();
+      const icon = L.divIcon({ html: '<div style="width:16px;height:16px;background:'+lvlColor+';border:2px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.3);"></div>', iconSize:[16,16],iconAnchor:[8,8],className:'' });
+      L.marker(coords,{icon}).addTo(leafletMap).bindPopup('<strong>'+c+'</strong><br>'+lvl);
     }
-  } catch (e) {
-    el.innerHTML = '<div class="error-state">⚠ Failed to load airspace: '+esc(e.message)+' <button class="error-retry" onclick="loadAirspace(\''+esc(c)+'\')">Retry</button></div>';
+  } catch(e) {
+    cardEl.innerHTML = '<div class="error-state">⚠ '+esc(c)+': '+esc(e.message)+'</div>';
   }
 }
-document.getElementById('airspaceSearchInput').addEventListener('keydown', e => { if (e.key==='Enter') loadAirspace(); });
+document.getElementById('airspaceSearchInput').addEventListener('keydown', e => { if (e.key==='Enter') addAirspaceCountry(); });
 
-function quickAdvisory(country) { document.getElementById('advisorySearchInput').value = country; loadAdvisory(country); }
-async function loadAdvisory(country) {
+// ── ADVISORIES MULTI-SELECT (up to 7) ────────────────────────────────────────
+let advisorySelected = [];
+
+function renderAdvisoryTags() {
+  const el = document.getElementById('advisorySelectedTags');
+  if (!el) return;
+  el.innerHTML = advisorySelected.map(c =>
+    '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;background:var(--text);color:var(--bg);border-radius:20px;font-family:var(--cond);font-size:11px;font-weight:700;">'
+    +esc(c)+'<button onclick="removeAdvisoryCountry(\''+esc(c)+'\');" style="background:none;border:none;color:inherit;cursor:pointer;font-size:13px;line-height:1;padding:0 0 0 3px;opacity:.7;">✕</button></span>'
+  ).join('');
+  document.querySelectorAll('#tab-advisories .chip').forEach(ch => {
+    const country = ch.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    if (country) ch.classList.toggle('active', advisorySelected.includes(country));
+  });
+}
+
+function addAdvisoryCountry(country) {
   const c = country || document.getElementById('advisorySearchInput').value.trim();
   if (!c) return;
-  document.getElementById('advisorySearchInput').value = c;
+  if (advisorySelected.includes(c)) { loadAllAdvisories(); return; }
+  if (advisorySelected.length >= 7) { alert('Maximum 7 countries selected. Remove one first.'); return; }
+  advisorySelected.push(c);
+  document.getElementById('advisorySearchInput').value = '';
+  renderAdvisoryTags();
+  loadAllAdvisories();
+}
+
+function removeAdvisoryCountry(c) {
+  advisorySelected = advisorySelected.filter(x => x !== c);
+  renderAdvisoryTags();
+  renderAdvisoryGrid();
+}
+
+function toggleAdvisoryChip(btn, country) {
+  if (advisorySelected.includes(country)) removeAdvisoryCountry(country);
+  else addAdvisoryCountry(country);
+}
+
+function clearAdvisorySelections() {
+  advisorySelected = [];
+  renderAdvisoryTags();
+  document.getElementById('advisoryContent').innerHTML = '';
+}
+
+function renderAdvisoryGrid() {
   const el = document.getElementById('advisoryContent');
-  showLoading(el, 'Loading advisory for '+c+'…');
+  if (!advisorySelected.length) { el.innerHTML = ''; return; }
+  el.innerHTML = advisorySelected.map(c => '<div id="adv_card_'+c.replace(/\s+/g,'_')+'"></div>').join('');
+  advisorySelected.forEach(c => {
+    const cached = cacheGet('adv_'+c, 15*60000);
+    if (cached) renderAdvisoryCard(c, cached);
+    else loadSingleAdvisory(c);
+  });
+}
+
+async function loadAllAdvisories() {
+  const el = document.getElementById('advisoryContent');
+  if (!advisorySelected.length) { el.innerHTML = ''; return; }
+  el.innerHTML = advisorySelected.map(c =>
+    '<div id="adv_card_'+c.replace(/\s+/g,'_')+'"><div class="adv-card"><div class="loading-state"><div class="loading-spinner"></div>Loading '+esc(c)+'…</div></div></div>'
+  ).join('');
+  advisorySelected.forEach(c => loadSingleAdvisory(c));
+}
+
+async function loadSingleAdvisory(c) {
   try {
     const data = await apiFetch('/api/advisories', { body: JSON.stringify({ country: c }) }, 'adv_'+c, 15*60000);
-    const lvl = data.us?.level_number || 1;
-    let html = '<div class="adv-card">';
-    html += '<div class="adv-country"><span class="adv-level-num adv-level-'+lvl+'">'+lvl+'</span>'+esc(data.country)+'</div>';
-    html += '<div class="adv-row">';
-    if (data.us) {
-      html += '<div class="adv-block adv-us"><div class="adv-flag">🇺🇸</div>';
-      html += '<div class="adv-level-label">US State Department</div>';
-      html += '<div class="adv-level">'+esc(data.us.level)+'</div>';
-      html += '<div class="adv-summary">'+esc(data.us.summary)+'</div>';
-      html += '<div class="adv-risks">';
-      (data.us.key_risks||[]).forEach(r => { html += '<div class="adv-risk">'+esc(r)+'</div>'; });
-      html += '</div>';
-      html += '<div class="adv-updated">Updated: '+esc(data.us.last_updated)+'</div>';
-      if (showCitations && data.us.url) html += '<a class="adv-link" href="'+esc(data.us.url)+'" target="_blank" rel="noopener">🔗 Official Source</a>';
-      html += '</div>';
-    }
-    if (data.uk) {
-      html += '<div class="adv-block adv-uk"><div class="adv-flag">🇬🇧</div>';
-      html += '<div class="adv-level-label">UK FCDO</div>';
-      html += '<div class="adv-level">'+esc(data.uk.level)+'</div>';
-      html += '<div class="adv-summary">'+esc(data.uk.summary)+'</div>';
-      html += '<div class="adv-risks">';
-      (data.uk.key_risks||[]).forEach(r => { html += '<div class="adv-risk">'+esc(r)+'</div>'; });
-      html += '</div>';
-      html += '<div class="adv-updated">Updated: '+esc(data.uk.last_updated)+'</div>';
-      if (showCitations && data.uk.url) html += '<a class="adv-link" href="'+esc(data.uk.url)+'" target="_blank" rel="noopener">🔗 Official Source</a>';
-      html += '</div>';
-    }
-    html += '</div></div>';
-    el.innerHTML = html;
-  } catch (e) {
-    el.innerHTML = '<div class="error-state">⚠ Failed to load advisory: '+esc(e.message)+' <button class="error-retry" onclick="loadAdvisory(\''+esc(c)+'\')">Retry</button></div>';
+    renderAdvisoryCard(c, data);
+  } catch(e) {
+    const el = document.getElementById('adv_card_'+c.replace(/\s+/g,'_'));
+    if (el) el.innerHTML = '<div class="error-state">⚠ '+esc(c)+': '+esc(e.message)+'</div>';
   }
 }
-document.getElementById('advisorySearchInput').addEventListener('keydown', e => { if (e.key==='Enter') loadAdvisory(); });
+
+function renderAdvisoryCard(c, data) {
+  const el = document.getElementById('adv_card_'+c.replace(/\s+/g,'_'));
+  if (!el) return;
+  const lvl = data.us?.level_number || 1;
+  let h = '<div class="adv-card" style="position:relative;">';
+  h += '<div class="adv-country"><span class="adv-level-num adv-level-'+lvl+'">'+lvl+'</span>'+esc(data.country);
+  h += '<button onclick="removeAdvisoryCountry(\''+esc(c)+'\');" style="margin-left:auto;background:none;border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-family:var(--cond);font-size:10px;cursor:pointer;color:var(--muted);">✕ Remove</button></div>';
+  h += '<div class="adv-row">';
+  if (data.us) {
+    h += '<div class="adv-block adv-us"><div class="adv-flag">🇺🇸</div>';
+    h += '<div class="adv-level-label">US State Department</div>';
+    h += '<div class="adv-level">'+esc(data.us.level)+'</div>';
+    h += '<div class="adv-summary">'+esc(data.us.summary)+'</div>';
+    h += '<div class="adv-risks">'+(data.us.key_risks||[]).map(r=>'<div class="adv-risk">'+esc(r)+'</div>').join('')+'</div>';
+    h += '<div class="adv-updated">'+esc(data.us.last_updated)+'</div>';
+    if (showCitations && data.us.url) h += '<a class="adv-link" href="'+esc(data.us.url)+'" target="_blank" rel="noopener">🔗 Official Source</a>';
+    h += '</div>';
+  }
+  if (data.uk) {
+    h += '<div class="adv-block adv-uk"><div class="adv-flag">🇬🇧</div>';
+    h += '<div class="adv-level-label">UK FCDO</div>';
+    h += '<div class="adv-level">'+esc(data.uk.level)+'</div>';
+    h += '<div class="adv-summary">'+esc(data.uk.summary)+'</div>';
+    h += '<div class="adv-risks">'+(data.uk.key_risks||[]).map(r=>'<div class="adv-risk">'+esc(r)+'</div>').join('')+'</div>';
+    h += '<div class="adv-updated">'+esc(data.uk.last_updated)+'</div>';
+    if (showCitations && data.uk.url) h += '<a class="adv-link" href="'+esc(data.uk.url)+'" target="_blank" rel="noopener">🔗 Official Source</a>';
+    h += '</div>';
+  }
+  h += '</div></div>';
+  el.innerHTML = h;
+}
+document.getElementById('advisorySearchInput').addEventListener('keydown', e => { if (e.key==='Enter') addAdvisoryCountry(); });
 
 const MARKET_GROUPS = [
   { id:'us', symbols:'^GSPC,^DJI,^IXIC,^RUT', label:'US Indices', names:{'^GSPC':'S&P 500','^DJI':'Dow Jones','^IXIC':'Nasdaq','^RUT':'Russell 2000'} },
@@ -996,6 +1204,10 @@ async function loadBreakingTicker() {
 let pressLoading = false;
 async function loadPress(region) {
   if (pressLoading) return;
+  if (!region) {
+    const sel = document.getElementById('pressCountrySelect');
+    region = sel ? sel.value : 'Global/World';
+  }
   currentPressRegion = region;
   const el = document.getElementById('pressContent');
   showLoading(el, 'Loading official statements for '+region+'…');
@@ -1021,12 +1233,27 @@ async function loadPress(region) {
 
 function selectPressRegion(btn, region) {
   document.querySelectorAll('#pressRegionPills .pill').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
   delete CACHE['press_'+region];
   loadPress(region);
 }
 
-function refreshPress() { delete CACHE['press_'+currentPressRegion]; loadPress(currentPressRegion); }
+function onPressSelectChange() {
+  const sel = document.getElementById('pressCountrySelect');
+  const val = sel?.value;
+  if (!val) return;
+  const label = document.getElementById('pressCurrentLabel');
+  if (label) label.textContent = sel.options[sel.selectedIndex]?.text?.replace(/^[\S]+\s/,'') || val;
+  delete CACHE['press_'+val];
+  loadPress(val);
+}
+
+function refreshPress() {
+  const sel = document.getElementById('pressCountrySelect');
+  const r = sel ? sel.value : currentPressRegion;
+  delete CACHE['press_'+r];
+  loadPress(r);
+}
 
 async function sendAsk() {
   const input = document.getElementById('askInput');
