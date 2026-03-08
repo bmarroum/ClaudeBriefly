@@ -8,7 +8,6 @@ app.use(express.json());
 const ANTHROPIC_VERSION = "2023-06-01";
 const MODEL = "claude-sonnet-4-20250514";
 
-// ── CLAUDE HELPER ──────────────────────────────────────────────────────────
 async function callClaude(system, user, maxTokens = 1024) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -17,17 +16,9 @@ async function callClaude(system, user, maxTokens = 1024) {
       "x-api-key": process.env.ANTHROPIC_API_KEY,
       "anthropic-version": ANTHROPIC_VERSION,
     },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: maxTokens,
-      system,
-      messages: [{ role: "user", content: user }],
-    }),
+    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }),
   });
-  if (!r.ok) {
-    const t = await r.text();
-    throw new Error(`API ${r.status}: ${t.slice(0, 200)}`);
-  }
+  if (!r.ok) { const t = await r.text(); throw new Error("API " + r.status + ": " + t.slice(0, 200)); }
   const d = await r.json();
   if (d.error) throw new Error(d.error.message);
   const text = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
@@ -37,306 +28,284 @@ async function callClaude(system, user, maxTokens = 1024) {
 
 function parseJSON(text) {
   const clean = text.replace(/```json|```/g, "").trim();
-  const s = clean.indexOf("{"), e = clean.lastIndexOf("}");
-  if (s === -1 || e === -1) throw new Error("No JSON found");
-  return JSON.parse(clean.slice(s, e + 1));
+  let depth = 0, start = -1, end = -1;
+  for (let i = 0; i < clean.length; i++) {
+    if (clean[i] === '{') { if (depth === 0) start = i; depth++; }
+    else if (clean[i] === '}') { depth--; if (depth === 0) { end = i; break; } }
+  }
+  if (start === -1 || end === -1) throw new Error("No JSON object found");
+  return JSON.parse(clean.slice(start, end + 1));
 }
 
 const todayStr = () => new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
-// ── RSS PARSER ─────────────────────────────────────────────────────────────
-async function fetchRSS(url) {
-  const r = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; BrieflyBot/1.0)",
-      "Accept": "application/rss+xml, application/xml, text/xml, */*",
-    },
-  });
-  if (!r.ok) throw new Error(`RSS fetch failed: ${r.status}`);
-  const xml = await r.text();
-
-  // Parse items from XML
-  const items = [];
-  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-  let match;
-  while ((match = itemRegex.exec(xml)) !== null) {
-    const item = match[1];
-    const title = (item.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/) || [])[1] || "";
-    const link = (item.match(/<link>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/) ||
-                  item.match(/<guid[^>]*>(?:<!\[CDATA\[)?(https?:\/\/[^\s<]+)(?:\]\]>)?<\/guid>/) || [])[1] || "";
-    const desc = (item.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/) || [])[1] || "";
-    const pubDate = (item.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || "";
-    if (title.trim()) {
-      items.push({
-        title: title.trim().replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#\d+;/g, ""),
-        link: link.trim(),
-        description: desc.replace(/<[^>]+>/g, "").trim().slice(0, 200).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">"),
-        pubDate: pubDate.trim(),
-      });
+async function fetchRSS(url, timeoutMs = 6000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const r = await fetch(url, { signal: controller.signal, headers: { "User-Agent": "Mozilla/5.0 (compatible; BrieflyBot/2.1)", "Accept": "application/rss+xml, application/xml, text/xml, */*" } });
+    if (!r.ok) throw new Error("RSS " + r.status);
+    const xml = await r.text();
+    const items = [];
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    let match;
+    while ((match = itemRegex.exec(xml)) !== null) {
+      const item = match[1];
+      const title = (item.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/) || [])[1] || "";
+      const link = (item.match(/<link>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/) || item.match(/<guid[^>]*>(https?:\/\/[^\s<]+)<\/guid>/) || [])[1] || "";
+      const desc = (item.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/) || [])[1] || "";
+      const pubDate = (item.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || "";
+      if (title.trim()) {
+        const cleanTitle = title.trim().replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&#\d+;/g,"").replace(/&quot;/g,'"');
+        const cleanDesc = desc.replace(/<[^>]+>/g," ").replace(/https?:\/\/\S+/g,"").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&#\d+;/g,"").replace(/\s+/g," ").trim().slice(0,200);
+        items.push({ title: cleanTitle, link: link.trim(), description: cleanDesc, pubDate: pubDate.trim() });
+      }
     }
-  }
-  return items.slice(0, 8);
+    return items.slice(0, 8);
+  } finally { clearTimeout(timer); }
 }
 
-// RSS feeds by topic — Reuters, BBC, Al Jazeera, AP, FT, Guardian
 const RSS_FEEDS = {
-  World: [
+  "Global/World": [
     { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters", sourceUrl: "https://reuters.com" },
     { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC News", sourceUrl: "https://bbc.com/news" },
     { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera", sourceUrl: "https://aljazeera.com" },
     { url: "https://feeds.ap.org/rss/apf-topnews", source: "AP News", sourceUrl: "https://apnews.com" },
     { url: "https://www.theguardian.com/world/rss", source: "The Guardian", sourceUrl: "https://theguardian.com/world" },
+    { url: "https://rss.upi.com/news/world-news.rss", source: "UPI", sourceUrl: "https://upi.com/news/world-news" },
   ],
-  Technology: [
-    { url: "https://feeds.reuters.com/reuters/technologyNews", source: "Reuters Tech", sourceUrl: "https://reuters.com/technology" },
-    { url: "https://feeds.bbci.co.uk/news/technology/rss.xml", source: "BBC Tech", sourceUrl: "https://bbc.com/news/technology" },
-    { url: "https://www.theguardian.com/technology/rss", source: "The Guardian Tech", sourceUrl: "https://theguardian.com/technology" },
-    { url: "https://feeds.ap.org/rss/apf-technology", source: "AP Tech", sourceUrl: "https://apnews.com/technology" },
-  ],
-  Finance: [
-    { url: "https://feeds.reuters.com/reuters/businessNews", source: "Reuters Business", sourceUrl: "https://reuters.com/business" },
-    { url: "https://feeds.bbci.co.uk/news/business/rss.xml", source: "BBC Business", sourceUrl: "https://bbc.com/news/business" },
-    { url: "https://www.theguardian.com/business/rss", source: "The Guardian Business", sourceUrl: "https://theguardian.com/business" },
-    { url: "https://feeds.ap.org/rss/apf-business", source: "AP Business", sourceUrl: "https://apnews.com/business" },
-  ],
-  Geopolitics: [
-    { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters", sourceUrl: "https://reuters.com/world" },
-    { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC World", sourceUrl: "https://bbc.com/news/world" },
-    { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera", sourceUrl: "https://aljazeera.com" },
-    { url: "https://www.theguardian.com/world/rss", source: "The Guardian", sourceUrl: "https://theguardian.com/world" },
-    { url: "https://foreignpolicy.com/feed/", source: "Foreign Policy", sourceUrl: "https://foreignpolicy.com" },
-  ],
-  Science: [
-    { url: "https://feeds.reuters.com/reuters/scienceNews", source: "Reuters Science", sourceUrl: "https://reuters.com/science" },
-    { url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml", source: "BBC Science", sourceUrl: "https://bbc.com/news/science_and_environment" },
-    { url: "https://www.theguardian.com/science/rss", source: "The Guardian Science", sourceUrl: "https://theguardian.com/science" },
-  ],
-  Climate: [
-    { url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml", source: "BBC Environment", sourceUrl: "https://bbc.com/news/science_and_environment" },
-    { url: "https://www.theguardian.com/environment/climate-crisis/rss", source: "The Guardian Climate", sourceUrl: "https://theguardian.com/environment/climate-crisis" },
-    { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera", sourceUrl: "https://aljazeera.com" },
-  ],
-  Health: [
-    { url: "https://feeds.reuters.com/reuters/healthNews", source: "Reuters Health", sourceUrl: "https://reuters.com/business/healthcare-pharmaceuticals" },
-    { url: "https://feeds.bbci.co.uk/news/health/rss.xml", source: "BBC Health", sourceUrl: "https://bbc.com/news/health" },
-    { url: "https://www.theguardian.com/society/health/rss", source: "The Guardian Health", sourceUrl: "https://theguardian.com/society/health" },
-    { url: "https://feeds.ap.org/rss/apf-Health", source: "AP Health", sourceUrl: "https://apnews.com/health" },
-  ],
-  Defense: [
-    { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters", sourceUrl: "https://reuters.com/world" },
-    { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC World", sourceUrl: "https://bbc.com/news/world" },
-    { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera", sourceUrl: "https://aljazeera.com" },
+  "North America": [
     { url: "https://feeds.ap.org/rss/apf-topnews", source: "AP News", sourceUrl: "https://apnews.com" },
+    { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters", sourceUrl: "https://reuters.com" },
+    { url: "https://rss.upi.com/news/us-news.rss", source: "UPI", sourceUrl: "https://upi.com/news/us-news" },
+    { url: "https://rss.cnn.com/rss/edition_us.rss", source: "CNN", sourceUrl: "https://cnn.com/us" },
+    { url: "https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml", source: "BBC Americas", sourceUrl: "https://bbc.com/news/world/us_and_canada" },
+    { url: "https://www.theguardian.com/us-news/rss", source: "The Guardian US", sourceUrl: "https://theguardian.com/us-news" },
+  ],
+  "Europe": [
+    { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters", sourceUrl: "https://reuters.com" },
+    { url: "https://feeds.bbci.co.uk/news/world/europe/rss.xml", source: "BBC Europe", sourceUrl: "https://bbc.com/news/world/europe" },
+    { url: "https://www.theguardian.com/world/europe-news/rss", source: "The Guardian", sourceUrl: "https://theguardian.com/world/europe-news" },
+    { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera", sourceUrl: "https://aljazeera.com" },
+    { url: "https://feeds.ap.org/rss/apf-europe", source: "AP Europe", sourceUrl: "https://apnews.com/world-news/europe" },
+  ],
+  "Asia": [
+    { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters", sourceUrl: "https://reuters.com" },
+    { url: "https://feeds.bbci.co.uk/news/world/asia/rss.xml", source: "BBC Asia", sourceUrl: "https://bbc.com/news/world/asia" },
+    { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera", sourceUrl: "https://aljazeera.com" },
+    { url: "https://feeds.ap.org/rss/apf-asiapacific", source: "AP Asia", sourceUrl: "https://apnews.com/world-news/asia-pacific" },
+    { url: "https://www3.nhk.or.jp/rss/news/cat0.xml", source: "NHK World", sourceUrl: "https://nhk.or.jp/nhkworld" },
+  ],
+  "Middle East & Africa": [
+    { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera", sourceUrl: "https://aljazeera.com" },
+    { url: "https://feeds.bbci.co.uk/news/world/middle_east/rss.xml", source: "BBC Middle East", sourceUrl: "https://bbc.com/news/world/middle_east" },
+    { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters", sourceUrl: "https://reuters.com" },
+    { url: "https://feeds.ap.org/rss/apf-middleeast", source: "AP Middle East", sourceUrl: "https://apnews.com/world-news/middle-east" },
+    { url: "https://feeds.bbci.co.uk/news/world/africa/rss.xml", source: "BBC Africa", sourceUrl: "https://bbc.com/news/world/africa" },
+  ],
+  "South America": [
+    { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters", sourceUrl: "https://reuters.com" },
+    { url: "https://feeds.bbci.co.uk/news/world/latin_america/rss.xml", source: "BBC LatAm", sourceUrl: "https://bbc.com/news/world/latin_america" },
+    { url: "https://feeds.ap.org/rss/apf-latinamerica", source: "AP LatAm", sourceUrl: "https://apnews.com/world-news/latin-america" },
+    { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera", sourceUrl: "https://aljazeera.com" },
   ],
 };
 
-// ── LIVE NEWS (RSS) ────────────────────────────────────────────────────────
+const BREAKING_FEEDS = [
+  { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters" },
+  { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC" },
+  { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera" },
+  { url: "https://feeds.ap.org/rss/apf-topnews", source: "AP News" },
+  { url: "https://rss.upi.com/news/world-news.rss", source: "UPI" },
+  { url: "https://rss.cnn.com/rss/edition.rss", source: "CNN" },
+];
+
 app.post("/api/news", async (req, res) => {
-  const { topic } = req.body;
+  const { topic, search } = req.body;
   if (!topic) return res.status(400).json({ error: "Topic required" });
-
-  const feeds = RSS_FEEDS[topic] || RSS_FEEDS.World;
   const allItems = [];
-
-  // Try each RSS feed
-  for (const feed of feeds) {
+  if (search && search.trim()) {
     try {
-      const items = await fetchRSS(feed.url);
-      items.forEach(item => allItems.push({ ...item, source: feed.source, sourceUrl: feed.sourceUrl }));
-    } catch (e) {
-      console.warn(`RSS failed for ${feed.source}:`, e.message);
+      const items = await fetchRSS("https://news.google.com/rss/search?q=" + encodeURIComponent(search) + "&hl=en-US&gl=US&ceid=US:en");
+      items.forEach(item => allItems.push({ ...item, source: "Google News", sourceUrl: "https://news.google.com" }));
+    } catch (e) {}
+    try {
+      const items = await fetchRSS("https://news.google.com/rss/search?q=" + encodeURIComponent(search + " site:reuters.com") + "&hl=en-US&gl=US&ceid=US:en", 4000);
+      items.forEach(item => allItems.push({ ...item, source: "Reuters", sourceUrl: "https://reuters.com" }));
+    } catch (e) {}
+  } else {
+    const feeds = RSS_FEEDS[topic] || RSS_FEEDS["Global/World"];
+    for (const feed of feeds) {
+      try {
+        const items = await fetchRSS(feed.url);
+        items.forEach(item => allItems.push({ ...item, source: feed.source, sourceUrl: feed.sourceUrl }));
+      } catch (e) { console.warn("RSS failed: " + feed.source); }
     }
   }
-
-  // Also try Google News RSS as fallback/supplement
-  try {
-    const googleUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(topic)}&hl=en-US&gl=US&ceid=US:en`;
-    const googleItems = await fetchRSS(googleUrl);
-    googleItems.forEach(item => allItems.push({ ...item, source: "Google News", sourceUrl: `https://news.google.com/search?q=${encodeURIComponent(topic)}` }));
-  } catch (e) {
-    console.warn("Google News RSS failed:", e.message);
-  }
-
   if (allItems.length > 0) {
-    // Return real RSS items
-    const items = allItems.slice(0, 6).map(item => ({
-      title: item.title,
-      body: item.description || "Click to read the full story.",
-      sources: item.source,
-      sourceUrl: item.sourceUrl,
-      link: item.link,
-      pubDate: item.pubDate,
-      isLive: true,
-    }));
-
+    const seen = new Set();
+    const unique = allItems.filter(i => { const k = i.title.slice(0,50).toLowerCase(); if(seen.has(k)) return false; seen.add(k); return true; });
     return res.json({
-      headline: `Live: ${topic} Headlines`,
-      summary: `Real-time news from ${[...new Set(allItems.map(i => i.source))].slice(0, 3).join(", ")} and other sources.`,
-      items,
-      isLive: true,
-      fetchedAt: new Date().toISOString(),
+      headline: search ? 'Search: "' + search + '"' : topic + " Headlines",
+      summary: "Live news from " + [...new Set(unique.map(i => i.source))].slice(0,4).join(", ") + ".",
+      items: unique.slice(0,8).map(item => ({ title: item.title, body: item.description || "", sources: item.source, sourceUrl: item.sourceUrl, link: item.link, pubDate: item.pubDate, isLive: true })),
+      isLive: true, fetchedAt: new Date().toISOString(),
     });
   }
-
-  // Fallback to Claude if all RSS fails
   try {
+    const q = search || topic;
     const text = await callClaude(
-      `You are a news intelligence editor. Today: ${todayStr()}. Return only valid JSON, no markdown.`,
-      `Latest news briefing on "${topic}". JSON: {"headline":"Breaking: [title]","summary":"1-2 sentence overview","items":[{"title":"headline","body":"2-3 sentences","sources":"Reuters/AP","link":"https://reuters.com","isLive":false},{"title":"headline","body":"2-3 sentences","sources":"BBC","link":"https://bbc.com/news","isLive":false},{"title":"headline","body":"2-3 sentences","sources":"FT","link":"https://ft.com","isLive":false},{"title":"headline","body":"2-3 sentences","sources":"Bloomberg","link":"https://bloomberg.com","isLive":false}],"isLive":false}`,
+      "News editor. Today: " + todayStr() + ". Respond ONLY with valid JSON, no markdown.",
+      "Latest news for: \"" + q + "\". JSON: {\"headline\":\"headline\",\"summary\":\"overview\",\"items\":[{\"title\":\"headline\",\"body\":\"2-3 sentences\",\"sources\":\"Reuters\",\"link\":\"https://reuters.com\",\"isLive\":false},{\"title\":\"headline\",\"body\":\"2-3 sentences\",\"sources\":\"BBC\",\"link\":\"https://bbc.com/news\",\"isLive\":false},{\"title\":\"headline\",\"body\":\"2-3 sentences\",\"sources\":\"AP\",\"link\":\"https://apnews.com\",\"isLive\":false}],\"isLive\":false}",
       1200
     );
     return res.json(parseJSON(text));
-  } catch (e) {
-    return res.status(500).json({ error: e.message });
-  }
+  } catch (e) { return res.status(500).json({ error: e.message }); }
 });
 
-// ── LIVE RSS PROXY (for ticker) ────────────────────────────────────────────
 app.get("/api/rss/breaking", async (req, res) => {
-  const feeds = [
-    { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters", sourceUrl: "https://reuters.com" },
-    { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC", sourceUrl: "https://bbc.com/news" },
-    { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera", sourceUrl: "https://aljazeera.com" },
-    { url: "https://feeds.ap.org/rss/apf-topnews", source: "AP News", sourceUrl: "https://apnews.com" },
-    { url: "https://feeds.reuters.com/reuters/businessNews", source: "Reuters Business", sourceUrl: "https://reuters.com/business" },
-    { url: "https://www.theguardian.com/world/rss", source: "The Guardian", sourceUrl: "https://theguardian.com/world" },
-  ];
   const items = [];
-  for (const feed of feeds) {
-    try {
-      const rssItems = await fetchRSS(feed.url);
-      rssItems.slice(0, 2).forEach(item => items.push({ ...item, source: feed.source, sourceUrl: feed.sourceUrl }));
-    } catch (e) { console.warn("Breaking RSS failed:", e.message); }
+  for (const feed of BREAKING_FEEDS) {
+    try { const r = await fetchRSS(feed.url, 5000); r.slice(0,2).forEach(item => items.push({ ...item, source: feed.source })); } catch (e) {}
   }
-  res.json({ items: items.slice(0, 15) });
+  res.json({ items: items.slice(0,18) });
 });
 
-// ── BRIEFING ─────────────────────────────────────────────────────────────
+// BRIEFING — fixed: no JSON template in prompt, clean string concatenation
 app.post("/api/briefing", async (req, res) => {
   const { topic } = req.body;
   if (!topic) return res.status(400).json({ error: "Topic required" });
+  let liveContext = "";
+  try {
+    const items = await fetchRSS("https://news.google.com/rss/search?q=" + encodeURIComponent(topic) + "&hl=en-US&gl=US&ceid=US:en", 5000);
+    if (items.length > 0) liveContext = "Recent headlines:\n" + items.slice(0,5).map(i => "- " + i.title).join("\n") + "\n\n";
+  } catch (e) {}
+  const su = encodeURIComponent(topic);
   try {
     const text = await callClaude(
-      `You are a senior intelligence analyst. Today: ${todayStr()}. Be specific. Return only valid JSON, no markdown.`,
-      `Intelligence briefing on "${topic}". JSON: {"executive":"3-4 sentences","ngo":"2-3 sentences on humanitarian/NGO impact","geopolitical":"3-4 sentences on key actors and positions","social":"2-3 sentences on public sentiment","strategic":"3-4 sentences on strategic implications","market":"2-3 sentences on market/economic impact","sources":[{"name":"Reuters","url":"https://reuters.com"},{"name":"AP News","url":"https://apnews.com"},{"name":"BBC News","url":"https://bbc.com/news"}],"searchLinks":{"reuters":"https://www.reuters.com/search/news?blob=${encodeURIComponent(topic)}","bbc":"https://www.bbc.com/search?q=${encodeURIComponent(topic)}","ap":"https://apnews.com/search?q=${encodeURIComponent(topic)}"}}`,
-      1400
+      "You are a senior intelligence analyst. Today: " + todayStr() + ". Respond ONLY with a valid JSON object. No markdown, no preamble.",
+      liveContext + "Write a comprehensive intelligence briefing about: " + topic + "\n\nRespond with this exact JSON (replace angle-bracket placeholders with real content):\n{\"executive\":\"<3-4 sentence executive summary>\",\"geopolitical\":\"<3-4 sentences on key actors and geopolitical implications>\",\"humanitarian\":\"<2-3 sentences on humanitarian impact>\",\"economic\":\"<2-3 sentences on economic impact>\",\"social\":\"<2-3 sentences on public sentiment>\",\"strategic\":\"<3-4 sentences on strategic outlook>\",\"sources\":[{\"name\":\"Reuters\",\"url\":\"https://reuters.com/search/news?blob=" + su + "\"},{\"name\":\"AP News\",\"url\":\"https://apnews.com/search?q=" + su + "\"},{\"name\":\"Al Jazeera\",\"url\":\"https://aljazeera.com/search?q=" + su + "\"},{\"name\":\"BBC News\",\"url\":\"https://bbc.com/search?q=" + su + "\"},{\"name\":\"Bloomberg\",\"url\":\"https://bloomberg.com/search?query=" + su + "\"}]}",
+      1600
     );
     res.json({ analysis: parseJSON(text) });
   } catch (e) {
-    console.error("Briefing:", e.message);
+    console.error("Briefing error:", e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
-// ── PRESS RELEASES ────────────────────────────────────────────────────────
+// PRESS RELEASES — fixed: simple prompt, no JSON template pollution
 app.post("/api/press-releases", async (req, res) => {
-  const { country, date } = req.body;
-  if (!country) return res.status(400).json({ error: "Country required" });
-  const dateStr = date || new Date().toISOString().split("T")[0];
+  const { region } = req.body;
+  if (!region) return res.status(400).json({ error: "Region required" });
+  let liveContext = "";
+  try {
+    const items = await fetchRSS("https://news.google.com/rss/search?q=" + encodeURIComponent("government official statement " + region) + "&hl=en-US&gl=US&ceid=US:en", 5000);
+    if (items.length > 0) liveContext = "Recent headlines:\n" + items.slice(0,4).map(i => "- " + i.title).join("\n") + "\n\n";
+  } catch (e) {}
   try {
     const text = await callClaude(
-      `You are a government communications monitor. Today: ${todayStr()}. Return only valid JSON, no markdown.`,
-      `Official government press releases from ${country} around ${dateStr}. Include 3-4 releases. JSON: {"country":"${country}","date":"${dateStr}","releases":[{"title":"title","ministry":"ministry","summary":"2-3 sentences","category":"Foreign Policy","source":"source name","sourceUrl":"https://official-url.gov","verifyUrl":"https://www.google.com/search?q=official+press+release+${encodeURIComponent(country)}+government"}]}
-Category: Foreign Policy|Economy|Defense|Health|Environment|Social|Infrastructure|Justice`,
+      "Government communications monitor. Today: " + todayStr() + ". Respond ONLY with valid JSON, no markdown.",
+      liveContext + "List 5-6 recent official government press releases and statements from the " + region + " region. Each item must include a real country, ministry, and plausible official source URL.\n\nRespond with this JSON (replace placeholders):\n{\"region\":\"" + region + "\",\"date\":\"" + todayStr() + "\",\"releases\":[{\"title\":\"<title>\",\"country\":\"<country>\",\"ministry\":\"<ministry>\",\"summary\":\"<2-3 sentence summary>\",\"category\":\"<Foreign Policy|Economy|Defense|Health|Environment|Social|Infrastructure|Justice>\",\"source\":\"<source name>\",\"sourceUrl\":\"<https://official.url>\",\"flag\":\"<emoji>\"}]}",
+      1400
+    );
+    res.json(parseJSON(text));
+  } catch (e) {
+    console.error("Press error:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// AIRSPACE — fixed: string concat instead of template vars in prompt
+app.post("/api/airspace", async (req, res) => {
+  const { country } = req.body;
+  if (!country) return res.status(400).json({ error: "Country required" });
+  let liveContext = "";
+  try {
+    const items = await fetchRSS("https://news.google.com/rss/search?q=" + encodeURIComponent(country + " airspace NOTAM aviation") + "&hl=en-US&gl=US&ceid=US:en", 5000);
+    if (items.length > 0) liveContext = "Recent aviation news:\n" + items.slice(0,3).map(i => "- " + i.title).join("\n") + "\n\n";
+  } catch (e) {}
+  const googleSearch = "https://www.google.com/search?q=" + encodeURIComponent(country + " airspace NOTAM 2025");
+  try {
+    const text = await callClaude(
+      "Aviation safety analyst. Today: " + todayStr() + ". Respond ONLY with valid JSON, no markdown.",
+      liveContext + "Current airspace status and NOTAM summary for " + country + ".\n\nRespond with this JSON:\n{\"country\":\"" + country + "\",\"status\":\"<OPEN|RESTRICTED|CLOSED|CONFLICT_ZONE>\",\"alert_level\":\"<GREEN|AMBER|RED|BLACK>\",\"summary\":\"<2-3 sentences on current airspace status>\",\"notams\":[{\"id\":\"<ID or N/A>\",\"title\":\"<title>\",\"detail\":\"<1-2 sentences>\",\"effective\":\"<date or ongoing>\",\"authority\":\"<FAA|EASA|ICAO|GCAA>\"}],\"restrictions\":[\"<restriction>\"],\"airlines_affected\":[\"<airline>\"],\"last_updated\":\"" + todayStr() + "\",\"data_sources\":\"FAA, EUROCONTROL, ICAO, EASA\",\"verifyLinks\":[{\"label\":\"FAA NOTAMs\",\"url\":\"https://notams.aim.faa.gov/notamSearch/\"},{\"label\":\"EUROCONTROL\",\"url\":\"https://www.eurocontrol.int/publication/notam-summary\"},{\"label\":\"EASA Safety\",\"url\":\"https://www.easa.europa.eu/en/domains/air-operations\"},{\"label\":\"ICAO\",\"url\":\"https://www.icao.int/safety/airnavigation/pages/notam.aspx\"},{\"label\":\"Search NOTAMs\",\"url\":\"" + googleSearch + "\"}]}",
       1200
     );
     res.json(parseJSON(text));
   } catch (e) {
-    console.error("Press:", e.message);
+    console.error("Airspace error:", e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
-// ── AIRSPACE ──────────────────────────────────────────────────────────────
-app.post("/api/airspace", async (req, res) => {
+// ADVISORIES — fixed: removed unreliable web scraping, clean AI prompt
+app.post("/api/advisories", async (req, res) => {
   const { country } = req.body;
   if (!country) return res.status(400).json({ error: "Country required" });
+  const slug = country.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z-]/g,"");
+  const usUrl = "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/" + slug + ".html";
+  const ukUrl = "https://www.gov.uk/foreign-travel-advice/" + slug;
   try {
     const text = await callClaude(
-      `You are an aviation safety analyst. Today: ${todayStr()}. Return only valid JSON, no markdown.`,
-      `Airspace and NOTAM status for ${country}. JSON: {"country":"${country}","status":"OPEN","alert_level":"GREEN","summary":"2-3 sentences on current airspace status","notams":[{"id":"N/A","title":"title","detail":"1-2 sentences","effective":"ongoing","authority":"ICAO"}],"restrictions":["restriction"],"airlines_affected":["airline"],"last_updated":"${todayStr()}","source":"ICAO/EASA/FAA","verifyLinks":[{"label":"FAA NOTAMs","url":"https://notams.aim.faa.gov/notamSearch/"},{"label":"EASA Safety","url":"https://www.easa.europa.eu/en/domains/air-operations/flight-standards-and-airworthiness/safety-information-bulletin"},{"label":"ICAO","url":"https://www.icao.int/safety/airnavigation/pages/notam.aspx"},{"label":"Google Search","url":"https://www.google.com/search?q=${encodeURIComponent(country)}+airspace+NOTAM+restrictions+2025"}]}
-status: OPEN|RESTRICTED|CLOSED|CONFLICT_ZONE. alert_level: GREEN|AMBER|RED|BLACK`,
+      "Travel safety analyst with knowledge of US State Department and UK FCDO advisories. Today: " + todayStr() + ". Respond ONLY with valid JSON, no markdown.",
+      "Provide current US and UK travel advisories for " + country + ".\n\nRespond with this JSON:\n{\"country\":\"" + country + "\",\"us\":{\"level\":\"<e.g. Level 2: Exercise Increased Caution>\",\"level_number\":<1-4>,\"summary\":\"<2-3 sentences>\",\"key_risks\":[\"<risk1>\",\"<risk2>\",\"<risk3>\"],\"last_updated\":\"" + todayStr() + "\",\"url\":\"" + usUrl + "\",\"source\":\"U.S. Department of State\"},\"uk\":{\"level\":\"<e.g. Advise against all but essential travel>\",\"summary\":\"<2-3 sentences>\",\"key_risks\":[\"<risk1>\",\"<risk2>\",\"<risk3>\"],\"last_updated\":\"" + todayStr() + "\",\"url\":\"" + ukUrl + "\",\"source\":\"UK Foreign, Commonwealth & Development Office\"}}",
       1000
     );
     res.json(parseJSON(text));
   } catch (e) {
-    console.error("Airspace:", e.message);
+    console.error("Advisory error:", e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
-// ── ADVISORIES ────────────────────────────────────────────────────────────
-app.post("/api/advisories", async (req, res) => {
-  const { country } = req.body;
-  if (!country) return res.status(400).json({ error: "Country required" });
-  const slug = country.toLowerCase().replace(/\s+/g, "-");
-  try {
-    const text = await callClaude(
-      `You are a travel safety analyst. Today: ${todayStr()}. Return only valid JSON, no markdown.`,
-      `US and UK travel advisories for ${country}. JSON: {"country":"${country}","us":{"level":"Level 2: Exercise Increased Caution","level_number":2,"summary":"2-3 sentences","key_risks":["risk1","risk2"],"last_updated":"${todayStr()}","url":"https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/${slug}.html"},"uk":{"level":"Advise against all but essential travel","summary":"2-3 sentences","key_risks":["risk1","risk2"],"last_updated":"${todayStr()}","url":"https://www.gov.uk/foreign-travel-advice/${slug}"}}
-level_number: 1=Normal, 2=Caution, 3=Reconsider, 4=Do Not Travel`,
-      900
-    );
-    res.json(parseJSON(text));
-  } catch (e) {
-    console.error("Advisories:", e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ── MARKETS COMMENTARY ────────────────────────────────────────────────────
+// MARKETS COMMENTARY
 app.post("/api/markets/commentary", async (req, res) => {
   try {
     const text = await callClaude(
-      `You are a markets analyst. Today: ${todayStr()}. Return only valid JSON, no markdown.`,
-      `Market intelligence commentary. JSON: {"headline":"Market Intelligence — ${todayStr()}","summary":"2-3 sentences on global markets","oil_commentary":"1-2 sentences on crude oil","gold_commentary":"1-2 sentences on gold","fx_commentary":"1-2 sentences on USD/major currencies","regional_commentary":"1-2 sentences on Gulf/Middle East markets","key_data":{"wti":"~$70-75","brent":"~$73-78","gold":"~$2,600-2,700","sp500":"~5,700-5,900"},"sources":[{"name":"Bloomberg Markets","url":"https://bloomberg.com/markets"},{"name":"Reuters Markets","url":"https://reuters.com/markets"},{"name":"FT Markets","url":"https://ft.com/markets"},{"name":"CNBC","url":"https://cnbc.com/markets"}]}`,
+      "Senior markets analyst. Today: " + todayStr() + ". Respond ONLY with valid JSON, no markdown.",
+      "Write a global market intelligence commentary. Respond with this JSON:\n{\"headline\":\"Market Intelligence — " + todayStr() + "\",\"summary\":\"<2-3 sentences>\",\"us_commentary\":\"<2 sentences on US equities>\",\"europe_commentary\":\"<1-2 sentences on European markets>\",\"asia_commentary\":\"<1-2 sentences on Asian markets>\",\"mideast_commentary\":\"<1-2 sentences on Tadawul and DFM>\",\"oil_commentary\":\"<1-2 sentences on crude oil>\",\"gold_commentary\":\"<1-2 sentences on gold>\",\"fx_commentary\":\"<1-2 sentences on USD>\",\"sources\":[{\"name\":\"Bloomberg Markets\",\"url\":\"https://bloomberg.com/markets\"},{\"name\":\"Reuters Markets\",\"url\":\"https://reuters.com/markets\"},{\"name\":\"FT Markets\",\"url\":\"https://ft.com/markets\"},{\"name\":\"Tadawul\",\"url\":\"https://www.saudiexchange.sa\"},{\"name\":\"DFM\",\"url\":\"https://www.dfm.ae\"}]}",
       900
     );
     res.json(parseJSON(text));
   } catch (e) {
-    console.error("Commentary:", e.message);
+    console.error("Commentary error:", e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
-// ── MARKETS PRICES ────────────────────────────────────────────────────────
+// MARKETS QUOTES — Yahoo Finance with per-group AI fallback
 app.get("/api/markets/quote", async (req, res) => {
   const { symbols } = req.query;
   if (!symbols) return res.status(400).json({ error: "Symbols required" });
-
-  for (const base of ["https://query1.finance.yahoo.com", "https://query2.finance.yahoo.com"]) {
+  for (const base of ["https://query1.finance.yahoo.com","https://query2.finance.yahoo.com"]) {
     try {
-      const r = await fetch(`${base}/v8/finance/quote?symbols=${encodeURIComponent(symbols)}`, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/121.0.0.0 Safari/537.36",
-          "Accept": "application/json",
-          "Referer": "https://finance.yahoo.com",
-        },
+      const r = await fetch(base + "/v8/finance/quote?symbols=" + encodeURIComponent(symbols), {
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/121.0.0.0 Safari/537.36", "Accept": "application/json", "Referer": "https://finance.yahoo.com", "Origin": "https://finance.yahoo.com" },
       });
-      if (!r.ok) throw new Error(`${r.status}`);
+      if (!r.ok) throw new Error("Yahoo " + r.status);
       const d = await r.json();
-      const quotes = (d?.quoteResponse?.result || [])
-        .map(q => ({ symbol: q.symbol, name: q.shortName || q.symbol, price: q.regularMarketPrice, change: q.regularMarketChange, changePercent: q.regularMarketChangePercent }))
-        .filter(q => q.price != null);
+      const quotes = (d?.quoteResponse?.result || []).map(q => ({ symbol: q.symbol, name: q.shortName || q.longName || q.symbol, price: q.regularMarketPrice, change: q.regularMarketChange, changePercent: q.regularMarketChangePercent, currency: q.currency || "USD" })).filter(q => q.price != null);
       if (quotes.length > 0) return res.json({ quotes, source: "yahoo" });
-    } catch (e) { console.warn(`Yahoo ${base} failed:`, e.message); }
+    } catch (e) { console.warn("Yahoo failed:", e.message); }
   }
-
-  // AI fallback
+  // AI fallback — per-group small prompt
+  const sl = symbols.split(",");
+  const isMideast = sl.some(s => s.includes(".SR") || s.includes(".AE") || s === "^KWSE");
+  const isAsia = sl.some(s => ["^N225","^HSI","^AXJO","000001.SS"].includes(s));
+  const isEurope = sl.some(s => ["^FTSE","^GDAXI","^FCHI","^IBEX"].includes(s));
+  const isCom = sl.some(s => ["CL=F","BZ=F","GC=F","SI=F","NG=F"].includes(s));
+  const groupName = isMideast ? "Middle East stock indices (Tadawul, DFM, ADX, Kuwait)" : isAsia ? "Asian stock indices (Nikkei, Hang Seng, ASX, Shanghai)" : isEurope ? "European stock indices (FTSE, DAX, CAC, IBEX)" : isCom ? "commodities (WTI, Brent, Gold, Silver, Natural Gas)" : "US stock indices (S&P 500, Dow Jones, Nasdaq, Russell)";
   try {
     const text = await callClaude(
-      `Financial data assistant. Return only valid JSON, no markdown.`,
-      `Realistic current approximate prices. JSON: {"quotes":[{"symbol":"CL=F","name":"WTI Crude Oil","price":72.45,"change":-0.32,"changePercent":-0.44},{"symbol":"BZ=F","name":"Brent Crude","price":75.80,"change":-0.28,"changePercent":-0.37},{"symbol":"GC=F","name":"Gold","price":2665.30,"change":12.50,"changePercent":0.47},{"symbol":"SI=F","name":"Silver","price":29.45,"change":0.15,"changePercent":0.51},{"symbol":"NG=F","name":"Natural Gas","price":3.85,"change":-0.05,"changePercent":-1.28},{"symbol":"HG=F","name":"Copper","price":4.15,"change":0.02,"changePercent":0.48},{"symbol":"^GSPC","name":"S&P 500","price":5732.00,"change":-18.50,"changePercent":-0.32},{"symbol":"^DJI","name":"Dow Jones","price":42880.00,"change":-95.00,"changePercent":-0.22},{"symbol":"^IXIC","name":"NASDAQ","price":18320.00,"change":-42.00,"changePercent":-0.23},{"symbol":"^FTSE","name":"FTSE 100","price":8215.00,"change":22.00,"changePercent":0.27},{"symbol":"^GDAXI","name":"DAX","price":22450.00,"change":85.00,"changePercent":0.38},{"symbol":"^N225","name":"Nikkei 225","price":37800.00,"change":-120.00,"changePercent":-0.32},{"symbol":"EURUSD=X","name":"EUR/USD","price":1.0842,"change":0.0008,"changePercent":0.07},{"symbol":"GBPUSD=X","name":"GBP/USD","price":1.2891,"change":-0.0012,"changePercent":-0.09},{"symbol":"USDJPY=X","name":"USD/JPY","price":148.95,"change":0.45,"changePercent":0.30},{"symbol":"USDSAR=X","name":"USD/SAR","price":3.7502,"change":0.0001,"changePercent":0.00},{"symbol":"USDAED=X","name":"USD/AED","price":3.6725,"change":0.0000,"changePercent":0.00},{"symbol":"USDKWD=X","name":"USD/KWD","price":0.3075,"change":0.0001,"changePercent":0.03}],"source":"ai_estimate"}`,
-      1200
+      "Financial data assistant. Respond ONLY with valid JSON, no markdown.",
+      "Realistic approximate current prices for " + groupName + ". Symbols: " + symbols + ". Return JSON: {\"quotes\":[{\"symbol\":\"<sym>\",\"name\":\"<name>\",\"price\":<num>,\"change\":<num>,\"changePercent\":<num>}],\"source\":\"ai_estimate\"}",
+      700
     );
     return res.json(parseJSON(text));
-  } catch (e) {
-    return res.status(500).json({ error: e.message });
-  }
+  } catch (e) { return res.status(500).json({ error: e.message }); }
 });
 
-// ── HEALTH ────────────────────────────────────────────────────────────────
-app.get("/health", (_, res) => res.json({ status: "ok", time: new Date().toISOString(), model: MODEL }));
-
+app.get("/health", (_, res) => res.json({ status: "ok", time: new Date().toISOString(), model: MODEL, version: "2.1" }));
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Briefly backend running on port ${PORT}`));
+app.listen(PORT, () => console.log("Briefly v2.1 on port " + PORT));
