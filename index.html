@@ -307,6 +307,81 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
 .app-footer{text-align:center;padding:18px 0 8px;font-family:var(--cond);font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;}
 .app-footer a{color:var(--gold);text-decoration:none;opacity:.7;}
 .app-footer a:hover{opacity:1;}
+
+/* ── BRIEFING PAGE IMPROVEMENTS ────────────────────────────────────────── */
+.brief-hero{background:linear-gradient(135deg,#0f1623 0%,#1a2540 100%);border-radius:var(--radius);padding:28px 28px 24px;margin-bottom:20px;position:relative;overflow:hidden;}
+.brief-hero::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(200,168,75,0.12) 0%,transparent 70%);}
+.brief-hero-label{font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;}
+.brief-hero-title{font-family:var(--serif);font-size:28px;font-weight:700;color:#fff;margin-bottom:16px;line-height:1.15;}
+@media(min-width:600px){.brief-hero-title{font-size:36px;}}
+.brief-input-row{display:flex;gap:8px;flex-wrap:wrap;}
+.brief-input-wrap{flex:1;min-width:200px;position:relative;}
+.brief-main-input{width:100%;padding:12px 20px;background:rgba(255,255,255,0.08);border:1.5px solid rgba(200,168,75,0.35);border-radius:40px;font-family:var(--sans);font-size:15px;color:#fff;outline:none;transition:border-color .2s,background .2s;}
+.brief-main-input::placeholder{color:rgba(255,255,255,0.35);}
+.brief-main-input:focus{border-color:var(--gold);background:rgba(255,255,255,0.12);}
+.brief-suggestions{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;}
+.brief-sugg{padding:4px 13px;background:rgba(200,168,75,0.12);border:1px solid rgba(200,168,75,0.25);border-radius:20px;font-family:var(--cond);font-size:11px;font-weight:600;letter-spacing:.04em;color:rgba(232,213,163,0.7);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.brief-sugg:hover{background:rgba(200,168,75,0.25);color:var(--gold-light);}
+.threat-banner{display:flex;align-items:center;gap:12px;padding:14px 20px;border-radius:12px;margin-bottom:20px;flex-wrap:wrap;}
+.threat-CRITICAL{background:#2d0a0a;border:1.5px solid #8b1a1a;}
+.threat-HIGH{background:#2d1a0a;border:1.5px solid #8b4a0a;}
+.threat-ELEVATED{background:#2d2a0a;border:1.5px solid #8b7a0a;}
+.threat-MODERATE{background:#0a1a2d;border:1.5px solid #1a5a8b;}
+.threat-LOW{background:#0a2d14;border:1.5px solid #1a7a3a;}
+.threat-label{font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;opacity:.6;margin-bottom:2px;}
+.threat-value{font-family:var(--cond);font-size:18px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.threat-CRITICAL .threat-value{color:#ff6b6b;}
+.threat-HIGH .threat-value{color:#ffa94d;}
+.threat-ELEVATED .threat-value{color:#ffd43b;}
+.threat-MODERATE .threat-value{color:#74c0fc;}
+.threat-LOW .threat-value{color:#69db7c;}
+.threat-reason{font-size:13px;opacity:.75;color:#e8e0d0;flex:1;}
+.threat-icon{font-size:28px;flex-shrink:0;}
+.confidence-bar-wrap{display:flex;align-items:center;gap:10px;margin-left:auto;}
+.confidence-label{font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(232,213,163,0.5);white-space:nowrap;}
+.confidence-bar{width:80px;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;}
+.confidence-fill{height:100%;border-radius:3px;background:var(--gold);transition:width .6s ease;}
+.confidence-pct{font-family:var(--cond);font-size:12px;font-weight:700;color:var(--gold);min-width:32px;}
+.brief-grid{display:grid;grid-template-columns:1fr;gap:16px;}
+@media(min-width:900px){.brief-grid{grid-template-columns:1fr 300px;}}
+.brief-main-col{display:flex;flex-direction:column;gap:14px;}
+.brief-side-col{display:flex;flex-direction:column;gap:14px;}
+@media(min-width:900px){.brief-side-col{position:sticky;top:72px;}}
+.brief-section{background:var(--card);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow);}
+.brief-section-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.brief-section-icon{font-size:16px;flex-shrink:0;}
+.brief-section-title{font-family:var(--serif);font-size:15px;font-weight:700;flex:1;}
+.brief-section-body{font-family:var(--sans);font-size:14px;line-height:1.85;color:var(--text2);}
+.brief-section-body strong{color:var(--text);font-weight:600;}
+.actor-list{display:flex;flex-direction:column;gap:8px;}
+.actor-card{background:var(--bg2);border-radius:10px;padding:10px 14px;border-left:3px solid var(--gold);}
+.actor-name{font-weight:700;font-size:13px;color:var(--text);margin-bottom:2px;}
+.actor-role{font-family:var(--cond);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;}
+.actor-stance{font-size:12px;color:var(--text2);line-height:1.5;}
+.timeline-list{display:flex;flex-direction:column;gap:0;}
+.tl-item{display:flex;gap:12px;padding:10px 0;border-left:2px solid var(--border);margin-left:8px;padding-left:16px;position:relative;}
+.tl-item::before{content:'';position:absolute;left:-5px;top:16px;width:8px;height:8px;background:var(--gold);border-radius:50%;border:2px solid var(--card);}
+.tl-item:last-child{border-left-color:transparent;}
+.tl-date{font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);min-width:80px;flex-shrink:0;padding-top:2px;}
+.tl-event{font-size:13px;color:var(--text2);line-height:1.5;}
+.risk-list{display:flex;flex-direction:column;gap:6px;}
+.risk-item{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;background:var(--red-bg);border-radius:8px;border-left:3px solid var(--red);font-size:13px;color:var(--text2);line-height:1.5;}
+.risk-item::before{content:'⚠';font-size:12px;flex-shrink:0;margin-top:1px;}
+.watch-list{display:flex;flex-direction:column;gap:6px;}
+.watch-item{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;background:var(--amber-bg);border-radius:8px;border-left:3px solid var(--amber);font-size:13px;color:var(--text2);line-height:1.5;}
+.watch-item::before{content:'👁';font-size:12px;flex-shrink:0;margin-top:1px;}
+.related-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.related-chip{padding:5px 14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:40px;font-family:var(--cond);font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--text2);cursor:pointer;transition:all .18s;}
+.related-chip:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-bg);}
+.live-headlines-list{display:flex;flex-direction:column;gap:6px;}
+.live-hl{font-size:12px;color:var(--text2);line-height:1.5;padding:6px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:6px;}
+.live-hl:last-child{border-bottom:none;}
+.live-hl::before{content:'→';color:var(--gold);font-size:11px;flex-shrink:0;margin-top:2px;}
+.live-hl a{color:inherit;text-decoration:none;}
+.live-hl a:hover{color:var(--gold);}
+.brief-actions-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.brief-meta-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--cond);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:18px;padding:10px 14px;background:var(--bg2);border-radius:8px;}
+.brief-meta-bar span{display:flex;align-items:center;gap:4px;}
 </style>
 </head>
 <body>
@@ -393,14 +468,32 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
 </div>
 <!-- BRIEF TAB -->
 <div id="tab-brief" class="tab-content">
-  <div class="card">
-    <div class="page-label">Intelligence</div>
-    <div class="brief-topic-title" id="briefTitleText">Intelligence Brief</div>
-    <div class="brief-search-row" style="margin-top:16px;">
-      <input class="brief-search-input" id="briefSearchInput" type="text" placeholder="Enter topic, country, or event…" autocomplete="off"/>
-      <button class="btn-gold" onclick="generateBrief()">⚡ Generate Brief</button>
+  <div class="brief-hero">
+    <div class="brief-hero-label">🔐 Intelligence Briefing System</div>
+    <div class="brief-hero-title" id="briefTitleText">Intelligence Brief</div>
+    <div class="brief-input-row">
+      <div class="brief-input-wrap">
+        <input class="brief-main-input" id="briefSearchInput" type="text" placeholder="Enter topic, country, conflict, or event…" autocomplete="off"/>
+      </div>
+      <button class="btn-gold" onclick="generateBrief()" id="briefGenerateBtn">⚡ Generate Brief</button>
     </div>
-    <div id="briefContent"><div style="color:var(--muted);font-size:14px;padding:8px 0;">Enter a topic above to generate an AI-powered intelligence brief.</div></div>
+    <div class="brief-suggestions" id="briefSuggestions">
+      <span class="brief-sugg" onclick="quickBrief('Gaza Conflict')">Gaza Conflict</span>
+      <span class="brief-sugg" onclick="quickBrief('Russia Ukraine War')">Russia-Ukraine</span>
+      <span class="brief-sugg" onclick="quickBrief('US China tensions')">US-China Tensions</span>
+      <span class="brief-sugg" onclick="quickBrief('Iran nuclear program')">Iran Nuclear</span>
+      <span class="brief-sugg" onclick="quickBrief('Global oil markets')">Oil Markets</span>
+      <span class="brief-sugg" onclick="quickBrief('North Korea')">North Korea</span>
+      <span class="brief-sugg" onclick="quickBrief('Sudan civil war')">Sudan</span>
+      <span class="brief-sugg" onclick="quickBrief('Taiwan strait')">Taiwan Strait</span>
+    </div>
+  </div>
+  <div id="briefContent">
+    <div style="text-align:center;padding:40px 20px;color:var(--muted);">
+      <div style="font-size:36px;margin-bottom:12px;">🔐</div>
+      <div style="font-family:var(--serif);font-size:18px;font-weight:700;margin-bottom:6px;color:var(--text);">Select a topic or enter your own</div>
+      <div style="font-size:13px;">AI-powered intelligence analysis with threat assessment, key actors, timeline, and strategic outlook.</div>
+    </div>
   </div>
 </div>
 <!-- AIRSPACE TAB -->
@@ -415,7 +508,40 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
   </div>
   <div id="airspaceMap"></div>
   <div class="airspace-search-row">
-    <input class="airspace-input" id="airspaceSearchInput" type="text" placeholder="Type any country and press Enter or click Add…" autocomplete="off"/>
+    <input class="airspace-input" id="airspaceSearchInput" type="text" placeholder="Search any country…" autocomplete="off" list="airspaceCountryList"/>
+    <datalist id="airspaceCountryList">
+      <option value="Afghanistan"/><option value="Albania"/><option value="Algeria"/>
+      <option value="Angola"/><option value="Argentina"/><option value="Armenia"/>
+      <option value="Australia"/><option value="Austria"/><option value="Azerbaijan"/>
+      <option value="Bahrain"/><option value="Bangladesh"/><option value="Belarus"/>
+      <option value="Belgium"/><option value="Bolivia"/><option value="Brazil"/>
+      <option value="Bulgaria"/><option value="Cambodia"/><option value="Canada"/>
+      <option value="Chad"/><option value="Chile"/><option value="China"/>
+      <option value="Colombia"/><option value="Croatia"/><option value="Cuba"/>
+      <option value="Czech Republic"/><option value="Denmark"/><option value="Egypt"/>
+      <option value="Ethiopia"/><option value="Finland"/><option value="France"/>
+      <option value="Georgia"/><option value="Germany"/><option value="Greece"/>
+      <option value="Hungary"/><option value="India"/><option value="Indonesia"/>
+      <option value="Iran"/><option value="Iraq"/><option value="Ireland"/>
+      <option value="Israel"/><option value="Italy"/><option value="Japan"/>
+      <option value="Jordan"/><option value="Kazakhstan"/><option value="Kenya"/>
+      <option value="Kuwait"/><option value="Lebanon"/><option value="Libya"/>
+      <option value="Malaysia"/><option value="Mexico"/><option value="Morocco"/>
+      <option value="Myanmar"/><option value="Netherlands"/><option value="New Zealand"/>
+      <option value="Nigeria"/><option value="North Korea"/><option value="Norway"/>
+      <option value="Oman"/><option value="Pakistan"/><option value="Palestine"/>
+      <option value="Peru"/><option value="Philippines"/><option value="Poland"/>
+      <option value="Portugal"/><option value="Qatar"/><option value="Romania"/>
+      <option value="Russia"/><option value="Saudi Arabia"/><option value="Serbia"/>
+      <option value="Somalia"/><option value="South Africa"/><option value="South Korea"/>
+      <option value="South Sudan"/><option value="Spain"/><option value="Sri Lanka"/>
+      <option value="Sudan"/><option value="Sweden"/><option value="Switzerland"/>
+      <option value="Syria"/><option value="Taiwan"/><option value="Thailand"/>
+      <option value="Tunisia"/><option value="Turkey"/><option value="Ukraine"/>
+      <option value="United Arab Emirates"/><option value="United Kingdom"/>
+      <option value="United States"/><option value="Venezuela"/><option value="Vietnam"/>
+      <option value="Yemen"/><option value="Zimbabwe"/>
+    </datalist>
     <button class="btn-gold" onclick="addAirspaceCountry()">+ Add</button>
   </div>
   <div id="airspaceSelectedTags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;min-height:0;"></div>
@@ -446,7 +572,48 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
     <button class="btn-outline" onclick="clearAdvisorySelections()">✕ Clear All</button>
   </div>
   <div class="airspace-search-row">
-    <input class="airspace-input" id="advisorySearchInput" type="text" placeholder="Type any country and press Enter or click Add…" autocomplete="off"/>
+    <input class="airspace-input" id="advisorySearchInput" type="text" placeholder="Search any country…" autocomplete="off" list="advisoryCountryList"/>
+    <datalist id="advisoryCountryList">
+      <option value="Afghanistan"/><option value="Albania"/><option value="Algeria"/>
+      <option value="Angola"/><option value="Argentina"/><option value="Armenia"/>
+      <option value="Australia"/><option value="Austria"/><option value="Azerbaijan"/>
+      <option value="Bahrain"/><option value="Bangladesh"/><option value="Belarus"/>
+      <option value="Belgium"/><option value="Bolivia"/><option value="Bosnia and Herzegovina"/>
+      <option value="Brazil"/><option value="Bulgaria"/><option value="Cambodia"/>
+      <option value="Canada"/><option value="Chad"/><option value="Chile"/>
+      <option value="China"/><option value="Colombia"/><option value="Congo"/>
+      <option value="Croatia"/><option value="Cuba"/><option value="Czech Republic"/>
+      <option value="Denmark"/><option value="Ecuador"/><option value="Egypt"/>
+      <option value="El Salvador"/><option value="Ethiopia"/><option value="Finland"/>
+      <option value="France"/><option value="Georgia"/><option value="Germany"/>
+      <option value="Ghana"/><option value="Greece"/><option value="Guatemala"/>
+      <option value="Haiti"/><option value="Honduras"/><option value="Hungary"/>
+      <option value="India"/><option value="Indonesia"/><option value="Iran"/>
+      <option value="Iraq"/><option value="Ireland"/><option value="Israel"/>
+      <option value="Italy"/><option value="Japan"/><option value="Jordan"/>
+      <option value="Kazakhstan"/><option value="Kenya"/><option value="Kuwait"/>
+      <option value="Kyrgyzstan"/><option value="Lebanon"/><option value="Libya"/>
+      <option value="Malaysia"/><option value="Mali"/><option value="Mexico"/>
+      <option value="Moldova"/><option value="Morocco"/><option value="Mozambique"/>
+      <option value="Myanmar"/><option value="Nepal"/><option value="Netherlands"/>
+      <option value="New Zealand"/><option value="Nicaragua"/><option value="Nigeria"/>
+      <option value="North Korea"/><option value="Norway"/><option value="Oman"/>
+      <option value="Pakistan"/><option value="Palestine"/><option value="Panama"/>
+      <option value="Paraguay"/><option value="Peru"/><option value="Philippines"/>
+      <option value="Poland"/><option value="Portugal"/><option value="Qatar"/>
+      <option value="Romania"/><option value="Russia"/><option value="Rwanda"/>
+      <option value="Saudi Arabia"/><option value="Senegal"/><option value="Serbia"/>
+      <option value="Somalia"/><option value="South Africa"/><option value="South Korea"/>
+      <option value="South Sudan"/><option value="Spain"/><option value="Sri Lanka"/>
+      <option value="Sudan"/><option value="Sweden"/><option value="Switzerland"/>
+      <option value="Syria"/><option value="Taiwan"/><option value="Tajikistan"/>
+      <option value="Tanzania"/><option value="Thailand"/><option value="Tunisia"/>
+      <option value="Turkey"/><option value="Turkmenistan"/><option value="Uganda"/>
+      <option value="Ukraine"/><option value="United Arab Emirates"/><option value="United Kingdom"/>
+      <option value="United States"/><option value="Uruguay"/><option value="Uzbekistan"/>
+      <option value="Venezuela"/><option value="Vietnam"/><option value="Yemen"/>
+      <option value="Zambia"/><option value="Zimbabwe"/>
+    </datalist>
     <button class="btn-gold" onclick="addAdvisoryCountry()">+ Add</button>
   </div>
   <div id="advisorySelectedTags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;min-height:0;"></div>
@@ -695,55 +862,208 @@ function searchHeadlinesMobile() { const q = document.getElementById('mobileSear
 document.getElementById('headerSearchInput').addEventListener('keydown', e => { if (e.key==='Enter') searchHeadlines(); });
 document.getElementById('mobileSearchInput').addEventListener('keydown', e => { if (e.key==='Enter') searchHeadlinesMobile(); });
 
+function quickBrief(topic) {
+  document.getElementById('briefSearchInput').value = topic;
+  generateBrief();
+}
+
+const THREAT_ICONS = { CRITICAL:'🔴', HIGH:'🟠', ELEVATED:'🟡', MODERATE:'🔵', LOW:'🟢' };
+
 async function generateBrief() {
   const q = document.getElementById('briefSearchInput').value.trim() || currentBriefTopic;
   if (!q) { alert('Please enter a topic first.'); return; }
   currentBriefTopic = q; LS.set('lastBrief', q);
   document.getElementById('briefTitleText').textContent = q;
   const el = document.getElementById('briefContent');
-  showLoading(el, 'Generating intelligence brief on "'+q+'"…');
+  el.innerHTML = '<div style="padding:30px 0;text-align:center;"><div class="loading-spinner" style="width:28px;height:28px;border-width:3px;margin:0 auto 14px;"></div><div style="font-family:var(--serif);font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Generating Intelligence Brief</div><div style="font-size:12px;color:var(--muted);">Analyzing live sources and synthesizing assessment…</div></div>';
+  const btn = document.getElementById('briefGenerateBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Analyzing…'; }
   try {
     const data = await apiFetch('/api/briefing', { body: JSON.stringify({ topic: q }) }, null);
     const a = data.analysis || {};
+    const liveHeadlines = data.liveHeadlines || [];
     const ts = new Date().toLocaleString('en-US',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'}) + ' UTC';
-    let html = '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">';
-    html += '<div><div class="report-title">'+esc(q)+'</div>';
-    html += '<div class="report-meta">Intelligence Brief · '+ts;
-    if (showAiBadge) html += ' · <span class="ai-badge">🤖 AI Analysis</span>';
-    html += '</div></div>';
-    html += '<button class="copy-btn" id="copyBriefBtn" onclick="copyBrief()">📋 Copy Brief</button></div>';
-    const sections = [
-      {key:'executive',icon:'📌',label:'Executive Summary'},
-      {key:'geopolitical',icon:'🌐',label:'Geopolitical Analysis'},
-      {key:'humanitarian',icon:'🏥',label:'Humanitarian Impact'},
-      {key:'economic',icon:'📊',label:'Economic Impact'},
-      {key:'social',icon:'👥',label:'Social Dynamics'},
-      {key:'strategic',icon:'🎯',label:'Strategic Outlook'},
-    ];
-    sections.forEach(s => {
-      if (a[s.key]) {
-        html += '<div class="section-block"><div class="section-heading">'+s.icon+' '+s.label+'</div>';
-        html += '<div class="section-body">'+esc(a[s.key])+'</div></div>';
-      }
-    });
-    if (showCitations && a.sources?.length) {
-      html += '<div class="citation-bar">📎 Sources: ';
-      a.sources.forEach(src => { html += '<a class="citation-link" href="'+esc(src.url)+'" target="_blank" rel="noopener">'+esc(src.name)+'</a> '; });
-      html += '</div>';
+    const threat = (a.threat_level || 'MODERATE').toUpperCase();
+    const conf = a.confidence || 75;
+    const threatIcon = THREAT_ICONS[threat] || '🔵';
+
+    let h = '';
+
+    // Actions bar
+    h += '<div class="brief-actions-row">';
+    h += '<button class="copy-btn" id="copyBriefBtn" onclick="copyBrief()">📋 Copy Brief</button>';
+    h += '<button class="btn-outline" onclick="window.print()">🖨 Print</button>';
+    if (showAiBadge) h += '<span class="ai-badge" style="padding:7px 14px;">🤖 AI Analysis</span>';
+    h += '</div>';
+
+    // Meta bar
+    h += '<div class="brief-meta-bar">';
+    h += '<span>📅 '+ts+'</span>';
+    h += '<span>🔐 INTELLIGENCE BRIEF</span>';
+    if (liveHeadlines.length) h += '<span class="live-badge">● Live Context</span>';
+    h += '</div>';
+
+    // Threat level banner
+    h += '<div class="threat-banner threat-'+threat+'">';
+    h += '<div class="threat-icon">'+threatIcon+'</div>';
+    h += '<div><div class="threat-label">Threat Assessment</div><div class="threat-value">'+threat+'</div></div>';
+    if (a.threat_level_reason) h += '<div class="threat-reason">'+esc(a.threat_level_reason)+'</div>';
+    h += '<div class="confidence-bar-wrap"><span class="confidence-label">Confidence</span><div class="confidence-bar"><div class="confidence-fill" style="width:'+conf+'%"></div></div><span class="confidence-pct">'+conf+'%</span></div>';
+    h += '</div>';
+
+    // Two-column grid
+    h += '<div class="brief-grid">';
+
+    // ── MAIN COLUMN ──
+    h += '<div class="brief-main-col">';
+
+    // Executive Summary
+    if (a.executive) {
+      h += '<div class="brief-section">';
+      h += '<div class="brief-section-header"><span class="brief-section-icon">📌</span><span class="brief-section-title">Executive Summary</span></div>';
+      h += '<div class="brief-section-body">'+esc(a.executive)+'</div>';
+      h += '</div>';
     }
-    el.innerHTML = html;
+
+    // Situation
+    if (a.situation) {
+      h += '<div class="brief-section">';
+      h += '<div class="brief-section-header"><span class="brief-section-icon">📡</span><span class="brief-section-title">Current Situation</span></div>';
+      h += '<div class="brief-section-body">'+esc(a.situation)+'</div>';
+      h += '</div>';
+    }
+
+    // Geopolitical
+    if (a.geopolitical) {
+      h += '<div class="brief-section">';
+      h += '<div class="brief-section-header"><span class="brief-section-icon">🌐</span><span class="brief-section-title">Geopolitical Analysis</span></div>';
+      h += '<div class="brief-section-body">'+esc(a.geopolitical)+'</div>';
+      h += '</div>';
+    }
+
+    // Humanitarian + Economic side by side
+    if (a.humanitarian || a.economic) {
+      h += '<div style="display:grid;grid-template-columns:1fr;gap:14px;">';
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">';
+      if (a.humanitarian) {
+        h += '<div class="brief-section"><div class="brief-section-header"><span class="brief-section-icon">🏥</span><span class="brief-section-title">Humanitarian</span></div><div class="brief-section-body" style="font-size:13px;">'+esc(a.humanitarian)+'</div></div>';
+      }
+      if (a.economic) {
+        h += '<div class="brief-section"><div class="brief-section-header"><span class="brief-section-icon">📊</span><span class="brief-section-title">Economic Impact</span></div><div class="brief-section-body" style="font-size:13px;">'+esc(a.economic)+'</div></div>';
+      }
+      h += '</div></div>';
+    }
+
+    // Strategic Outlook
+    if (a.strategic) {
+      h += '<div class="brief-section">';
+      h += '<div class="brief-section-header"><span class="brief-section-icon">🎯</span><span class="brief-section-title">Strategic Outlook</span></div>';
+      h += '<div class="brief-section-body">'+esc(a.strategic)+'</div>';
+      h += '</div>';
+    }
+
+    h += '</div>'; // end main col
+
+    // ── SIDE COLUMN ──
+    h += '<div class="brief-side-col">';
+
+    // Key Actors
+    if (a.key_actors?.length) {
+      h += '<div class="brief-section">';
+      h += '<div class="brief-section-header"><span class="brief-section-icon">👤</span><span class="brief-section-title">Key Actors</span></div>';
+      h += '<div class="actor-list">';
+      a.key_actors.slice(0,5).forEach(actor => {
+        h += '<div class="actor-card">';
+        h += '<div class="actor-name">'+esc(actor.name||'')+'</div>';
+        h += '<div class="actor-role">'+esc(actor.role||'')+'</div>';
+        h += '<div class="actor-stance">'+esc(actor.stance||'')+'</div>';
+        h += '</div>';
+      });
+      h += '</div></div>';
+    }
+
+    // Timeline
+    if (a.timeline?.length) {
+      h += '<div class="brief-section">';
+      h += '<div class="brief-section-header"><span class="brief-section-icon">🕐</span><span class="brief-section-title">Timeline</span></div>';
+      h += '<div class="timeline-list">';
+      a.timeline.slice(0,6).forEach(ev => {
+        h += '<div class="tl-item"><div class="tl-date">'+esc(ev.date||'')+'</div><div class="tl-event">'+esc(ev.event||'')+'</div></div>';
+      });
+      h += '</div></div>';
+    }
+
+    // Key Risks
+    if (a.key_risks?.length) {
+      h += '<div class="brief-section">';
+      h += '<div class="brief-section-header"><span class="brief-section-icon">⚠️</span><span class="brief-section-title">Key Risks</span></div>';
+      h += '<div class="risk-list">';
+      a.key_risks.forEach(r => { h += '<div class="risk-item">'+esc(r)+'</div>'; });
+      h += '</div></div>';
+    }
+
+    // Watch Points
+    if (a.watch_points?.length) {
+      h += '<div class="brief-section">';
+      h += '<div class="brief-section-header"><span class="brief-section-icon">👁</span><span class="brief-section-title">Watch Points</span></div>';
+      h += '<div class="watch-list">';
+      a.watch_points.forEach(w => { h += '<div class="watch-item">'+esc(w)+'</div>'; });
+      h += '</div></div>';
+    }
+
+    // Related Topics
+    if (a.related_topics?.length) {
+      h += '<div class="brief-section">';
+      h += '<div class="brief-section-header"><span class="brief-section-icon">🔗</span><span class="brief-section-title">Related Topics</span></div>';
+      h += '<div class="related-chips">';
+      a.related_topics.forEach(t => { h += '<span class="related-chip" onclick="quickBrief(\''+t.replace(/'/g,"\\'")+'\');">'+esc(t)+'</span>'; });
+      h += '</div></div>';
+    }
+
+    // Live Headlines
+    if (liveHeadlines.length) {
+      h += '<div class="brief-section">';
+      h += '<div class="brief-section-header"><span class="brief-section-icon">📰</span><span class="brief-section-title">Live Headlines <span class="live-badge">● Live</span></span></div>';
+      h += '<div class="live-headlines-list">';
+      liveHeadlines.slice(0,6).forEach(hl => {
+        const lk = hl.link ? 'href="'+esc(hl.link)+'" target="_blank" rel="noopener"' : '';
+        h += '<div class="live-hl"><a '+lk+'>'+esc(hl.title)+'</a></div>';
+      });
+      h += '</div></div>';
+    }
+
+    // Sources
+    if (showCitations && a.sources?.length) {
+      h += '<div class="brief-section">';
+      h += '<div class="brief-section-header"><span class="brief-section-icon">📎</span><span class="brief-section-title">Verify Sources</span></div>';
+      h += '<div style="display:flex;flex-direction:column;gap:6px;">';
+      a.sources.forEach(src => {
+        h += '<a href="'+esc(src.url)+'" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--bg2);border-radius:8px;text-decoration:none;color:var(--text);font-size:13px;transition:background .15s;">';
+        h += '<span style="color:var(--gold);">→</span>'+esc(src.name)+'</a>';
+      });
+      h += '</div></div>';
+    }
+
+    h += '</div>'; // end side col
+    h += '</div>'; // end grid
+
+    el.innerHTML = h;
     archiveSave(q, a);
   } catch (e) {
     el.innerHTML = '<div class="error-state">⚠ Failed to generate brief: '+esc(e.message)+' <button class="error-retry" onclick="generateBrief()">Retry</button></div>';
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ Generate Brief'; }
   }
 }
 
 function copyBrief() {
-  const sections = document.querySelectorAll('#briefContent .section-block');
-  let text = currentBriefTopic + '\n' + '─'.repeat(50) + '\n\n';
+  const sections = document.querySelectorAll('#briefContent .brief-section');
+  let text = currentBriefTopic.toUpperCase() + ' — INTELLIGENCE BRIEF\n' + '═'.repeat(60) + '\n';
+  text += 'Generated: ' + new Date().toUTCString() + '\nSource: Briefly Intelligence v3.2\n\n';
   sections.forEach(s => {
-    const h = s.querySelector('.section-heading'), b = s.querySelector('.section-body');
-    if (h && b) text += h.textContent.trim() + '\n' + b.textContent.trim() + '\n\n';
+    const title = s.querySelector('.brief-section-title');
+    const body = s.querySelector('.brief-section-body');
+    if (title && body) text += title.textContent.trim() + '\n' + '─'.repeat(40) + '\n' + body.textContent.trim() + '\n\n';
   });
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.getElementById('copyBriefBtn');

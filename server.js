@@ -236,13 +236,15 @@ app.post("/api/briefing", async (req, res) => {
   if (!topic) return res.status(400).json({ error: "Topic required" });
 
   let liveContext = "";
+  let liveHeadlines = [];
   try {
     const items = await fetchRSS(
       "https://news.google.com/rss/search?q=" + encodeURIComponent(topic) + "&hl=en-US&gl=US&ceid=US:en",
       5000
     );
     if (items.length > 0) {
-      liveContext = "Recent headlines:\n" + items.slice(0, 6).map(i => "- " + i.title).join("\n") + "\n\n";
+      liveHeadlines = items.slice(0, 8);
+      liveContext = "Recent headlines:\n" + liveHeadlines.map(i => "- " + i.title).join("\n") + "\n\n";
     }
   } catch (e) { /* silent */ }
 
@@ -250,11 +252,30 @@ app.post("/api/briefing", async (req, res) => {
 
   try {
     const text = await callClaude(
-      "You are a senior intelligence analyst. Today: " + todayStr() + ". Respond ONLY with a valid JSON object. No markdown, no preamble.",
-      liveContext + "Write a comprehensive intelligence briefing about: " + topic + "\n\nRespond with this exact JSON (replace angle-bracket placeholders with real content):\n{\"executive\":\"<3-4 sentence executive summary>\",\"geopolitical\":\"<3-4 sentences on key actors and geopolitical implications>\",\"humanitarian\":\"<2-3 sentences on humanitarian and civilian impact>\",\"economic\":\"<2-3 sentences on economic and market impact>\",\"social\":\"<2-3 sentences on public sentiment and social dynamics>\",\"strategic\":\"<3-4 sentences on strategic outlook and key risks>\",\"sources\":[{\"name\":\"Reuters\",\"url\":\"https://reuters.com/search/news?blob=" + su + "\"},{\"name\":\"AP News\",\"url\":\"https://apnews.com/search?q=" + su + "\"},{\"name\":\"Al Jazeera\",\"url\":\"https://aljazeera.com/search?q=" + su + "\"},{\"name\":\"BBC News\",\"url\":\"https://bbc.com/search?q=" + su + "\"},{\"name\":\"Bloomberg\",\"url\":\"https://bloomberg.com/search?query=" + su + "\"}]}",
-      1800
+      "You are a senior intelligence analyst at a global risk consultancy. Today: " + todayStr() + ". Respond ONLY with a valid JSON object. No markdown, no preamble, no explanation outside the JSON.",
+      liveContext + "Write a comprehensive intelligence briefing about: " + topic + "\n\nRespond with this exact JSON structure:\n" +
+      "{" +
+      "\"classification\":\"INTELLIGENCE BRIEF\"," +
+      "\"threat_level\":\"<one of: CRITICAL / HIGH / ELEVATED / MODERATE / LOW>\", " +
+      "\"threat_level_reason\":\"<one sentence explaining the threat level>\", " +
+      "\"confidence\":<integer 1-100 representing analyst confidence in this assessment>," +
+      "\"executive\":\"<4-5 sentence executive summary covering the core situation, key developments, and immediate significance>\"," +
+      "\"situation\":\"<3-4 sentences on the current situation on the ground, latest developments, and immediate context>\"," +
+      "\"geopolitical\":\"<3-4 sentences on key actors, their interests, alliances, and geopolitical implications>\"," +
+      "\"key_actors\":[{\"name\":\"<actor name>\",\"role\":\"<brief role>\",\"stance\":\"<their position/action>\"}]," +
+      "\"humanitarian\":\"<2-3 sentences on humanitarian and civilian impact\"," +
+      "\"economic\":\"<2-3 sentences on economic and market impact>\"," +
+      "\"strategic\":\"<3-4 sentences on strategic outlook, scenarios, and key risks>\"," +
+      "\"timeline\":[{\"date\":\"<date or timeframe>\",\"event\":\"<key event description>\"}]," +
+      "\"key_risks\":[\"<risk 1>\",\"<risk 2>\",\"<risk 3>\",\"<risk 4>\"]," +
+      "\"watch_points\":[\"<what to monitor 1>\",\"<what to monitor 2>\",\"<what to monitor 3>\"]," +
+      "\"related_topics\":[\"<related topic 1>\",\"<related topic 2>\",\"<related topic 3>\",\"<related topic 4>\"]," +
+      "\"sources\":[{\"name\":\"Reuters\",\"url\":\"https://reuters.com/search/news?blob=" + su + "\"},{\"name\":\"AP News\",\"url\":\"https://apnews.com/search?q=" + su + "\"},{\"name\":\"Al Jazeera\",\"url\":\"https://aljazeera.com/search?q=" + su + "\"},{\"name\":\"BBC News\",\"url\":\"https://bbc.com/search?q=" + su + "\"},{\"name\":\"Bloomberg\",\"url\":\"https://bloomberg.com/search?query=" + su + "\"},{\"name\":\"Foreign Policy\",\"url\":\"https://foreignpolicy.com/search/?q=" + su + "\"}]" +
+      "}",
+      2400
     );
-    res.json({ analysis: parseJSON(text) });
+    const analysis = parseJSON(text);
+    res.json({ analysis, liveHeadlines });
   } catch (e) {
     console.error("Briefing error:", e.message);
     res.status(500).json({ error: e.message });
