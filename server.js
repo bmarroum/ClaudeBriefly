@@ -8,7 +8,7 @@ app.use(express.json());
 const ANTHROPIC_VERSION = "2023-06-01";
 const MODEL = "claude-sonnet-4-20250514";
 const GEMINI_MODEL = "gemini-2.0-flash";
-const VERSION = "3.5";
+const VERSION = "3.6";
 
 // ── CLAUDE HELPER ─────────────────────────────────────────────────────────────
 async function callClaude(system, user, maxTokens = 1024) {
@@ -299,7 +299,13 @@ app.get("/api/rss/breaking", async (req, res) => {
   res.json({ items: items.slice(0, 18) });
 });
 
-// ── INTELLIGENCE BRIEFING (dual-engine: Gemini live search + Claude synthesis) ──
+// ── INTELLIGENCE BRIEFING ────────────────────────────────────────────────────
+// Data pipeline (in order of reliability):
+//   1. Claude web_search tool — Anthropic-native, always works, reputable sources
+//   2. Gemini + Google Search grounding — live web, parallel
+//   3. Google News RSS — headline titles, parallel
+// All three feed into a final Claude synthesis pass.
+
 app.post("/api/briefing", async (req, res) => {
   const { topic } = req.body;
   if (!topic) return res.status(400).json({ error: "Topic required" });
@@ -307,95 +313,177 @@ app.post("/api/briefing", async (req, res) => {
   const su = encodeURIComponent(topic);
   const hasGemini = !!process.env.GEMINI_API_KEY;
 
-  // Run Gemini live search + RSS fetch in parallel
-  const [geminiResult, rssResult] = await Promise.allSettled([
+  // ── STEP 1: Parallel live intelligence gathering ─────────────────────────
+  const [claudeSearchResult, geminiResult, rssResult] = await Promise.allSettled([
+    callClaudeSearch(topic),
     hasGemini ? callGemini(topic, null) : Promise.reject("No Gemini key"),
     fetchLiveRSS(topic),
   ]);
 
-  const geminiData = geminiResult.status === "fulfilled" ? geminiResult.value : null;
-  const rssData    = rssResult.status    === "fulfilled" ? rssResult.value    : null;
+  const claudeSearchData = claudeSearchResult.status === "fulfilled" ? claudeSearchResult.value : null;
+  const geminiData       = geminiResult.status       === "fulfilled" ? geminiResult.value       : null;
+  const rssData          = rssResult.status          === "fulfilled" ? rssResult.value          : null;
 
-  // Build combined intelligence context
-  let combinedContext = "=== LIVE INTELLIGENCE DOSSIER — " + todayStr() + " ===\n\n";
+  // ── STEP 2: Build combined intelligence dossier ──────────────────────────
+  let combinedContext = "=== LIVE INTELLIGENCE DOSSIER — " + todayStr() + " ===\n";
+  combinedContext += "Topic: " + topic + "\n\n";
+
   let liveHeadlines = [];
   let geminiSources = [];
   let searchUsed = false;
+  let dataSourceCount = 0;
 
+  // Priority 1: Claude web search (most reliable — Anthropic-native)
+  if (claudeSearchData && claudeSearchData.summary) {
+    combinedContext += "--- SOURCE 1: WEB SEARCH (Claude, live web results) ---\n";
+    combinedContext += claudeSearchData.summary + "\n\n";
+    searchUsed = true;
+    dataSourceCount++;
+  }
+
+  // Priority 2: Gemini Google Search grounding
   if (geminiData && geminiData.groundedSummary) {
-    combinedContext += "--- GEMINI LIVE WEB SEARCH (Google-grounded, current) ---\n";
+    combinedContext += "--- SOURCE 2: GEMINI LIVE WEB SEARCH (Google-grounded) ---\n";
     combinedContext += geminiData.groundedSummary + "\n\n";
     geminiSources = geminiData.sources || [];
-    searchUsed = geminiData.searchUsed || false;
+    searchUsed = true;
+    dataSourceCount++;
   }
 
+  // Priority 3: RSS news feed
   if (rssData && rssData.headlines && rssData.headlines.length) {
     liveHeadlines = rssData.headlines;
-    combinedContext += "--- RSS NEWS FEED (past 7 days) ---\n";
+    combinedContext += "--- SOURCE 3: RSS NEWS FEED (recent headlines) ---\n";
     combinedContext += rssData.headlines.map((i, idx) =>
       (idx + 1) + ". [" +
-      (i.pubDate ? new Date(i.pubDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Recent") +
-      "] " + i.title + (i.body ? " — " + i.body.slice(0, 200) : "")
+      (i.pubDate ? new Date(i.pubDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Recent") +
+      "] " + i.title + (i.body ? " — " + i.body.slice(0, 250) : "")
     ).join("\n") + "\n\n";
+    dataSourceCount++;
   }
 
-  if (!geminiData && !rssData) {
-    combinedContext += "NOTE: No live data available. Use training knowledge with explicit uncertainty markers.\n\n";
-  }
+  combinedContext += "=== END OF LIVE INTELLIGENCE (" + dataSourceCount + " source(s) retrieved) ===\n";
 
-  combinedContext += "=== END OF LIVE INTELLIGENCE ===\n";
+  // ── STEP 3: Build strict prompt based on data availability ──────────────
+  const hasLiveData = dataSourceCount > 0;
 
-  // JSON schema for Claude to fill
+  // Anti-hallucination rules scale with data availability
+  const dataRules = hasLiveData
+    ? "You have " + dataSourceCount + " live source(s) above. " +
+      "Base ALL specific facts, dates, names, and events ONLY on what appears in those sources. " +
+      "If the sources do not mention a specific detail, write \"[not confirmed in live sources]\" rather than inventing it. " +
+      "For the timeline, only include events explicitly mentioned in the live sources with their actual dates."
+    : "WARNING: No live data was retrieved. " +
+      "DO NOT fabricate specific dates, events, or claim things happened. " +
+      "Write in general terms about known background context only. " +
+      "Set confidence to 20 or lower. " +
+      "Explicitly state in the executive and situation fields that live data was unavailable and information is based on background knowledge only.";
+
   const JSON_SCHEMA =
     "{" +
     "\"classification\":\"INTELLIGENCE BRIEF\"," +
     "\"threat_level\":\"<CRITICAL|HIGH|ELEVATED|MODERATE|LOW>\"," +
-    "\"threat_level_reason\":\"<one sentence>\"," +
-    "\"confidence\":<integer 1-100>," +
-    "\"executive\":\"<4-5 sentence executive summary — lead with most recent development>\"," +
-    "\"situation\":\"<3-4 sentences — current situation and latest developments>\"," +
-    "\"geopolitical\":\"<3-4 sentences on key actors, interests, alliances>\"," +
-    "\"key_actors\":[{\"name\":\"<full name>\",\"role\":\"<title>\",\"stance\":\"<current position>\"}]," +
-    "\"humanitarian\":\"<2-3 sentences on civilian impact>\"," +
+    "\"threat_level_reason\":\"<one sentence — cite your source if possible>\"," +
+    "\"confidence\":<integer 1-100 — lower if based on training data only>," +
+    "\"data_sources\":<integer — number of live sources used>," +
+    "\"executive\":\"<4-5 sentences — if no live data, say so explicitly>\"," +
+    "\"situation\":\"<3-4 sentences — ONLY confirmed developments, note any uncertainty>\"," +
+    "\"geopolitical\":\"<3-4 sentences on key actors and dynamics>\"," +
+    "\"key_actors\":[{\"name\":\"<full real name>\",\"role\":\"<verified role>\",\"stance\":\"<confirmed position or [unconfirmed]>\"}]," +
+    "\"humanitarian\":\"<2-3 sentences on confirmed humanitarian situation>\"," +
     "\"economic\":\"<2-3 sentences on economic impact>\"," +
-    "\"strategic\":\"<3-4 sentences on outlook and key risks>\"," +
-    "\"timeline\":[{\"date\":\"<specific date>\",\"event\":\"<factual event>\"}]," +
-    "\"key_risks\":[\"<specific risk>\"]," +
-    "\"watch_points\":[\"<indicator to monitor>\"]," +
-    "\"related_topics\":[\"<related topic>\"]," +
-    "\"sources\":[{\"name\":\"Reuters\",\"url\":\"https://reuters.com/search/news?blob=" + su + "\"},{\"name\":\"AP News\",\"url\":\"https://apnews.com/search?q=" + su + "\"},{\"name\":\"BBC\",\"url\":\"https://bbc.com/search?q=" + su + "\"},{\"name\":\"Bloomberg\",\"url\":\"https://bloomberg.com/search?query=" + su + "\"},{\"name\":\"Foreign Policy\",\"url\":\"https://foreignpolicy.com/search/?q=" + su + "\"}}]" +
+    "\"strategic\":\"<3-4 sentences on outlook and risks>\"," +
+    "\"timeline\":[{\"date\":\"<real confirmed date from sources>\",\"event\":\"<confirmed event — do not invent>\"}]," +
+    "\"key_risks\":[\"<specific, grounded risk>\"]," +
+    "\"watch_points\":[\"<specific indicator to watch>\"]," +
+    "\"related_topics\":[\"<related geopolitical topic>\"]," +
+    "\"sources\":[{\"name\":\"Reuters\",\"url\":\"https://reuters.com/search/news?blob=" + su + "\"},{\"name\":\"AP News\",\"url\":\"https://apnews.com/search?q=" + su + "\"},{\"name\":\"BBC\",\"url\":\"https://bbc.com/search?q=" + su + "\"},{\"name\":\"Bloomberg\",\"url\":\"https://bloomberg.com/search?query=" + su + "\"},{\"name\":\"Al Jazeera\",\"url\":\"https://aljazeera.com/search?q=" + su + "\"}}]" +
     "}";
 
-  // Claude synthesises everything into the final brief
+  // ── STEP 4: Claude synthesises into final structured brief ───────────────
   try {
     const text = await callClaude(
-      "You are a senior intelligence analyst synthesising a final brief from multiple live intelligence sources. Today: " + todayStr() + ".\n" +
-      "RULES:\n" +
-      "1. Respond ONLY with a valid JSON object. No markdown, no preamble, nothing outside the JSON.\n" +
-      "2. Prioritise information from the live dossier. Supplement with training knowledge but label uncertainty.\n" +
-      "3. Never write placeholder text — every field must contain real, specific content.\n" +
-      "4. Lead every section with the most current information available.\n" +
-      "5. Use real names, real dates, real locations, real figures.",
+      "You are a senior intelligence analyst producing a verified, sourced briefing. Today: " + todayStr() + ".\n\n" +
+      "STRICT ACCURACY RULES:\n" +
+      "1. Respond ONLY with a valid JSON object. No markdown, no preamble.\n" +
+      "2. " + dataRules + "\n" +
+      "3. Never invent dates, names, or events not present in your sources.\n" +
+      "4. If a field cannot be answered from live sources, say so explicitly — do not fill with plausible-sounding content.\n" +
+      "5. Confidence score must honestly reflect how much live data you have.",
       combinedContext +
-      "\nSynthesize the above into a comprehensive intelligence brief about: " + topic +
-      "\n\nOutput this exact JSON (fill EVERY field with real analytical content):\n" + JSON_SCHEMA,
+      "\nWrite a verified intelligence brief about: " + topic +
+      "\n\nOutput ONLY this JSON (every field must contain honest, sourced content):\n" + JSON_SCHEMA,
       3500
     );
 
     const analysis = parseJSON(text);
 
-    // Merge Gemini grounding sources
+    // Attach real Gemini grounding sources
     if (geminiSources.length > 0) {
       analysis.sources = [...geminiSources, ...(analysis.sources || [])].slice(0, 10);
     }
 
-    const engineUsed = (hasGemini && searchUsed) ? "gemini+claude" : "claude";
-    res.json({ analysis, liveHeadlines, engine: engineUsed, searchUsed });
+    // Attach Claude search citations if available
+    if (claudeSearchData && claudeSearchData.citations && claudeSearchData.citations.length > 0) {
+      const citationSources = claudeSearchData.citations.slice(0, 5).map(c => ({
+        name: c.title || c.url?.replace(/https?:\/\/(www\.)?/, "").split("/")[0],
+        url: c.url
+      }));
+      analysis.sources = [...citationSources, ...(analysis.sources || [])].slice(0, 10);
+    }
+
+    analysis.data_sources = dataSourceCount;
+    const engineUsed = searchUsed ? "gemini+claude" : "claude";
+    res.json({ analysis, liveHeadlines, engine: engineUsed, searchUsed, dataSourceCount });
   } catch (e) {
     console.error("Briefing synthesis error:", e.message);
     res.status(500).json({ error: e.message });
   }
 });
+
+// ── Claude web_search tool — uses Anthropic's native search capability ────────
+async function callClaudeSearch(topic) {
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": process.env.ANTHROPIC_API_KEY,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "anthropic-beta": "web-search-2025-03-05",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 2000,
+      tools: [{ type: "web_search_20250305", name: "web_search" }],
+      system: "You are a research assistant. Search the web for the latest news and information about the given topic. Focus on results from the past 2 weeks. Summarise what you find factually and include specific dates, names, and events. Return only what you found — no analysis, no opinions.",
+      messages: [{ role: "user", content: "Search for the very latest news and developments about: \"" + topic + "\". Today is " + todayStr() + ". Find recent events, current status, key developments from the past 2 weeks. Be specific about dates and facts." }],
+    }),
+  });
+  if (!r.ok) {
+    const t = await r.text();
+    throw new Error("Claude search API " + r.status + ": " + t.slice(0, 200));
+  }
+  const d = await r.json();
+
+  // Extract text and any search result citations
+  const blocks = d.content || [];
+  const summary = blocks.filter(b => b.type === "text").map(b => b.text).join("\n");
+
+  // Extract cited URLs from tool results
+  const citations = [];
+  blocks.filter(b => b.type === "tool_result" || b.type === "web_search_tool_result").forEach(b => {
+    if (b.content) {
+      (Array.isArray(b.content) ? b.content : [b.content]).forEach(c => {
+        if (c.type === "document" && c.source) {
+          citations.push({ title: c.title, url: c.source.url });
+        }
+      });
+    }
+  });
+
+  if (!summary.trim()) throw new Error("Claude search returned empty");
+  return { summary, citations };
+}
 
 // ── RSS helper for briefing live context ─────────────────────────────────────
 async function fetchLiveRSS(topic) {
