@@ -2059,7 +2059,20 @@ function updateMarketsSummaryBar(quotes) {
 }
 
 
-async function loadMarkets(force) {
+const MARKET_GROUPS = [
+  { id: 'us',         label: 'United States', symbols: '^GSPC,^DJI,^IXIC,^RUT',
+    names: { '^GSPC':'S&P 500','^DJI':'Dow Jones','^IXIC':'Nasdaq','^RUT':'Russell 2000' } },
+  { id: 'europe',     label: 'Europe', symbols: '^FTSE,^GDAXI,^FCHI,^IBEX',
+    names: { '^FTSE':'FTSE 100','^GDAXI':'DAX','^FCHI':'CAC 40','^IBEX':'IBEX 35' } },
+  { id: 'asia',       label: 'Asia', symbols: '^N225,^HSI,^AXJO,000001.SS',
+    names: { '^N225':'Nikkei 225','^HSI':'Hang Seng','^AXJO':'ASX 200','000001.SS':'Shanghai' } },
+  { id: 'mideast',    label: 'Middle East', symbols: '^TASI,^DFMGI,^KWSE',
+    names: { '^TASI':'Tadawul (Saudi)','^DFMGI':'DFM (Dubai)','^KWSE':'Kuwait SE' } },
+  { id: 'commodities',label: 'Commodities', symbols: 'GC=F,CL=F,BZ=F,SI=F,NG=F',
+    names: { 'GC=F':'Gold','CL=F':'WTI Crude','BZ=F':'Brent Crude','SI=F':'Silver','NG=F':'Natural Gas' } },
+];
+
+function loadMarkets(force) {
   if (force) { MARKET_GROUPS.forEach(g => { delete CACHE['mkt_'+g.id]; }); delete CACHE['mkt_commentary']; marketsLoaded = false; }
   marketsLoaded = true;
   MARKET_GROUPS.forEach(g => loadMarketGroup(g));
