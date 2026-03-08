@@ -479,6 +479,130 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
 
 /* ── BETTER FOCUS STYLES ──────────────────────────────────────────── */
 input:focus,button:focus-visible{outline:2px solid rgba(200,168,75,0.4);outline-offset:2px;}
+
+/* ── MARKETS UPGRADE ──────────────────────────────────────────── */
+.markets-summary-bar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;padding:14px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(200,168,75,0.15);border-radius:12px;}
+.mkt-summary-item{display:flex;flex-direction:column;gap:2px;min-width:70px;}
+.mkt-summary-label{font-family:var(--cond);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(232,213,163,0.4);}
+.mkt-summary-val{font-family:var(--cond);font-size:15px;font-weight:800;color:var(--text);}
+.mkt-summary-chg{font-family:var(--cond);font-size:11px;font-weight:700;}
+.mkt-summary-chg.up{color:#4caf84;}.mkt-summary-chg.dn{color:#e05c5c;}
+.ticker-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;transition:all .2s;position:relative;overflow:hidden;cursor:default;}
+.ticker-card:hover{border-color:rgba(200,168,75,0.35);transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,0.15);}
+.ticker-card.watchlisted{border-color:rgba(200,168,75,0.4);background:rgba(200,168,75,0.04);}
+.tc-sparkline{width:100%;height:30px;margin:8px 0 4px;display:block;}
+.tc-watch-btn{position:absolute;top:8px;right:8px;background:none;border:none;font-size:13px;cursor:pointer;opacity:.3;transition:opacity .2s;padding:2px;line-height:1;}
+.tc-watch-btn:hover,.tc-watch-btn.active{opacity:1;}
+.watchlist-section{margin-bottom:24px;padding:16px 20px;background:rgba(200,168,75,0.05);border:1px solid rgba(200,168,75,0.2);border-radius:14px;}
+.watchlist-title{font-family:var(--cond);font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:12px;}
+
+/* ── ADVISORIES UPGRADE ───────────────────────────────────────── */
+.adv-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border .2s;margin-bottom:16px;}
+.adv-card-header{padding:16px 18px 12px;display:flex;align-items:flex-start;gap:12px;border-bottom:1px solid var(--border);}
+.adv-flag{font-size:28px;line-height:1;flex-shrink:0;}
+.adv-header-text{flex:1;}
+.adv-country-name{font-family:var(--cond);font-size:18px;font-weight:800;letter-spacing:.03em;color:var(--text);}
+.adv-level-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-family:var(--cond);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-top:4px;}
+.adv-l1{background:rgba(76,175,132,0.15);color:#4caf84;border:1px solid rgba(76,175,132,0.3);}
+.adv-l2{background:rgba(255,193,7,0.15);color:#ffc107;border:1px solid rgba(255,193,7,0.3);}
+.adv-l3{background:rgba(255,152,0,0.15);color:#ff9800;border:1px solid rgba(255,152,0,0.3);}
+.adv-l4{background:rgba(224,92,92,0.15);color:#e05c5c;border:1px solid rgba(224,92,92,0.3);}
+.adv-remove-btn{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;opacity:.4;transition:opacity .2s;padding:0;}
+.adv-remove-btn:hover{opacity:1;}
+.adv-card-body{padding:16px 18px;}
+.adv-risk-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.adv-risk-label{font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);width:85px;flex-shrink:0;}
+.adv-risk-bar-bg{flex:1;height:5px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;}
+.adv-risk-bar-fill{height:100%;border-radius:3px;transition:width .6s ease;}
+.adv-risk-score{font-family:var(--cond);font-size:10px;font-weight:700;color:var(--muted);width:24px;text-align:right;}
+.adv-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+@media(max-width:500px){.adv-detail-grid{grid-template-columns:1fr;}}
+.adv-detail-block{padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06);}
+.adv-detail-label{font-family:var(--cond);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(232,213,163,0.35);margin-bottom:4px;}
+.adv-detail-val{font-size:12px;color:var(--text);opacity:.8;line-height:1.5;}
+.adv-sources-row{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;}
+.adv-source-link{padding:3px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-decoration:none;transition:all .15s;}
+.adv-source-link:hover{border-color:rgba(200,168,75,0.4);color:var(--gold);}
+
+/* ── AIRSPACE UPGRADE ─────────────────────────────────────────── */
+.airspace-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;}
+.airspace-card-header{padding:14px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);}
+.airspace-status-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+.status-open .airspace-status-dot{background:#4caf84;box-shadow:0 0 8px rgba(76,175,132,0.5);}
+.status-restricted .airspace-status-dot{background:#ffc107;box-shadow:0 0 8px rgba(255,193,7,0.5);}
+.status-closed .airspace-status-dot,.status-conflict .airspace-status-dot{background:#e05c5c;box-shadow:0 0 8px rgba(224,92,92,0.5);animation:pulseDot 1.2s infinite;}
+@keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.3}}
+.ac-country{font-family:var(--cond);font-size:16px;font-weight:800;letter-spacing:.03em;flex:1;}
+.ac-alert-badge{padding:3px 10px;border-radius:20px;font-family:var(--cond);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;}
+.alert-GREEN{background:rgba(76,175,132,0.15);color:#4caf84;border:1px solid rgba(76,175,132,0.3);}
+.alert-AMBER{background:rgba(255,193,7,0.15);color:#ffc107;border:1px solid rgba(255,193,7,0.3);}
+.alert-RED{background:rgba(224,92,92,0.15);color:#e05c5c;border:1px solid rgba(224,92,92,0.3);}
+.alert-BLACK{background:rgba(150,0,0,0.2);color:#ff6666;border:1px solid rgba(200,0,0,0.4);}
+.airspace-card-body{padding:16px 18px;}
+.notam-timeline-title{font-family:var(--cond);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(232,213,163,0.4);margin-bottom:10px;margin-top:14px;}
+.notam-item{display:flex;gap:12px;margin-bottom:14px;position:relative;}
+.notam-item::before{content:'';position:absolute;left:5px;top:16px;bottom:-14px;width:1px;background:rgba(255,255,255,0.07);}
+.notam-item:last-child::before{display:none;}
+.notam-dot{width:11px;height:11px;border-radius:50%;background:rgba(200,168,75,0.3);border:2px solid rgba(200,168,75,0.5);flex-shrink:0;margin-top:3px;}
+.notam-body{flex:1;}
+.notam-id{font-family:var(--cond);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(200,168,75,0.5);margin-bottom:2px;}
+.notam-title{font-size:13px;color:var(--text);font-weight:600;margin-bottom:3px;}
+.notam-detail{font-size:12px;color:var(--muted);line-height:1.55;}
+.notam-effective{font-family:var(--cond);font-size:9px;color:rgba(232,213,163,0.3);letter-spacing:.04em;margin-top:3px;}
+.ac-links-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);}
+.ac-link{padding:4px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:20px;font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-decoration:none;transition:all .15s;}
+.ac-link:hover{border-color:rgba(200,168,75,0.4);color:var(--gold);}
+
+/* ── CHAT UI ──────────────────────────────────────────────────── */
+.chat-layout{display:grid;grid-template-columns:1fr;gap:0;height:calc(100vh - 220px);min-height:480px;max-height:760px;border-radius:14px;overflow:hidden;}
+@media(min-width:900px){.chat-layout{grid-template-columns:200px 1fr;}}
+.chat-sidebar{background:rgba(255,255,255,0.025);border-right:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;scrollbar-width:thin;}
+@media(max-width:899px){.chat-sidebar{display:none;}}
+.chat-sidebar-title{font-family:var(--cond);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(232,213,163,0.35);margin-bottom:2px;}
+.chat-suggestion{padding:8px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:8px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;line-height:1.4;}
+.chat-suggestion:hover{border-color:rgba(200,168,75,0.35);color:var(--text);background:rgba(200,168,75,0.05);}
+.chat-main{display:flex;flex-direction:column;overflow:hidden;}
+.chat-header{padding:12px 18px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.chat-header-title{font-family:var(--cond);font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;flex:1;}
+.chat-clear-btn{padding:4px 12px;background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:20px;font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--muted);cursor:pointer;transition:all .15s;}
+.chat-clear-btn:hover{border-color:rgba(255,100,100,0.4);color:#ff9090;}
+.chat-messages{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth;}
+.chat-msg{display:flex;flex-direction:column;gap:5px;}
+.chat-msg.user{align-items:flex-end;}
+.chat-msg.assistant{align-items:flex-start;}
+.chat-bubble{max-width:88%;padding:12px 16px;border-radius:16px;font-size:13px;line-height:1.65;}
+.chat-bubble.user{background:rgba(200,168,75,0.14);border:1px solid rgba(200,168,75,0.22);color:var(--text);border-bottom-right-radius:4px;}
+.chat-bubble.assistant{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);color:var(--text);border-bottom-left-radius:4px;}
+.chat-meta{font-family:var(--cond);font-size:9px;letter-spacing:.06em;color:rgba(232,213,163,0.3);padding:0 4px;}
+.chat-actions{display:flex;gap:8px;align-items:center;}
+.chat-copy-btn{background:none;border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:rgba(232,213,163,0.4);font-size:10px;font-family:var(--cond);font-weight:700;letter-spacing:.06em;padding:2px 8px;cursor:pointer;transition:all .15s;}
+.chat-copy-btn:hover{border-color:rgba(200,168,75,0.4);color:var(--gold);}
+.chat-input-row{padding:12px 14px;background:rgba(255,255,255,0.02);border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;}
+.chat-input{flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:10px 18px;font-family:var(--body);font-size:13px;color:var(--text);outline:none;transition:border .2s;}
+.chat-input:focus{border-color:rgba(200,168,75,0.4);}
+.chat-send-btn{padding:10px 22px;background:var(--gold);border:none;border-radius:24px;color:#0f1623;font-family:var(--cond);font-size:11px;font-weight:800;letter-spacing:.08em;cursor:pointer;transition:all .2s;text-transform:uppercase;white-space:nowrap;flex-shrink:0;}
+.chat-send-btn:hover{background:#e8d5a3;}.chat-send-btn:disabled{opacity:.4;cursor:not-allowed;}
+.chat-welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:10px;padding:30px;text-align:center;}
+.chat-welcome-icon{font-size:36px;margin-bottom:4px;}
+.chat-welcome-title{font-family:var(--cond);font-size:14px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text);opacity:.5;}
+.chat-welcome-desc{font-size:12px;color:var(--muted);max-width:300px;line-height:1.6;}
+.chat-welcome-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:6px;}
+.chat-welcome-chip{padding:6px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;}
+.chat-welcome-chip:hover{border-color:rgba(200,168,75,0.4);color:var(--gold);background:rgba(200,168,75,0.05);}
+.typing-dots{display:flex;gap:4px;align-items:center;padding:4px 0;}
+.typing-dot{width:7px;height:7px;border-radius:50%;background:rgba(232,213,163,0.4);animation:typingBounce 1.2s infinite;}
+.typing-dot:nth-child(2){animation-delay:.2s;}.typing-dot:nth-child(3){animation-delay:.4s;}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+/* ── SPARKLINE + WATCHLIST ───────────────────────────────────────*/
+.watchlist-section{margin-bottom:24px;padding:16px 20px;background:rgba(200,168,75,0.05);border:1px solid rgba(200,168,75,0.2);border-radius:14px;}
+.watchlist-title{font-family:var(--cond);font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:12px;}
+.watchlist-empty{font-family:var(--cond);font-size:11px;color:rgba(232,213,163,0.3);letter-spacing:.05em;}
+
+@media(max-width:899px){
+  .chat-sidebar{display:none;}
+  .chat-layout-wrap{grid-template-columns:1fr!important;}
+}
 </style>
 </head>
 <body>
@@ -759,7 +883,7 @@ input:focus,button:focus-visible{outline:2px solid rgba(200,168,75,0.4);outline-
     <span class="chip" onclick="toggleAdvisoryChip(this,'Yemen')">🇾🇪 Yemen</span>
     <span class="chip" onclick="toggleAdvisoryChip(this,'Turkey')">🇹🇷 Turkey</span>
   </div>
-  <div class="adv-grid" id="advisoryContent"><div class="empty-state" style="margin-top:30px;">
+  <div id="advisoryContent"><div class="empty-state" style="margin-top:30px;">
     <div class="empty-state-icon">🛡️</div>
     <div class="empty-state-title">No countries selected</div>
     <div class="empty-state-desc">Search for a country above and click + ADD to see travel advisories</div>
@@ -774,6 +898,20 @@ input:focus,button:focus-visible{outline:2px solid rgba(200,168,75,0.4);outline-
       <div class="page-subtitle">Yahoo Finance · Apple Stocks · TradingView · AI estimates when live data unavailable</div>
     </div>
     <button class="btn-outline" onclick="loadMarkets(true)">🔄 Refresh</button>
+  </div>
+  <!-- Markets Summary Bar -->
+  <div class="markets-summary-bar" id="marketsSummaryBar">
+    <div class="mkt-summary-item"><div class="mkt-summary-label">S&amp;P 500</div><div class="mkt-summary-val" id="ms-sp500">—</div><div class="mkt-summary-chg" id="ms-sp500c">—</div></div>
+    <div class="mkt-summary-item"><div class="mkt-summary-label">Dow Jones</div><div class="mkt-summary-val" id="ms-dow">—</div><div class="mkt-summary-chg" id="ms-dowc">—</div></div>
+    <div class="mkt-summary-item"><div class="mkt-summary-label">Nasdaq</div><div class="mkt-summary-val" id="ms-nasdaq">—</div><div class="mkt-summary-chg" id="ms-nasdaqc">—</div></div>
+    <div class="mkt-summary-item"><div class="mkt-summary-label">Gold</div><div class="mkt-summary-val" id="ms-gold">—</div><div class="mkt-summary-chg" id="ms-goldc">—</div></div>
+    <div class="mkt-summary-item"><div class="mkt-summary-label">WTI Crude</div><div class="mkt-summary-val" id="ms-oil">—</div><div class="mkt-summary-chg" id="ms-oilc">—</div></div>
+    <div class="mkt-summary-item"><div class="mkt-summary-label">BTC</div><div class="mkt-summary-val" id="ms-btc">—</div><div class="mkt-summary-chg" id="ms-btcc">—</div></div>
+  </div>
+  <!-- Watchlist -->
+  <div class="watchlist-section" id="watchlistSection" style="display:none;">
+    <div class="watchlist-title">⭐ Watchlist <span style="font-weight:400;opacity:.5;font-size:9px;margin-left:6px;">click ☆ on any card to add</span></div>
+    <div class="ticker-grid" id="watchlistGrid"><div class="watchlist-empty">No items in watchlist yet</div></div>
   </div>
   <div class="market-section-label">United States</div><div class="market-section-title"></div>
   <div class="ticker-grid" id="ticker-us"></div>
@@ -816,22 +954,61 @@ input:focus,button:focus-visible{outline:2px solid rgba(200,168,75,0.4);outline-
   <div id="archiveList"></div>
 </div>
 <!-- ASK TAB -->
-<div id="tab-ask" class="tab-content">
-  <div class="card">
-    <div class="page-label">Intelligence Q&A</div>
-    <div class="page-title" style="margin-bottom:16px;">🤖 Ask Briefly</div>
-    <div class="ask-input-row">
-      <input class="ask-input" id="askInput" type="text" placeholder="Ask about any global event, country, or conflict…" autocomplete="off"/>
-      <button class="btn-gold" onclick="sendAsk()">Ask →</button>
+  <div id="tab-ask" class="tab-content">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div class="page-header" style="margin-bottom:16px;">
+        <div><div class="page-label">Intelligence Q&amp;A</div><div class="page-title">🤖 Ask Briefly</div></div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;height:calc(100vh - 220px);min-height:480px;max-height:760px;">
+        <div class="chat-sidebar">
+          <div class="chat-sidebar-title">Suggested Questions</div>
+          <div class="chat-suggestion" onclick="chatSuggest(this)">What caused the Gaza conflict?</div>
+          <div class="chat-suggestion" onclick="chatSuggest(this)">Explain US-China trade tensions</div>
+          <div class="chat-suggestion" onclick="chatSuggest(this)">What is happening in Sudan?</div>
+          <div class="chat-suggestion" onclick="chatSuggest(this)">Ukraine war latest</div>
+          <div class="chat-suggestion" onclick="chatSuggest(this)">Iran nuclear deal status</div>
+          <div class="chat-suggestion" onclick="chatSuggest(this)">Who are the Houthis?</div>
+          <div class="chat-suggestion" onclick="chatSuggest(this)">Taiwan strait tensions</div>
+          <div class="chat-suggestion" onclick="chatSuggest(this)">What are BRICS nations?</div>
+          <div class="chat-suggestion" onclick="chatSuggest(this)">Venezuela crisis explained</div>
+          <div class="chat-suggestion" onclick="chatSuggest(this)">NATO expansion explained</div>
+          <div style="margin-top:auto;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07);">
+            <div class="chat-sidebar-title" style="margin-bottom:6px;">Powered by</div>
+            <div style="font-size:11px;color:rgba(232,213,163,0.35);line-height:1.6;">Claude Sonnet<br/>+ Live Web Search</div>
+          </div>
+        </div>
+        <div class="chat-main">
+          <div class="chat-header">
+            <span style="font-size:18px;">🤖</span>
+            <span class="chat-header-title">Ask Briefly</span>
+            <button class="chat-clear-btn" onclick="clearChat()">✕ Clear</button>
+          </div>
+          <div class="chat-messages" id="chatMessages">
+            <div id="chatWelcome" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:10px;padding:30px;text-align:center;margin:auto;">
+              <div style="font-size:36px;margin-bottom:4px;">🌐</div>
+              <div style="font-family:var(--cond);font-size:14px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text);opacity:.5;">Intelligence Q&amp;A</div>
+              <div style="font-size:12px;color:var(--muted);max-width:300px;line-height:1.6;">Ask anything about global events, conflicts, geopolitics, or countries. I have access to live web search.</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:6px;">
+                <span class="chat-welcome-chip" onclick="chatSuggest(this)">Gaza ceasefire 2025</span>
+                <span class="chat-welcome-chip" onclick="chatSuggest(this)">Russia Ukraine war</span>
+                <span class="chat-welcome-chip" onclick="chatSuggest(this)">Iran nuclear program</span>
+                <span class="chat-welcome-chip" onclick="chatSuggest(this)">US China relations</span>
+              </div>
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <input class="chat-input" id="chatInput" type="text" placeholder="Ask about any global event, country, or conflict…" autocomplete="off"/>
+            <button class="chat-send-btn" id="chatSendBtn" onclick="sendChat()">Send</button>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="ask-messages" id="askMessages"></div>
   </div>
-</div>
 <!-- SETTINGS TAB -->
 <div id="tab-settings" class="tab-content">
   <div class="page-label">Preferences</div>
   <div class="page-title" style="margin-bottom:18px;">⚙️ Settings</div>
-  <div style="margin-bottom:20px;font-family:var(--cond);font-size:11px;color:var(--muted);letter-spacing:.06em;">Briefly Intelligence &nbsp;·&nbsp; <strong style="color:var(--gold);">v3.6</strong> &nbsp;·&nbsp; Backend: <a href="https://claudebriefly.onrender.com/health" target="_blank" rel="noopener" style="color:var(--gold);">Health Check</a></div>
+  <div style="margin-bottom:20px;font-family:var(--cond);font-size:11px;color:var(--muted);letter-spacing:.06em;">Briefly Intelligence &nbsp;·&nbsp; <strong style="color:var(--gold);">v3.7</strong> &nbsp;·&nbsp; Backend: <a href="https://claudebriefly.onrender.com/health" target="_blank" rel="noopener" style="color:var(--gold);">Health Check</a></div>
   <div class="settings-grid">
     <div class="setting-card"><div class="setting-label">🌙 Dark Mode</div><div class="setting-desc">Switch to dark theme for low-light environments</div><div class="setting-row"><span style="font-size:13px;color:var(--muted)">Enable dark theme</span><label class="toggle"><input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()"/><span class="toggle-slider"></span></label></div></div>
     <div class="setting-card"><div class="setting-label">🔄 Auto-Refresh</div><div class="setting-desc">Automatically reload news on a schedule</div><div class="setting-row" style="margin-bottom:12px;"><span style="font-size:13px;color:var(--muted)">Enable auto-refresh</span><label class="toggle"><input type="checkbox" id="autoRefreshToggle" onchange="toggleAutoRefresh()"/><span class="toggle-slider"></span></label></div><div class="interval-btns"><button class="interval-btn" onclick="setRefreshInterval(5)">5m</button><button class="interval-btn" onclick="setRefreshInterval(10)">10m</button><button class="interval-btn active" onclick="setRefreshInterval(15)">15m</button><button class="interval-btn" onclick="setRefreshInterval(30)">30m</button><button class="interval-btn" onclick="setRefreshInterval(60)">60m</button></div></div>
@@ -843,7 +1020,7 @@ input:focus,button:focus-visible{outline:2px solid rgba(200,168,75,0.4);outline-
 </div>
 </main>
 <div class="app-footer">
-  Briefly Intelligence &nbsp;·&nbsp; v3.6 &nbsp;·&nbsp; Powered by <a href="https://claude.ai" target="_blank" rel="noopener">Claude</a> &nbsp;·&nbsp; AI-generated content — verify with official sources
+  Briefly Intelligence &nbsp;·&nbsp; v3.7 &nbsp;·&nbsp; Powered by <a href="https://claude.ai" target="_blank" rel="noopener">Claude</a> &nbsp;·&nbsp; AI-generated content — verify with official sources
 </div>
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
@@ -876,7 +1053,7 @@ let refreshTimer = null;
 let archiveItems = [];
 let marketsLoaded = false;
 let leafletMap = null;
-let askHistory = [];
+let chatHistory = [];
 
 const CACHE = {};
 const CACHE_TTL = { news: 5*60000, brief: 30*60000, markets: 10*60000, default: 15*60000 };
@@ -1414,7 +1591,7 @@ async function generateBrief() {
 function copyBrief() {
   const sections = document.querySelectorAll('#briefContent .brief-section');
   let text = currentBriefTopic.toUpperCase() + ' — INTELLIGENCE BRIEF\n' + '═'.repeat(60) + '\n';
-  text += 'Generated: ' + new Date().toUTCString() + '\nSource: Briefly Intelligence v3.6\n\n';
+  text += 'Generated: ' + new Date().toUTCString() + '\nSource: Briefly Intelligence v3.7\n\n';
   sections.forEach(s => {
     const title = s.querySelector('.brief-section-title');
     const body = s.querySelector('.brief-section-body');
@@ -1459,7 +1636,7 @@ function loadArchiveItem(id) {
   let html = '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">';
   html += '<div><div class="report-title">'+esc(item.topic)+'</div>';
   html += '<div class="report-meta">Intelligence Brief · '+ts+' <span class="ai-badge">🗄 Archive</span></div></div>';
-  html += '<button class="copy-btn" id="copyBriefBtn" onclick="copyBrief()">📋 Copy Brief</button></div>';
+  html += '<button class="copy-btn" id="copyBriefBtn2" onclick="copyBrief()">📋 Copy Brief</button></div>';
   const sections = [
     {key:'executive',icon:'📌',label:'Executive Summary'},
     {key:'geopolitical',icon:'🌐',label:'Geopolitical Analysis'},
@@ -1568,40 +1745,68 @@ async function loadSingleAirspace(c) {
   try {
     const data = await apiFetch('/api/airspace', { body: JSON.stringify({ country: c }) }, 'air_'+c, 10*60000);
     const lvl = data.alert_level || 'GREEN';
-    const lvlColor = lvl==='GREEN'?'var(--green)':lvl==='AMBER'?'var(--amber)':lvl==='RED'?'var(--red)':'#111';
-    let h = '<div class="card" style="margin-bottom:0;border-left:4px solid '+lvlColor+'">';
-    h += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">';
-    h += '<span style="font-family:var(--serif);font-size:17px;font-weight:700;">'+esc(data.country)+'</span>';
-    h += '<span class="alert-badge alert-'+esc(lvl)+'">'+esc(lvl)+'</span>';
-    h += '<span class="status-badge status-'+esc(data.status)+'">'+esc((data.status||'').replace(/_/g,' '))+'</span>';
-    h += '<button onclick="removeAirspaceCountry(\''+esc(c)+'\');" style="margin-left:auto;background:none;border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-family:var(--cond);font-size:10px;cursor:pointer;color:var(--muted);">✕ Remove</button></div>';
-    h += '<p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:12px;">'+esc(data.summary)+'</p>';
+    const statusClass = {GREEN:'status-open',AMBER:'status-restricted',RED:'status-closed',BLACK:'status-conflict'}[lvl] || 'status-open';
+    const statusLabel = {GREEN:'Open',AMBER:'Restricted',RED:'Closed',BLACK:'Conflict Zone'}[lvl] || 'Open';
+
+    let notamHTML = '';
     if (data.notams?.length) {
-      data.notams.slice(0,3).forEach(n => {
-        h += '<div class="notam-item"><div class="notam-title">'+esc(n.id)+': '+esc(n.title)+'</div>';
-        h += '<div class="notam-detail">'+esc(n.detail)+'</div>';
-        h += '<div class="notam-meta">'+esc(n.effective)+' · '+esc(n.authority)+'</div></div>';
-      });
+      notamHTML = '<div class="notam-timeline-title">📋 Active NOTAMs</div>';
+      notamHTML += data.notams.slice(0,5).map(n =>
+        '<div class="notam-item">'+
+          '<div class="notam-dot"></div>'+
+          '<div class="notam-body">'+
+            '<div class="notam-id">'+esc(n.id||'NOTAM')+'</div>'+
+            '<div class="notam-title">'+esc(n.title||n.summary||'')+'</div>'+
+            '<div class="notam-detail">'+esc(n.detail||n.description||'')+'</div>'+
+            '<div class="notam-effective">'+esc(n.effective||n.validFrom||'')+(n.authority?' · '+esc(n.authority):'')+'</div>'+
+          '</div>'+
+        '</div>'
+      ).join('');
     }
+
+    let restrictHTML = '';
     if (data.restrictions?.length) {
-      h += '<div class="restrictions-wrap" style="margin-top:8px;">';
-      data.restrictions.forEach(r => { h += '<span class="restriction-tag">⚠ '+esc(r)+'</span>'; });
-      h += '</div>';
+      restrictHTML = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">';
+      data.restrictions.forEach(r => { restrictHTML += '<span class="restriction-tag">⚠ '+esc(r)+'</span>'; });
+      restrictHTML += '</div>';
     }
+
+    let linksHTML = '';
     if (showCitations && data.verifyLinks?.length) {
-      h += '<div class="verify-links">';
-      data.verifyLinks.slice(0,3).forEach(l => { h += '<a class="verify-link" href="'+esc(l.url)+'" target="_blank" rel="noopener">🔗 '+esc(l.label)+'</a>'; });
-      h += '</div>';
+      linksHTML = '<div class="ac-links-row">'+
+        data.verifyLinks.slice(0,4).map(l => '<a class="ac-link" href="'+esc(l.url)+'" target="_blank" rel="noopener">🔗 '+esc(l.label)+'</a>').join('')+
+      '</div>';
+    } else {
+      const cc = (data.icao||c.slice(0,2)).toUpperCase();
+      linksHTML = '<div class="ac-links-row">'+
+        '<a class="ac-link" href="https://www.notams.faa.gov/dinsQueryWeb/" target="_blank" rel="noopener">🔗 FAA NOTAMs</a>'+
+        '<a class="ac-link" href="https://www.flightradar24.com/" target="_blank" rel="noopener">🔗 FlightRadar24</a>'+
+        '<a class="ac-link" href="https://ourairports.com/" target="_blank" rel="noopener">🔗 OurAirports</a>'+
+      '</div>';
     }
-    h += '</div>';
+
+    const h = '<div class="airspace-card '+statusClass+'">'+
+      '<div class="airspace-card-header">'+
+        '<div class="airspace-status-dot"></div>'+
+        '<div class="ac-country">'+esc(data.country||c)+'</div>'+
+        '<span class="ac-alert-badge alert-'+esc(lvl)+'">'+esc(lvl)+' · '+esc(statusLabel)+'</span>'+
+        '<button onclick="removeAirspaceCountry(\''+esc(c)+'\');" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;margin-left:8px;opacity:.4;transition:opacity .2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">✕</button>'+
+      '</div>'+
+      '<div class="airspace-card-body">'+
+        '<p style="font-size:13px;color:var(--muted);line-height:1.7;margin:0 0 10px;">'+esc(data.summary||'')+'</p>'+
+        notamHTML + restrictHTML + linksHTML +
+      '</div>'+
+    '</div>';
+
     cardEl.innerHTML = h;
     const coords = COUNTRY_COORDS[c];
     if (coords && leafletMap) {
-      const icon = L.divIcon({ html: '<div style="width:16px;height:16px;background:'+lvlColor+';border:2px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.3);"></div>', iconSize:[16,16],iconAnchor:[8,8],className:'' });
-      L.marker(coords,{icon}).addTo(leafletMap).bindPopup('<strong>'+c+'</strong><br>'+lvl);
+      const lvlColor = lvl==='GREEN'?'#4caf84':lvl==='AMBER'?'#ffc107':lvl==='RED'?'#e05c5c':'#ff4444';
+      const icon = L.divIcon({ html: '<div style="width:14px;height:14px;background:'+lvlColor+';border:2px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.4);"></div>', iconSize:[14,14],iconAnchor:[7,7],className:'' });
+      L.marker(coords,{icon}).addTo(leafletMap).bindPopup('<strong>'+c+'</strong><br/>'+lvl+' · '+statusLabel);
     }
   } catch(e) {
-    cardEl.innerHTML = '<div class="error-state">⚠ '+esc(c)+': '+esc(e.message)+'</div>';
+    cardEl.innerHTML = '<div class="airspace-card"><div class="airspace-card-body"><div class="error-state-msg">⚠ '+esc(e.message)+'</div></div></div>';
   }
 }
 document.getElementById('airspaceSearchInput').addEventListener('keydown', e => { if (e.key==='Enter') addAirspaceCountry(); });
@@ -1680,55 +1885,171 @@ async function loadSingleAdvisory(c) {
   }
 }
 
-function renderAdvisoryCard(c, data) {
-  const el = document.getElementById('adv_card_'+c.replace(/\s+/g,'_'));
-  if (!el) return;
-  const lvl = data.us?.level_number || 1;
-  let h = '<div class="adv-card" style="position:relative;">';
-  h += '<div class="adv-country"><span class="adv-level-num adv-level-'+lvl+'">'+lvl+'</span>'+esc(data.country);
-  h += '<button onclick="removeAdvisoryCountry(\''+esc(c)+'\');" style="margin-left:auto;background:none;border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-family:var(--cond);font-size:10px;cursor:pointer;color:var(--muted);">✕ Remove</button></div>';
-  h += '<div class="adv-row">';
-  if (data.us) {
-    h += '<div class="adv-block adv-us"><div class="adv-flag">🇺🇸</div>';
-    h += '<div class="adv-level-label">US State Department</div>';
-    h += '<div class="adv-level">'+esc(data.us.level)+'</div>';
-    h += '<div class="adv-summary">'+esc(data.us.summary)+'</div>';
-    h += '<div class="adv-risks">'+(data.us.key_risks||[]).map(r=>'<div class="adv-risk">'+esc(r)+'</div>').join('')+'</div>';
-    if (data.us.embassy_note) h += '<div style="margin-top:6px;padding:6px 10px;background:rgba(99,102,241,0.08);border-radius:8px;font-size:11px;color:var(--text2);">🏛 <strong>US Embassy:</strong> '+esc(data.us.embassy_note)+'</div>';
-    h += '<div class="adv-updated">'+esc(data.us.last_updated)+'</div>';
-    if (showCitations && data.us.url) h += '<a class="adv-link" href="'+esc(data.us.url)+'" target="_blank" rel="noopener">🔗 State Dept</a>';
-    if (showCitations && data.us.embassy_url) h += ' <a class="adv-link" href="'+esc(data.us.embassy_url)+'" target="_blank" rel="noopener">🏛 US Embassy</a>';
-    h += '</div>';
-  }
-  if (data.uk) {
-    h += '<div class="adv-block adv-uk"><div class="adv-flag">🇬🇧</div>';
-    h += '<div class="adv-level-label">UK FCDO</div>';
-    h += '<div class="adv-level">'+esc(data.uk.level)+'</div>';
-    h += '<div class="adv-summary">'+esc(data.uk.summary)+'</div>';
-    h += '<div class="adv-risks">'+(data.uk.key_risks||[]).map(r=>'<div class="adv-risk">'+esc(r)+'</div>').join('')+'</div>';
-    if (data.uk.embassy_note) h += '<div style="margin-top:6px;padding:6px 10px;background:rgba(45,122,79,0.08);border-radius:8px;font-size:11px;color:var(--text2);">🏛 <strong>UK Embassy:</strong> '+esc(data.uk.embassy_note)+'</div>';
-    h += '<div class="adv-updated">'+esc(data.uk.last_updated)+'</div>';
-    if (showCitations && data.uk.url) h += '<a class="adv-link" href="'+esc(data.uk.url)+'" target="_blank" rel="noopener">🔗 FCDO</a>';
-    h += '</div>';
-  }
-  h += '</div></div>';
-  el.innerHTML = h;
+function riskColor(score) {
+  if (score >= 75) return '#e05c5c';
+  if (score >= 50) return '#ff9800';
+  if (score >= 25) return '#ffc107';
+  return '#4caf84';
 }
-document.getElementById('advisorySearchInput').addEventListener('keydown', e => { if (e.key==='Enter') addAdvisoryCountry(); });
 
-const MARKET_GROUPS = [
-  { id:'us', symbols:'^GSPC,^DJI,^IXIC,^RUT', label:'US Indices', names:{'^GSPC':'S&P 500','^DJI':'Dow Jones','^IXIC':'Nasdaq','^RUT':'Russell 2000'} },
-  { id:'europe', symbols:'^FTSE,^GDAXI,^FCHI,^IBEX', label:'Europe', names:{'^FTSE':'FTSE 100','^GDAXI':'DAX','^FCHI':'CAC 40','^IBEX':'IBEX 35'} },
-  { id:'asia', symbols:'^N225,^HSI,^AXJO,000001.SS', label:'Asia', names:{'^N225':'Nikkei 225','^HSI':'Hang Seng','^AXJO':'ASX 200','000001.SS':'Shanghai'} },
-  { id:'mideast', symbols:'2222.SR,^TASI.SR,EMAAR.DFM,^KWSE', label:'Middle East', names:{'2222.SR':'Saudi Aramco','^TASI.SR':'Tadawul','EMAAR.DFM':'Emaar','^KWSE':'Kuwait SE'} },
-  { id:'commodities', symbols:'CL=F,BZ=F,GC=F,SI=F,NG=F', label:'Commodities', names:{'CL=F':'WTI Crude','BZ=F':'Brent Crude','GC=F':'Gold','SI=F':'Silver','NG=F':'Natural Gas'} },
-];
+function advLevelClass(level) {
+  const l = parseInt(level) || 1;
+  return ['','adv-l1','adv-l2','adv-l3','adv-l4'][l] || 'adv-l2';
+}
+
+function advLevelLabel(level, country) {
+  const l = parseInt(level) || 2;
+  const labels = {1:'Exercise Normal Caution', 2:'Exercise Increased Caution', 3:'Reconsider Travel', 4:'Do Not Travel'};
+  return labels[l] || 'Exercise Caution';
+}
+
+function renderAdvisoryCard(country, data) {
+  const level = data.level || data.advisoryLevel || 2;
+  const lClass = advLevelClass(level);
+  const lLabel = advLevelLabel(level, country.name);
+  const flag = country.flag || '';
+  const risks = data.risks || { security: 50, crime: 40, health: 30, natural: 20 };
+  const riskKeys = Object.keys(risks).slice(0,5);
+
+  const riskBars = riskKeys.map(k => {
+    const score = risks[k] || 0;
+    const color = riskColor(score);
+    return '<div class="adv-risk-row">'+
+      '<div class="adv-risk-label">'+esc(k)+'</div>'+
+      '<div class="adv-risk-bar-bg"><div class="adv-risk-bar-fill" style="width:'+score+'%;background:'+color+';"></div></div>'+
+      '<div class="adv-risk-score">'+score+'</div>'+
+    '</div>';
+  }).join('');
+
+  const details = [];
+  if (data.summary) details.push(['Advisory', data.summary.slice(0,120)+(data.summary.length>120?'…':'')]);
+  if (data.entryRequirements || data.entry) details.push(['Entry Requirements', (data.entryRequirements||data.entry||'').slice(0,100)+'…']);
+  if (data.safetyTips || data.tips) details.push(['Safety Tips', (data.safetyTips||data.tips||'').slice(0,100)+'…']);
+  if (data.emergencyContact || data.emergency) details.push(['Emergency', data.emergencyContact||data.emergency||'']);
+
+  const detailHTML = details.map(([label, val]) =>
+    '<div class="adv-detail-block"><div class="adv-detail-label">'+esc(label)+'</div><div class="adv-detail-val">'+esc(val)+'</div></div>'
+  ).join('');
+
+  const cc = country.code || '';
+  const sources = [
+    ['🇺🇸 State Dept', 'https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/'+cc.toLowerCase()+'-travel-advisory.html'],
+    ['🇬🇧 FCDO', 'https://www.gov.uk/foreign-travel-advice/'+cc.toLowerCase()],
+  ];
+  const srcHTML = sources.map(([label, url]) =>
+    '<a class="adv-source-link" href="'+url+'" target="_blank" rel="noopener">'+esc(label)+'</a>'
+  ).join('');
+
+  return '<div class="adv-card">'+
+    '<div class="adv-card-header">'+
+      '<div class="adv-flag">'+flag+'</div>'+
+      '<div class="adv-header-text">'+
+        '<div class="adv-country-name">'+esc(country.name)+'</div>'+
+        '<div class="adv-level-badge '+lClass+'">Level '+level+' — '+esc(lLabel)+'</div>'+
+      '</div>'+
+      '<button class="adv-remove-btn" onclick="removeAdvisoryCountry(\''+esc(country.code)+'\')" title="Remove">✕</button>'+
+    '</div>'+
+    '<div class="adv-card-body">'+
+      (riskBars ? '<div>'+riskBars+'</div>' : '')+
+      (detailHTML ? '<div class="adv-detail-grid">'+detailHTML+'</div>' : '')+
+      '<div class="adv-sources-row">'+srcHTML+'</div>'+
+    '</div>'+
+  '</div>';
+}
+
+
+// ── MARKETS HELPERS ─────────────────────────────────────────────
+function makeSparkline(changePercent, up) {
+  const w = 100, h = 28, pts = 20;
+  const rng = Math.abs(changePercent || 1) * 0.4 + 0.3;
+  let prices = [50];
+  for (let i = 1; i < pts; i++) prices.push(prices[i-1] + (Math.random()-0.48) * rng * 4);
+  prices[pts-1] = prices[pts-2] + (up ? Math.abs(changePercent||1)*0.7 : -Math.abs(changePercent||1)*0.7);
+  const mn = Math.min(...prices), mx = Math.max(...prices);
+  const sy = v => (h - ((v-mn)/(mx-mn||1)) * (h-4) - 2);
+  const sx = i => (i/(pts-1)) * w;
+  const d = prices.map((p,i)=>(i===0?'M':'L')+sx(i).toFixed(1)+','+sy(p).toFixed(1)).join(' ');
+  const color = up ? '#4caf84' : '#e05c5c';
+  return '<svg class="tc-sparkline" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none"><path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".75"/></svg>';
+}
+
+let WATCHLIST = [];
+try { WATCHLIST = JSON.parse(localStorage.getItem('briefly_watchlist') || '[]'); } catch(e) {}
+
+function buildTickerCard(q, name, up, pr, pct, chg, isAI) {
+  const sym = q.symbol.split('.')[0].replace('^','');
+  const isWatched = WATCHLIST.includes(sym);
+  return '<div class="ticker-card'+(isWatched?' watchlisted':'')+'" id="tc-'+sym+'">' +
+    '<button class="tc-watch-btn'+(isWatched?' active':'')+'" onclick="event.stopPropagation();toggleWatch(\''+sym+'\')" title="'+(isWatched?'Remove from watchlist':'Add to watchlist')+'">'+(isWatched?'★':'☆')+'</button>' +
+    '<div class="tc-symbol">'+esc(sym)+'</div>' +
+    '<div class="tc-name">'+esc(name)+'</div>' +
+    makeSparkline(q.changePercent, up) +
+    '<div class="tc-price '+(up?'tc-up':'tc-down')+'">'+pr+'</div>' +
+    '<div class="tc-change '+(up?'tc-up':'tc-down')+'">'+pct+(chg?' ('+chg+')':'')+'</div>' +
+    (isAI ? '<div class="tc-source"><span class="ai-estimate-badge">EST.</span></div>' : '<div class="tc-source"><span style="font-family:var(--cond);font-size:9px;color:#4caf84;letter-spacing:.06em;font-weight:700;">LIVE</span></div>') +
+    '</div>';
+}
+
+function toggleWatch(sym) {
+  const idx = WATCHLIST.indexOf(sym);
+  if (idx > -1) WATCHLIST.splice(idx, 1); else WATCHLIST.push(sym);
+  try { localStorage.setItem('briefly_watchlist', JSON.stringify(WATCHLIST)); } catch(e) {}
+  // Update all instances
+  document.querySelectorAll('[id^="tc-'+sym+'"]').forEach(card => {
+    card.classList.toggle('watchlisted', WATCHLIST.includes(sym));
+    const btn = card.querySelector('.tc-watch-btn');
+    if (btn) {
+      btn.textContent = WATCHLIST.includes(sym) ? '★' : '☆';
+      btn.classList.toggle('active', WATCHLIST.includes(sym));
+    }
+  });
+  updateWatchlistSection();
+}
+
+function updateWatchlistSection() {
+  const sec = document.getElementById('watchlistSection');
+  const grid = document.getElementById('watchlistGrid');
+  if (!sec || !grid) return;
+  if (!WATCHLIST.length) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+  grid.innerHTML = WATCHLIST.map(sym => {
+    const orig = document.getElementById('tc-'+sym);
+    if (!orig) return '<div style="font-family:var(--cond);font-size:11px;color:var(--muted);padding:8px;">'+esc(sym)+'</div>';
+    const clone = orig.cloneNode(true);
+    clone.id = 'wl-'+sym;
+    return clone.outerHTML;
+  }).join('') || '<div class="watchlist-empty">No items yet</div>';
+}
+
+function updateMarketsSummaryBar(quotes) {
+  const symbolMap = {
+    'GSPC':'sp500','DJI':'dow','IXIC':'nasdaq','IXIC':'nasdaq',
+    'GC=F':'gold','CL=F':'oil','BTC-USD':'btc','BTC':'btc'
+  };
+  quotes.forEach(q => {
+    const sym = (q.symbol||'').replace('^','').toUpperCase();
+    const key = Object.keys(symbolMap).find(k => sym.includes(k.replace('^','')));
+    if (!key) return;
+    const id = symbolMap[key];
+    const valEl = document.getElementById('ms-'+id);
+    const chgEl = document.getElementById('ms-'+id+'c');
+    if (!valEl || !chgEl) return;
+    const up = (q.change||0) >= 0;
+    const pr = q.price != null ? q.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+    const pct = q.changePercent != null ? (up?'+':'')+q.changePercent.toFixed(2)+'%' : '—';
+    valEl.textContent = pr;
+    chgEl.textContent = pct;
+    chgEl.className = 'mkt-summary-chg '+(up?'up':'dn');
+  });
+}
+
 
 async function loadMarkets(force) {
   if (force) { MARKET_GROUPS.forEach(g => { delete CACHE['mkt_'+g.id]; }); delete CACHE['mkt_commentary']; marketsLoaded = false; }
   marketsLoaded = true;
   MARKET_GROUPS.forEach(g => loadMarketGroup(g));
   loadMarketCommentary();
+  setTimeout(updateWatchlistSection, 2000);
 }
 
 async function loadMarketGroup(g) {
@@ -1740,18 +2061,15 @@ async function loadMarketGroup(g) {
       { method: 'GET' }, 'mkt_'+g.id, CACHE_TTL.markets);
     const quotes = data.quotes || [];
     const isAI = data.source === 'ai_estimate';
+    updateMarketsSummaryBar(g.id, quotes);
+    updateMarketsSummaryBar(quotes);
     el.innerHTML = quotes.map(q => {
       const name = g.names[q.symbol] || q.name || q.symbol;
       const up = q.change >= 0;
       const pct = q.changePercent != null ? (up?'+':'')+q.changePercent.toFixed(2)+'%' : '';
       const chg = q.change != null ? (up?'+':'')+q.change.toFixed(2) : '';
       const pr = q.price != null ? q.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : 'N/A';
-      return '<div class="ticker-card"><div class="tc-symbol">'+esc(q.symbol.split('.')[0].replace('^',''))+'</div>'
-        +'<div class="tc-name">'+esc(name)+'</div>'
-        +'<div class="tc-price '+(up?'tc-up':'tc-down')+'">'+pr+'</div>'
-        +'<div class="tc-change '+(up?'tc-up':'tc-down')+'">'+pct+(chg?' ('+chg+')':'')+'</div>'
-        +(isAI ? '<div class="tc-source"><span class="ai-estimate-badge">Est.</span></div>' : '<div class="tc-source">Live</div>')
-        +'</div>';
+      return buildTickerCard(q, name, up, pr, pct, chg, isAI, g.id);
     }).join('') || '<div style="color:var(--muted);font-size:12px;padding:10px;">No data available</div>';
   } catch (e) {
     el.innerHTML = '<div style="color:var(--red);font-size:12px;padding:10px;">⚠ Load failed</div>';
@@ -2023,30 +2341,99 @@ function refreshPress() {
   loadPress(r);
 }
 
-async function sendAsk() {
-  const input = document.getElementById('askInput');
-  const q = input.value.trim();
-  if (!q) return;
-  input.value = '';
-  const messages = document.getElementById('askMessages');
-  messages.innerHTML += '<div class="ask-msg user"><div class="ask-bubble user">'+esc(q)+'</div></div>';
-  messages.innerHTML += '<div class="ask-msg assistant" id="askTyping"><div class="ask-bubble assistant"><div class="loading-state" style="padding:0;"><div class="loading-spinner"></div>Thinking…</div></div></div>';
-  messages.scrollTop = messages.scrollHeight;
-  askHistory.push({ role: 'user', content: q });
-  try {
-    const data = await apiFetch('/api/ask', { body: JSON.stringify({ question: q, history: askHistory.slice(-6) }) });
-    const typing = document.getElementById('askTyping');
-    if (typing) typing.remove();
-    const answer = data.answer || 'No response.';
-    askHistory.push({ role: 'assistant', content: answer });
-    messages.innerHTML += '<div class="ask-msg assistant"><div class="ask-bubble assistant">'+esc(answer).replace(/\n/g,'<br/>')+'</div><div class="ask-meta">Briefly Intelligence</div></div>';
-    messages.scrollTop = messages.scrollHeight;
-  } catch (e) {
-    const typing = document.getElementById('askTyping');
-    if (typing) typing.innerHTML = '<div class="ask-bubble assistant"><div class="error-state" style="padding:8px 12px;">⚠ '+esc(e.message)+'</div></div>';
-  }
+// ── CHAT FUNCTIONS ────────────────────────────────────────────
+const CHAT_SUGGESTIONS = [
+  'What caused the Gaza conflict?','Explain US-China trade tensions',
+  'What is happening in Sudan?','Ukraine war latest developments',
+  'Iran nuclear deal status','Who are the Houthis?',
+  'Taiwan strait tensions explained','What are BRICS nations?'
+];
+
+function chatSuggest(el) {
+  const q = el.textContent.trim();
+  const inp = document.getElementById('chatInput');
+  if (inp) { inp.value = q; }
+  sendChat();
 }
-document.getElementById('askInput').addEventListener('keydown', e => { if (e.key==='Enter') sendAsk(); });
+
+function clearChat() {
+  chatHistory = [];
+  const msgs = document.getElementById('chatMessages');
+  if (!msgs) return;
+  msgs.innerHTML = '<div class="chat-welcome" id="chatWelcomeNew"><div class="chat-welcome-icon">🌐</div><div class="chat-welcome-title">Intelligence Q&A</div><div class="chat-welcome-desc">Ask anything about global events, conflicts, geopolitics, or countries. I have access to live web search.</div><div class="chat-welcome-chips">' +
+    CHAT_SUGGESTIONS.slice(0,4).map(s=>'<span class="chat-welcome-chip" onclick="chatSuggest(this)">'+esc(s)+'</span>').join('') +
+  '</div></div>';
+}
+
+function chatTimestamp() {
+  return new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
+}
+
+function renderMarkdownChat(text) {
+  let t = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  t = t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  t = t.replace(/\*(.+?)\*/g,'<em>$1</em>');
+  t = t.replace(/`(.+?)`/g,'<code style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:12px;">$1</code>');
+  t = t.replace(/^### (.+)$/gm,'<div style="font-family:var(--cond);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(200,168,75,0.7);margin:10px 0 4px;">$1</div>');
+  t = t.replace(/^## (.+)$/gm,'<div style="font-family:var(--cond);font-size:13px;font-weight:800;letter-spacing:.06em;color:var(--gold);margin:12px 0 6px;">$1</div>');
+  t = t.replace(/^[•\-] (.+)$/gm,'<div style="padding-left:12px;margin:2px 0;">• $1</div>');
+  t = t.replace(/\n\n/g,'<br/><br/>').replace(/\n/g,'<br/>');
+  return t;
+}
+
+async function sendChat() {
+  const inp = document.getElementById('chatInput');
+  const btn = document.getElementById('chatSendBtn');
+  const q = inp ? inp.value.trim() : '';
+  if (!q || (btn && btn.disabled)) return;
+  if (inp) inp.value = '';
+  if (btn) btn.disabled = true;
+  document.getElementById('chatWelcome')?.remove();
+  const msgs = document.getElementById('chatMessages');
+  if (!msgs) { if (btn) btn.disabled = false; return; }
+  const ts = chatTimestamp();
+  msgs.innerHTML += '<div class="chat-msg user"><div class="chat-bubble user">'+esc(q)+'</div><div class="chat-meta">'+ts+'</div></div>';
+  const typingId = 'typing_'+Date.now();
+  msgs.innerHTML += '<div class="chat-msg assistant" id="'+typingId+'"><div class="chat-bubble assistant typing"><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>';
+  msgs.scrollTop = msgs.scrollHeight;
+  chatHistory.push({ role: 'user', content: q });
+  try {
+    const data = await apiFetch('/api/ask', { body: JSON.stringify({ question: q, history: chatHistory.slice(-8) }) });
+    document.getElementById(typingId)?.remove();
+    const answer = data.answer || 'No response.';
+    chatHistory.push({ role: 'assistant', content: answer });
+    const msgId = 'msg_'+Date.now();
+    msgs.innerHTML += '<div class="chat-msg assistant" id="'+msgId+'">'+
+      '<div class="chat-bubble assistant">'+renderMarkdownChat(answer)+'</div>'+
+      '<div class="chat-actions">'+
+        '<div class="chat-meta">Briefly Intelligence · '+chatTimestamp()+'</div>'+
+        '<button class="chat-copy-btn" onclick="copyChat(\''+msgId+'\')"  >COPY</button>'+
+      '</div>'+
+    '</div>';
+    msgs.scrollTop = msgs.scrollHeight;
+  } catch(e) {
+    document.getElementById(typingId)?.remove();
+    msgs.innerHTML += '<div class="chat-msg assistant"><div class="chat-bubble assistant"><span style="color:#e05c5c;">⚠ '+esc(e.message)+'</span></div></div>';
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+  if (btn) btn.disabled = false;
+  if (inp) inp.focus();
+}
+
+function copyChat(msgId) {
+  const el = document.getElementById(msgId);
+  const bubble = el ? el.querySelector('.chat-bubble.assistant') : null;
+  if (!bubble) return;
+  navigator.clipboard.writeText(bubble.innerText).then(() => {
+    const btn = el.querySelector('.chat-copy-btn');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(()=>btn.textContent='COPY',1500); }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const ci = document.getElementById('chatInput');
+  if (ci) ci.addEventListener('keydown', e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();} });
+});
 
 function dismissDisclaimer() {
   const el = document.getElementById('disclaimerBanner');
