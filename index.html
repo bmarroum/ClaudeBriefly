@@ -78,8 +78,14 @@ main{max-width:1140px;margin:0 auto;padding:0 16px;}
 @media(min-width:768px){main{padding:0 24px;}}
 .tab-content{display:none;padding-top:20px;}
 .tab-content.active{display:block;}
-nav.bottom-nav{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:#0f1623;border-radius:32px;padding:6px 10px;display:flex;align-items:center;gap:2px;z-index:100;box-shadow:0 8px 40px rgba(0,0,0,0.45);max-width:calc(100vw - 24px);overflow-x:auto;scrollbar-width:none;border:1px solid rgba(200,168,75,0.15);}
+nav.bottom-nav{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:#0f1623;border-radius:32px;padding:5px 8px;display:flex;align-items:center;gap:1px;z-index:100;box-shadow:0 8px 40px rgba(0,0,0,0.45);max-width:calc(100vw - 16px);overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;border:1px solid rgba(200,168,75,0.15);-webkit-overflow-scrolling:touch;}
 nav.bottom-nav::-webkit-scrollbar{display:none;}
+/* Fade indicators to show nav is scrollable */
+@media(max-width:600px){
+  .bottom-nav{padding:4px 6px;gap:0;}
+  .nav-btn{padding:6px 7px!important;font-size:8.5px!important;min-width:44px;}
+  .nav-btn .nav-icon{font-size:15px!important;}
+}
 .nav-btn{background:none;border:none;color:var(--nav-muted);cursor:pointer;padding:7px 10px;border-radius:24px;font-family:var(--cond);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .18s;white-space:nowrap;flex-shrink:0;}
 @media(min-width:480px){.nav-btn{padding:7px 12px;font-size:10px;}}
 .nav-btn .nav-icon{font-size:16px;line-height:1;}
@@ -170,7 +176,7 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
 .copy-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:40px;font-family:var(--cond);font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text);cursor:pointer;transition:all .2s;}
 .copy-btn:hover{border-color:var(--gold);color:var(--gold);}
 .copy-btn.copied{border-color:var(--green);color:var(--green);background:var(--green-bg);}
-#airspaceMap{height:300px;border-radius:12px;overflow:hidden;margin-bottom:18px;border:1.5px solid var(--border);box-shadow:var(--shadow);}
+#airspaceMap{height:300px;border-radius:12px;overflow:hidden;margin-bottom:18px;border:1.5px solid var(--border);box-shadow:var(--shadow);} @media(min-width:900px){#airspaceMap{height:460px;}}
 @media(min-width:600px){#airspaceMap{height:400px;}}
 .airspace-search-row{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
 .airspace-input{flex:1;min-width:160px;padding:9px 18px;background:var(--bg2);border:1.5px solid var(--border);border-radius:40px;font-family:var(--sans);font-size:14px;color:var(--text);outline:none;transition:border-color .2s;}
@@ -314,7 +320,7 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
 .brief-hero-label{font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;}
 .brief-hero-title{font-family:var(--serif);font-size:28px;font-weight:700;color:#fff;margin-bottom:16px;line-height:1.15;}
 @media(min-width:600px){.brief-hero-title{font-size:36px;}}
-.brief-input-row{display:flex;gap:8px;flex-wrap:wrap;}
+.brief-input-row{display:flex;gap:8px;flex-wrap:wrap;} @media(max-width:600px){.brief-input-row input,.brief-input-row .brief-input{width:100%;} .brief-gen-btn{width:100%;justify-content:center;}}
 .brief-input-wrap{flex:1;min-width:200px;position:relative;}
 .brief-main-input{width:100%;padding:12px 20px;background:rgba(255,255,255,0.08);border:1.5px solid rgba(200,168,75,0.35);border-radius:40px;font-family:var(--sans);font-size:15px;color:#fff;outline:none;transition:border-color .2s,background .2s;}
 .brief-main-input::placeholder{color:rgba(255,255,255,0.35);}
@@ -417,6 +423,62 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
 .news-search-meta{font-family:var(--cond);font-size:10px;color:rgba(232,213,163,0.4);letter-spacing:.06em;margin-bottom:10px;}
 .news-clear-search{padding:3px 10px;border-radius:12px;border:1px solid rgba(255,100,100,0.3);background:transparent;color:rgba(255,130,130,0.7);font-family:var(--cond);font-size:10px;cursor:pointer;margin-left:8px;}
 .news-clear-search:hover{background:rgba(255,100,100,0.1);}
+
+/* ── SKELETON LOADERS ─────────────────────────────────────────── */
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.skeleton{background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.09) 37%,rgba(255,255,255,0.04) 63%);background-size:800px 100%;animation:shimmer 1.4s ease infinite;border-radius:6px;}
+.skeleton-line{height:13px;margin-bottom:8px;border-radius:4px;}
+.skeleton-line.wide{width:85%;}
+.skeleton-line.medium{width:60%;}
+.skeleton-line.narrow{width:35%;}
+.skeleton-title{height:22px;width:70%;margin-bottom:14px;border-radius:4px;}
+.skeleton-thumb{width:90px;height:68px;border-radius:6px;flex-shrink:0;}
+.skeleton-card{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.06);}
+.skeleton-body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:6px;}
+
+/* ── EMPTY STATE ───────────────────────────────────────────────── */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;color:var(--muted);}
+.empty-state-icon{font-size:40px;margin-bottom:16px;opacity:.5;}
+.empty-state-title{font-family:var(--cond);font-size:16px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;color:var(--text);opacity:.5;}
+.empty-state-desc{font-size:13px;opacity:.6;max-width:280px;line-height:1.6;}
+
+/* ── MOBILE BANNER COMPACT ─────────────────────────────────────── */
+@media(max-width:600px){
+  .ai-banner{font-size:10px;padding:6px 12px;}
+  .ai-banner .banner-close{padding:4px;}
+}
+
+/* ── NEWS SEARCH MOBILE FIX ─────────────────────────────────────── */
+@media(max-width:600px){
+  .news-search-bar{flex-wrap:wrap;}
+  .news-search-bar input{flex:1 1 200px;}
+  .news-filters{gap:5px;}
+  .news-filter-btn{padding:3px 9px;font-size:10px;}
+}
+
+/* ── LOADING STATE IMPROVEMENT ───────────────────────────────────── */
+.loading-state{display:flex;flex-direction:column;gap:0;padding:8px 0;}
+.loading-spinner-wrap{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;padding:12px 0 20px;}
+
+/* ── CARD HOVER POLISH ────────────────────────────────────────────── */
+.brief-item{transition:background .15s;border-radius:8px;padding:12px 4px;margin:-4px;}
+.brief-item:hover{background:rgba(200,168,75,0.04);}
+
+/* ── PAGE TRANSITIONS ─────────────────────────────────────────────── */
+.tab-content.active{animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── SCROLL TO TOP BUTTON ─────────────────────────────────────────── */
+#scrollTopBtn{position:fixed;bottom:80px;right:16px;width:38px;height:38px;border-radius:50%;background:rgba(15,22,35,0.9);border:1px solid rgba(200,168,75,0.3);color:var(--gold);font-size:16px;cursor:pointer;z-index:90;display:none;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);transition:all .2s;backdrop-filter:blur(8px);}
+#scrollTopBtn:hover{background:rgba(200,168,75,0.15);}
+#scrollTopBtn.visible{display:flex;}
+
+/* ── TOOLTIP ──────────────────────────────────────────────────────── */
+[data-tip]{position:relative;}
+[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#0f1623;color:rgba(232,213,163,0.9);font-size:11px;font-family:var(--cond);letter-spacing:.04em;padding:4px 10px;border-radius:6px;white-space:nowrap;border:1px solid rgba(200,168,75,0.2);pointer-events:none;z-index:200;}
+
+/* ── BETTER FOCUS STYLES ──────────────────────────────────────────── */
+input:focus,button:focus-visible{outline:2px solid rgba(200,168,75,0.4);outline-offset:2px;}
 </style>
 </head>
 <body>
@@ -621,7 +683,11 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
     <span class="chip" onclick="toggleAirspaceChip(this,'Yemen')">🇾🇪 Yemen</span>
     <span class="chip" onclick="toggleAirspaceChip(this,'Jordan')">🇯🇴 Jordan</span>
   </div>
-  <div id="airspaceContent"></div>
+  <div id="airspaceContent"><div class="empty-state" style="margin-top:30px;">
+    <div class="empty-state-icon">✈️</div>
+    <div class="empty-state-title">No countries selected</div>
+    <div class="empty-state-desc">Search for a country below and click + ADD to view airspace status and NOTAMs</div>
+  </div></div>
 </div>
 <!-- ADVISORIES TAB -->
 <div id="tab-advisories" class="tab-content">
@@ -693,7 +759,11 @@ nav.bottom-nav::-webkit-scrollbar{display:none;}
     <span class="chip" onclick="toggleAdvisoryChip(this,'Yemen')">🇾🇪 Yemen</span>
     <span class="chip" onclick="toggleAdvisoryChip(this,'Turkey')">🇹🇷 Turkey</span>
   </div>
-  <div class="adv-grid" id="advisoryContent"></div>
+  <div class="adv-grid" id="advisoryContent"><div class="empty-state" style="margin-top:30px;">
+    <div class="empty-state-icon">🛡️</div>
+    <div class="empty-state-title">No countries selected</div>
+    <div class="empty-state-desc">Search for a country above and click + ADD to see travel advisories</div>
+  </div></div>
 </div>
 <!-- MARKETS TAB -->
 <div id="tab-markets" class="tab-content">
@@ -1038,6 +1108,14 @@ function doNewsSearch() {
   loadNews(null, q);
 }
 
+function askSuggestion(el) {
+  const q = el.textContent;
+  const input = document.getElementById('askInput');
+  if (input) { input.value = q; input.focus(); }
+  document.getElementById('askSuggestions')?.remove();
+  askQuestion();
+}
+
 function clearNewsSearch() {
   const input = document.getElementById('newsSearchInput');
   if (input) input.value = '';
@@ -1135,6 +1213,12 @@ function quickBrief(topic) {
   document.getElementById('briefSearchInput').value = topic;
   generateBrief();
 }
+
+// Scroll to top button
+window.addEventListener('scroll', () => {
+  const btn = document.getElementById('scrollTopBtn');
+  if (btn) btn.classList.toggle('visible', window.scrollY > 400);
+}, { passive: true });
 
 // Dual-engine mode: Gemini searches live, Claude synthesises — no toggle needed
 
