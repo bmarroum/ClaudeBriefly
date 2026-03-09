@@ -656,15 +656,21 @@ async function exportBriefPDF() {
       y += lines.length * fontSize * 0.38 + 2;
     }
 
-    function addSectionHeader(icon, title) {
+    function addSectionHeader(tag, title) {
       checkPage(14);
-      doc.setFillColor(245, 242, 236);
-      doc.rect(margin, y - 1, contentW, 9, 'F');
-      doc.setDrawColor(200, 168, 75);
-      doc.line(margin, y - 1, margin, y + 8);
-      doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(160, 120, 40);
-      doc.text((icon + '  ' + title).toUpperCase(), margin + 3, y + 5.5);
-      y += 13;
+      // Gold tag box on left
+      const tagW = doc.getStringUnitWidth(tag) * 8 / doc.internal.scaleFactor + 6;
+      doc.setFillColor(200, 168, 75);
+      doc.roundedRect(margin, y, tagW, 7, 1, 1, 'F');
+      doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
+      doc.text(tag, margin + 3, y + 5);
+      // Title text after tag
+      doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(20, 20, 40);
+      doc.text(title.toUpperCase(), margin + tagW + 4, y + 5);
+      // Underline
+      doc.setDrawColor(230, 225, 215);
+      doc.line(margin, y + 9, margin + contentW, y + 9);
+      y += 14;
     }
 
     function addBullet(text, indent) {
@@ -733,49 +739,49 @@ async function exportBriefPDF() {
 
     // ── EXECUTIVE SUMMARY ─────────────────────────────────────────────────────
     if (a.executive) {
-      addSectionHeader('📌', 'Executive Summary');
+      addSectionHeader('[EXEC]', 'Executive Summary');
       addWrappedText(a.executive, margin, contentW, 9.5, 'normal', [20, 20, 40]);
       y += 5;
     }
 
     // ── CURRENT SITUATION ─────────────────────────────────────────────────────
     if (a.situation) {
-      addSectionHeader('📡', 'Current Situation');
+      addSectionHeader('[SITREP]', 'Current Situation');
       addWrappedText(a.situation, margin, contentW, 9.5, 'normal', [20, 20, 40]);
       y += 5;
     }
 
     // ── GEOPOLITICAL ANALYSIS ─────────────────────────────────────────────────
     if (a.geopolitical) {
-      addSectionHeader('🌐', 'Geopolitical Analysis');
+      addSectionHeader('[GEO]', 'Geopolitical Analysis');
       addWrappedText(a.geopolitical, margin, contentW, 9.5, 'normal', [20, 20, 40]);
       y += 5;
     }
 
     // ── HUMANITARIAN ──────────────────────────────────────────────────────────
     if (a.humanitarian) {
-      addSectionHeader('🏥', 'Humanitarian');
+      addSectionHeader('[HUM]', 'Humanitarian');
       addWrappedText(a.humanitarian, margin, contentW, 9.5, 'normal', [20, 20, 40]);
       y += 5;
     }
 
     // ── ECONOMIC IMPACT ───────────────────────────────────────────────────────
     if (a.economic) {
-      addSectionHeader('📊', 'Economic Impact');
+      addSectionHeader('[ECON]', 'Economic Impact');
       addWrappedText(a.economic, margin, contentW, 9.5, 'normal', [20, 20, 40]);
       y += 5;
     }
 
     // ── STRATEGIC OUTLOOK ─────────────────────────────────────────────────────
     if (a.strategic) {
-      addSectionHeader('🎯', 'Strategic Outlook');
+      addSectionHeader('[STRAT]', 'Strategic Outlook');
       addWrappedText(a.strategic, margin, contentW, 9.5, 'normal', [20, 20, 40]);
       y += 5;
     }
 
     // ── KEY ACTORS ────────────────────────────────────────────────────────────
     if (a.key_actors?.length) {
-      addSectionHeader('👤', 'Key Actors');
+      addSectionHeader('[ACTORS]', 'Key Actors');
       a.key_actors.slice(0, 8).forEach(actor => {
         checkPage(14);
         doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(20, 20, 40);
@@ -799,7 +805,7 @@ async function exportBriefPDF() {
 
     // ── TIMELINE ──────────────────────────────────────────────────────────────
     if (a.timeline?.length) {
-      addSectionHeader('🕐', 'Timeline');
+      addSectionHeader('[TL]', 'Timeline');
       a.timeline.slice(0, 10).forEach(ev => {
         checkPage(10);
         doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(160, 120, 40);
@@ -814,21 +820,21 @@ async function exportBriefPDF() {
 
     // ── KEY RISKS ─────────────────────────────────────────────────────────────
     if (a.key_risks?.length) {
-      addSectionHeader('⚠', 'Key Risks');
+      addSectionHeader('[RISKS]', 'Key Risks');
       a.key_risks.forEach(r => addBullet(r));
       y += 4;
     }
 
     // ── WATCH POINTS ──────────────────────────────────────────────────────────
     if (a.watch_points?.length) {
-      addSectionHeader('👁', 'Watch Points');
+      addSectionHeader('[WATCH]', 'Watch Points');
       a.watch_points.forEach(w => addBullet(w));
       y += 4;
     }
 
     // ── LIVE HEADLINES ────────────────────────────────────────────────────────
     if (headlines.length) {
-      addSectionHeader('📰', 'Live Headlines');
+      addSectionHeader('[NEWS]', 'Live Headlines');
       headlines.slice(0, 6).forEach(hl => {
         checkPage(10);
         doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(20, 20, 40);

@@ -29,10 +29,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .disc-close:hover{color:var(--gold-light);}
 .ticker-bar{background:#0f1623;color:rgba(232,213,163,0.85);padding:7px 0;overflow:hidden;border-bottom:1px solid rgba(200,168,75,0.15);}
 .ticker-inner{display:flex;align-items:center;}
-.ticker-tag{background:var(--gold);color:#0f1623;font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.15em;padding:4px 14px;text-transform:uppercase;white-space:nowrap;flex-shrink:0;position:relative;margin-right:16px;}
+.ticker-tag{background:#d32f2f;color:#ffffff;font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.15em;padding:4px 14px;text-transform:uppercase;white-space:nowrap;flex-shrink:0;position:relative;margin-right:16px;}
 .ticker-tag::after{content:'';position:absolute;right:-7px;top:0;bottom:0;width:8px;background:var(--gold);clip-path:polygon(0 0,100% 50%,0 100%);}
 .ticker-wrap{overflow:hidden;flex:1;}
-.ticker-track{display:flex;gap:56px;white-space:nowrap;animation:ticker 60s linear infinite;font-family:var(--sans);font-size:12px;}
+.ticker-track{display:flex;gap:56px;white-space:nowrap;animation:ticker 35s linear infinite;font-family:var(--sans);font-size:12px;}
 .ticker-track:hover{animation-play-state:paused;}
 .ticker-track a{color:rgba(232,213,163,0.8);text-decoration:none;}
 .ticker-track a:hover{color:var(--gold-light);}
