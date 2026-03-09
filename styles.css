@@ -18,6 +18,8 @@
   --gold-bg:rgba(212,168,71,0.12);
   --shadow:0 1px 6px rgba(0,0,0,0.4);--shadow-md:0 4px 28px rgba(0,0,0,0.6);
 }
+html{transition:background-color 0.25s ease,color 0.25s ease;}
+
 body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;padding-bottom:calc(var(--nav-h) + 20px);transition:background .25s,color .25s;}
 .disc{background:#0f1623;color:rgba(232,213,163,0.7);font-size:11px;text-align:center;padding:7px 40px;border-bottom:1px solid rgba(200,168,75,0.2);display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;position:relative;}
 .disc strong{color:var(--gold);}
@@ -605,3 +607,97 @@ input:focus,button:focus-visible{outline:2px solid rgba(200,168,75,0.4);outline-
 .tv-int-btn { background:var(--border); border:none; border-radius:6px; padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer; color:var(--text-muted); transition:all .2s; }
 .tv-int-btn.active { background:var(--accent,#4caf84); color:#fff; }
 .tv-int-btn:hover:not(.active) { background:var(--border-hover,#444); }
+
+/* ── DARK MODE COMPONENT FIXES ─────────────────────────────── */
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background: var(--card) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .ticker-card {
+  background: var(--card) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .brief-section,
+[data-theme="dark"] .brief-card {
+  background: var(--card) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .news-card,
+[data-theme="dark"] .press-card {
+  background: var(--card) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .watchlist-card {
+  background: var(--card) !important;
+}
+[data-theme="dark"] .chat-bubble.assistant {
+  background: var(--card) !important;
+  color: var(--text) !important;
+}
+[data-theme="dark"] .chat-bubble.user {
+  background: var(--gold-bg) !important;
+  color: var(--text) !important;
+}
+[data-theme="dark"] .search-bar input,
+[data-theme="dark"] #chatInput,
+[data-theme="dark"] #briefSearchInput,
+[data-theme="dark"] #airspaceSearch,
+[data-theme="dark"] #advisorySearch {
+  background: var(--bg2) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .tab-content {
+  background: var(--bg) !important;
+}
+[data-theme="dark"] .modal-overlay {
+  background: rgba(0,0,0,0.85) !important;
+}
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] .tv-modal-inner {
+  background: var(--card) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .error-state {
+  background: rgba(192,57,43,0.15) !important;
+  color: #ff9090 !important;
+}
+[data-theme="dark"] .advisory-card {
+  background: var(--card) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .notam-item {
+  background: var(--bg2) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .market-section-label {
+  color: var(--gold) !important;
+}
+[data-theme="dark"] .breaking-ticker {
+  background: #0a0e17 !important;
+}
+[data-theme="dark"] .btn-outline {
+  background: transparent !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+[data-theme="dark"] .btn-outline:hover {
+  background: var(--card) !important;
+}
+[data-theme="dark"] *::-webkit-scrollbar-track {
+  background: var(--bg2);
+}
+[data-theme="dark"] *::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+/* Transition all color-related properties for smooth theme switch */
+*, *::before, *::after {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease, box-shadow 0.25s ease;
+}
+/* But don't transition transforms/animations */
+.loading-spinner, .breaking-ticker-inner, .live-dot {
+  transition: none !important;
+}

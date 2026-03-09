@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
+<script>
+// Apply theme before first paint to prevent flash
+(function(){
+  try {
+    const saved = localStorage.getItem('briefly_darkMode');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (saved !== null ? JSON.parse(saved) : prefersDark)
+      document.documentElement.setAttribute('data-theme','dark');
+  } catch(e) {}
+})();
+</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Briefly | Intelligence</title>

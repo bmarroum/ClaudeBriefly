@@ -416,6 +416,7 @@ async function generateBrief() {
     h += '<div class="brief-actions-row">';
     h += '<button class="copy-btn" id="copyBriefBtn" onclick="copyBrief()">📋 Copy Brief</button>';
     h += '<button class="btn-outline" onclick="window.print()">🖨 Print</button>';
+    h += '<button class="btn-outline" id="exportPDFBtn" onclick="exportBriefPDF()">📥 Export PDF</button>';
     if (showAiBadge) h += '<span class="ai-badge" style="padding:7px 14px;">🤖 AI Analysis</span>';
     h += '</div>';
 
@@ -594,6 +595,155 @@ function copyBrief() {
     if (btn) { btn.textContent = '✓ Copied!'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = '📋 Copy Brief'; btn.classList.remove('copied'); }, 2500); }
   });
 }
+async function exportBriefPDF() {
+  const btn = document.getElementById('exportPDFBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generating PDF…'; }
+  try {
+    // Load jsPDF dynamically
+    if (!window.jspdf) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const W = 210, margin = 18, contentW = W - margin * 2;
+    let y = 20;
+
+    // Helper: add text with word wrap, returns new y
+    function addText(text, x, startY, maxW, fontSize, fontStyle, color) {
+      doc.setFontSize(fontSize);
+      doc.setFont('helvetica', fontStyle || 'normal');
+      if (color) doc.setTextColor(...color); else doc.setTextColor(15, 22, 35);
+      const lines = doc.splitTextToSize(String(text || ''), maxW);
+      doc.text(lines, x, startY);
+      return startY + lines.length * (fontSize * 0.4);
+    }
+
+    function checkPage(neededY) {
+      if (neededY > 270) { doc.addPage(); return 22; }
+      return neededY;
+    }
+
+    const topic = currentBriefTopic || 'Intelligence Brief';
+    const ts = new Date().toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' });
+
+    // ── HEADER ────────────────────────────────────────────────────────────────
+    doc.setFillColor(15, 22, 35);
+    doc.rect(0, 0, W, 36, 'F');
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(200, 168, 75);
+    doc.text('BRIEFLY INTELLIGENCE', margin, 12);
+    doc.setFontSize(18); doc.setFont('helvetica','bold'); doc.setTextColor(232, 224, 208);
+    doc.text(topic.toUpperCase(), margin, 24);
+    doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(136,136,136);
+    doc.text('INTELLIGENCE BRIEF  ·  ' + ts + '  ·  AI-GENERATED — VERIFY WITH OFFICIAL SOURCES', margin, 32);
+    y = 46;
+
+    // Grab brief data from DOM
+    const el = document.getElementById('briefContent');
+    if (!el) throw new Error('No brief loaded');
+
+    // ── THREAT LEVEL BAR ──────────────────────────────────────────────────────
+    const threatEl = el.querySelector('[class*="threat"], .threat-badge, h2');
+    const threatText = threatEl?.textContent?.trim() || '';
+    const threat = threatText.includes('CRITICAL') ? 'CRITICAL' :
+                   threatText.includes('HIGH') ? 'HIGH' :
+                   threatText.includes('ELEVATED') ? 'ELEVATED' :
+                   threatText.includes('MODERATE') ? 'MODERATE' : 'LOW';
+    const threatColors = { CRITICAL:[192,57,43], HIGH:[231,76,60], ELEVATED:[230,126,34], MODERATE:[41,128,185], LOW:[39,174,96] };
+    const tc = threatColors[threat] || [100,100,100];
+    doc.setFillColor(...tc);
+    doc.roundedRect(margin, y, contentW, 10, 3, 3, 'F');
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+    doc.text('THREAT LEVEL: ' + threat, margin + 4, y + 6.5);
+    y += 16;
+
+    // ── SECTIONS from DOM ─────────────────────────────────────────────────────
+    const sections = el.querySelectorAll('.brief-section, .brief-card, [class*="brief-"]');
+    const sectionData = [];
+
+    // Also grab structured text directly
+    const allHeadings = el.querySelectorAll('h2, h3, h4');
+    const allParas = el.querySelectorAll('p');
+
+    // Build sections from headings + following paragraphs
+    allHeadings.forEach(h => {
+      const title = h.textContent.trim().replace(/[^\w\s]/g,'').trim();
+      if (!title || title.length < 3) return;
+      let content = '';
+      let next = h.nextElementSibling;
+      while (next && !['H2','H3','H4'].includes(next.tagName)) {
+        if (next.tagName === 'P' || next.tagName === 'DIV') {
+          const t = next.textContent.trim();
+          if (t.length > 10) content += t + ' ';
+        }
+        next = next.nextElementSibling;
+      }
+      if (content.trim().length > 20) sectionData.push({ title, content: content.trim() });
+    });
+
+    // Fallback: grab all paragraphs if no sections found
+    if (sectionData.length === 0) {
+      allParas.forEach(p => {
+        const t = p.textContent.trim();
+        if (t.length > 30) sectionData.push({ title: '', content: t });
+      });
+    }
+
+    // Render sections
+    sectionData.slice(0, 12).forEach(sec => {
+      y = checkPage(y);
+      if (sec.title) {
+        // Section header
+        doc.setFillColor(245, 242, 236);
+        doc.rect(margin, y - 1, contentW, 8, 'F');
+        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(200,168,75);
+        doc.text(sec.title.toUpperCase(), margin + 2, y + 5);
+        y += 11;
+      }
+      y = checkPage(y);
+      y = addText(sec.content, margin, y, contentW, 9, 'normal', [30,30,50]) + 5;
+    });
+
+    // ── TIMELINE ──────────────────────────────────────────────────────────────
+    const timelineItems = el.querySelectorAll('.timeline-item, [class*="timeline"] li, [class*="timeline"] div');
+    if (timelineItems.length > 0) {
+      y = checkPage(y + 4);
+      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(200,168,75);
+      doc.text('TIMELINE', margin, y); y += 6;
+      timelineItems.forEach(item => {
+        y = checkPage(y);
+        const t = item.textContent.trim().slice(0, 200);
+        if (t.length > 5) y = addText('• ' + t, margin + 2, y, contentW - 4, 8, 'normal', [50,50,80]) + 3;
+      });
+    }
+
+    // ── FOOTER ────────────────────────────────────────────────────────────────
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFillColor(240, 237, 230);
+      doc.rect(0, 285, W, 12, 'F');
+      doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(136,136,136);
+      doc.text('BRIEFLY INTELLIGENCE  ·  AI-GENERATED CONTENT — VERIFY WITH OFFICIAL SOURCES', margin, 291);
+      doc.text('Page ' + i + ' of ' + pageCount, W - margin, 291, { align: 'right' });
+    }
+
+    // ── SAVE ──────────────────────────────────────────────────────────────────
+    const filename = 'Briefly_' + topic.replace(/[^a-z0-9]/gi,'_').slice(0,30) + '_' + new Date().toISOString().slice(0,10) + '.pdf';
+    doc.save(filename);
+
+  } catch(e) {
+    console.error('PDF export error:', e);
+    alert('PDF export failed: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📥 Export PDF'; }
+  }
+}
+
 document.getElementById('briefSearchInput').addEventListener('keydown', e => { if (e.key==='Enter') generateBrief(); });
 
 function archiveSave(topic, analysis) {
@@ -1601,7 +1751,14 @@ function initSettingsUI() {
 }
 
 (function init() {
-  if (LS.get('darkMode', false)) document.documentElement.setAttribute('data-theme', 'dark');
+  // Respect OS dark mode preference on first visit, else use saved preference
+  const savedTheme = LS.get('darkMode', null);
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const useDark = savedTheme !== null ? savedTheme : prefersDark;
+  if (useDark) document.documentElement.setAttribute('data-theme', 'dark');
+  // Sync the toggle in settings
+  const dmToggle = document.getElementById('darkModeToggle');
+  if (dmToggle) dmToggle.checked = useDark;
   if (LS.get('discDismissed', false)) { const el = document.getElementById('disclaimerBanner'); if (el) el.style.display = 'none'; }
   showCitations = LS.get('citations', true);
   showAiBadge = LS.get('aiBadge', true);
