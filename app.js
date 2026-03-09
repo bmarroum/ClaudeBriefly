@@ -99,6 +99,7 @@ function switchTab(tab) {
   else if (tab === 'archive') renderArchive();
   else if (tab === 'airspace' && !leafletMap) initMap();
   else if (tab === 'settings') initSettingsUI();
+  else if (tab === 'dashboard') renderDashboardTab();
   else if (tab === 'press' && !document.getElementById('pressContent').innerHTML.trim()) loadPress(currentPressRegion);
 }
 
@@ -436,6 +437,7 @@ async function generateBrief() {
     h += '<div class="brief-actions-row">';
     h += '<button class="copy-btn" id="copyBriefBtn" onclick="copyBrief()">📋 Copy Brief</button>';
     h += '<button class="btn-outline" id="exportPDFBtn" onclick="exportBriefPDF()">📥 Export PDF</button>';
+    h += '<button class="dash-save-btn" id="saveToDashBtn" onclick="saveBriefToCloud()">☁ Save to Dashboard</button>';
     if (showAiBadge) h += '<span class="ai-badge" style="padding:7px 14px;">🤖 AI Analysis</span>';
     h += '</div>';
 
@@ -1781,6 +1783,332 @@ function initSettingsUI() {
   }
   switchTab(lastTab);
   loadBreakingTicker();
+  initAuth();
   setupRefreshTimer();
 })();
 
+
+// ── SUPABASE AUTH & DASHBOARD (4.8 + 4.9) ────────────────────────────────────
+
+const SUPABASE_URL = 'https://xtbtyuwvzhauwhkclxdk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_QhuzKINcwDv75Rhh1frSpA_apfghUZr';
+
+let _supabase = null;
+let currentUser = null;
+
+function getSupabase() {
+  if (_supabase) return _supabase;
+  if (!window.supabase) { console.warn('Supabase SDK not loaded'); return null; }
+  _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  return _supabase;
+}
+
+// ── AUTH STATE ────────────────────────────────────────────────────────────────
+async function initAuth() {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { data: { session } } = await sb.auth.getSession();
+  currentUser = session?.user || null;
+  updateAuthHeader();
+  sb.auth.onAuthStateChange((_event, session) => {
+    currentUser = session?.user || null;
+    updateAuthHeader();
+    if (document.getElementById('tab-dashboard')?.classList.contains('active')) {
+      renderDashboardTab();
+    }
+  });
+}
+
+function updateAuthHeader() {
+  // Show user indicator in header if logged in
+  const indicator = document.getElementById('authHeaderIndicator');
+  if (indicator) {
+    if (currentUser) {
+      const initial = (currentUser.email || 'U')[0].toUpperCase();
+      indicator.innerHTML = `<div onclick="switchTab('dashboard')" style="width:30px;height:30px;border-radius:50%;background:var(--gold);color:#0f1623;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;" title="${currentUser.email}">${initial}</div>`;
+    } else {
+      indicator.innerHTML = `<button onclick="switchTab('dashboard')" style="padding:6px 14px;background:transparent;border:1px solid var(--border);border-radius:20px;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--sans);">Sign In</button>`;
+    }
+  }
+}
+
+// ── DASHBOARD TAB RENDERER ────────────────────────────────────────────────────
+function renderDashboardTab() {
+  const authEl = document.getElementById('authContainer');
+  const dashEl = document.getElementById('dashboardContainer');
+  if (!authEl || !dashEl) return;
+
+  if (!currentUser) {
+    authEl.style.display = '';
+    dashEl.style.display = 'none';
+    renderAuthForms();
+  } else {
+    authEl.style.display = 'none';
+    dashEl.style.display = '';
+    renderDashboard();
+  }
+}
+
+// ── AUTH FORMS ────────────────────────────────────────────────────────────────
+function renderAuthForms(mode = 'login') {
+  const el = document.getElementById('authContainer');
+  if (!el) return;
+
+  const isLogin = mode === 'login';
+  el.innerHTML = `
+    <div class="auth-card">
+      <div class="auth-title">${isLogin ? 'Welcome back' : 'Create account'}</div>
+      <div class="auth-subtitle">${isLogin ? 'Sign in to access your saved briefs and dashboard' : 'Save briefs, sync your watchlist, access from any device'}</div>
+
+      <div id="authError" class="auth-error"></div>
+      <div id="authSuccess" class="auth-success"></div>
+
+      <button class="auth-google-btn" onclick="signInWithGoogle()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 32.6 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.4 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 20-8 20-20 0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.1 18.9 12 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.4 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5l-6.2-5.2C29.4 35.6 26.8 36 24 36c-5.3 0-9.6-3.4-11.3-8l-6.6 4.9C9.8 39.7 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.8 2.3-2.4 4.3-4.5 5.7l6.2 5.2C40.9 35.6 44 30.2 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
+        Continue with Google
+      </button>
+
+      <div class="auth-divider">or</div>
+
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="authEmail" placeholder="you@example.com" onkeydown="if(event.key==='Enter') ${isLogin ? 'signIn()' : 'signUp()'}">
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input type="password" id="authPassword" placeholder="${isLogin ? 'Your password' : 'At least 6 characters'}" onkeydown="if(event.key==='Enter') ${isLogin ? 'signIn()' : 'signUp()'}">
+      </div>
+
+      <button class="auth-btn" id="authSubmitBtn" onclick="${isLogin ? 'signIn()' : 'signUp()'}">${isLogin ? 'Sign In' : 'Create Account'}</button>
+
+      ${isLogin ? `<div class="auth-switch">Forgot password? <a onclick="showResetForm()">Reset it</a></div>` : ''}
+      <div class="auth-switch">${isLogin ? "Don't have an account?" : 'Already have an account?'} <a onclick="renderAuthForms('${isLogin ? 'signup' : 'login'}')">${isLogin ? 'Sign up' : 'Sign in'}</a></div>
+    </div>
+  `;
+}
+
+function showResetForm() {
+  const el = document.getElementById('authContainer');
+  el.innerHTML = `
+    <div class="auth-card">
+      <div class="auth-title">Reset password</div>
+      <div class="auth-subtitle">Enter your email and we'll send a reset link</div>
+      <div id="authError" class="auth-error"></div>
+      <div id="authSuccess" class="auth-success"></div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="authEmail" placeholder="you@example.com">
+      </div>
+      <button class="auth-btn" onclick="sendReset()">Send Reset Link</button>
+      <div class="auth-switch"><a onclick="renderAuthForms('login')">Back to sign in</a></div>
+    </div>
+  `;
+}
+
+function showAuthMsg(type, msg) {
+  const err = document.getElementById('authError');
+  const suc = document.getElementById('authSuccess');
+  if (!err || !suc) return;
+  err.style.display = 'none'; suc.style.display = 'none';
+  if (type === 'error') { err.textContent = msg; err.style.display = 'block'; }
+  else { suc.textContent = msg; suc.style.display = 'block'; }
+}
+
+async function signIn() {
+  const sb = getSupabase();
+  if (!sb) return;
+  const email = document.getElementById('authEmail')?.value.trim();
+  const password = document.getElementById('authPassword')?.value;
+  if (!email || !password) { showAuthMsg('error', 'Please fill in all fields'); return; }
+  const btn = document.getElementById('authSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) { showAuthMsg('error', error.message); btn.disabled = false; btn.textContent = 'Sign In'; }
+  else renderDashboardTab();
+}
+
+async function signUp() {
+  const sb = getSupabase();
+  if (!sb) return;
+  const email = document.getElementById('authEmail')?.value.trim();
+  const password = document.getElementById('authPassword')?.value;
+  if (!email || !password) { showAuthMsg('error', 'Please fill in all fields'); return; }
+  if (password.length < 6) { showAuthMsg('error', 'Password must be at least 6 characters'); return; }
+  const btn = document.getElementById('authSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Creating account…';
+  const { error } = await sb.auth.signUp({ email, password });
+  if (error) { showAuthMsg('error', error.message); btn.disabled = false; btn.textContent = 'Create Account'; }
+  else showAuthMsg('success', 'Account created! Check your email to confirm, then sign in.');
+  btn.disabled = false; btn.textContent = 'Create Account';
+}
+
+async function signInWithGoogle() {
+  const sb = getSupabase();
+  if (!sb) return;
+  await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+}
+
+async function sendReset() {
+  const sb = getSupabase();
+  if (!sb) return;
+  const email = document.getElementById('authEmail')?.value.trim();
+  if (!email) { showAuthMsg('error', 'Enter your email'); return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+  if (error) showAuthMsg('error', error.message);
+  else showAuthMsg('success', 'Reset link sent — check your email');
+}
+
+async function signOut() {
+  const sb = getSupabase();
+  if (!sb) return;
+  await sb.auth.signOut();
+  currentUser = null;
+  updateAuthHeader();
+  renderDashboardTab();
+}
+
+// ── DASHBOARD RENDERER ────────────────────────────────────────────────────────
+async function renderDashboard() {
+  const el = document.getElementById('dashboardContainer');
+  if (!el || !currentUser) return;
+
+  const email = currentUser.email || '';
+  const initial = email[0]?.toUpperCase() || 'U';
+  const savedBriefs = await loadSavedBriefs();
+  const localArchive = LS.get('archive', []);
+  const watchlist = LS.get('watchlist', []);
+
+  const threatColors = {
+    CRITICAL: '#c0392b', HIGH: '#e74c3c', ELEVATED: '#e67e22',
+    MODERATE: '#2980b9', LOW: '#27ae60'
+  };
+
+  let h = '';
+
+  // Header
+  h += `<div class="dash-header">
+    <div class="dash-avatar">${initial}</div>
+    <div class="dash-user-info">
+      <h3>${esc(email)}</h3>
+      <p>Member since ${new Date(currentUser.created_at || Date.now()).toLocaleDateString('en-US', { month:'long', year:'numeric' })}</p>
+    </div>
+    <button class="dash-sign-out" onclick="signOut()">Sign Out</button>
+  </div>`;
+
+  // Stats
+  h += `<div class="dash-grid">
+    <div class="dash-stat-card">
+      <div class="dash-stat-num">${savedBriefs.length + localArchive.length}</div>
+      <div class="dash-stat-label">Briefs Generated</div>
+    </div>
+    <div class="dash-stat-card">
+      <div class="dash-stat-num">${watchlist.length || 0}</div>
+      <div class="dash-stat-label">Watchlist Items</div>
+    </div>
+  </div>`;
+
+  // Cloud-saved briefs
+  h += `<div class="dash-section-title">☁ Saved Briefs</div>`;
+  if (savedBriefs.length === 0) {
+    h += `<div class="dash-empty">No saved briefs yet. Generate a brief and click "Save to Dashboard".</div>`;
+  } else {
+    savedBriefs.forEach(b => {
+      const color = threatColors[(b.threat_level || '').toUpperCase()] || '#888';
+      const date = new Date(b.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+      h += `<div class="dash-brief-item" onclick="loadSavedBrief('${b.id}')">
+        <div class="dash-brief-threat" style="background:${color}"></div>
+        <div>
+          <div class="dash-brief-topic">${esc(b.topic)}</div>
+          <div class="dash-brief-meta">${b.threat_level || 'UNKNOWN'} · ${b.confidence || '?'}% confidence · ${date}</div>
+        </div>
+        <button class="dash-brief-delete" onclick="event.stopPropagation();deleteSavedBrief(${b.id})" title="Delete">×</button>
+      </div>`;
+    });
+  }
+
+  // Local archive
+  if (localArchive.length > 0) {
+    h += `<div class="dash-section-title" style="margin-top:28px;">📋 Recent Local Briefs</div>`;
+    localArchive.slice(0, 10).forEach(b => {
+      const color = threatColors[(b.threat_level || '').toUpperCase()] || '#888';
+      const date = new Date(b.ts).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+      h += `<div class="dash-brief-item" onclick="quickBrief('${esc(b.topic)}')">
+        <div class="dash-brief-threat" style="background:${color}"></div>
+        <div>
+          <div class="dash-brief-topic">${esc(b.topic)}</div>
+          <div class="dash-brief-meta">${b.threat_level || '—'} · ${date}</div>
+        </div>
+      </div>`;
+    });
+  }
+
+  el.innerHTML = h;
+}
+
+// ── SUPABASE BRIEF OPERATIONS ─────────────────────────────────────────────────
+async function loadSavedBriefs() {
+  const sb = getSupabase();
+  if (!sb || !currentUser) return [];
+  const { data, error } = await sb.from('saved_briefs')
+    .select('id, topic, threat_level, confidence, executive, created_at')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error) { console.warn('loadSavedBriefs error:', error.message); return []; }
+  return data || [];
+}
+
+async function saveBriefToCloud() {
+  const sb = getSupabase();
+  if (!sb) { alert('Supabase not configured yet'); return; }
+  if (!currentUser) { switchTab('dashboard'); return; }
+  const stored = window._lastBriefData;
+  if (!stored) { alert('No brief loaded'); return; }
+
+  const btn = document.getElementById('saveToDashBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving…'; }
+
+  const { error } = await sb.from('saved_briefs').insert({
+    user_id: currentUser.id,
+    topic: stored.topic,
+    threat_level: stored.analysis?.threat_level,
+    confidence: stored.analysis?.confidence,
+    executive: (stored.analysis?.executive || '').slice(0, 500),
+    analysis: stored.analysis,
+  });
+
+  if (btn) { btn.disabled = false; }
+  if (error) {
+    alert('Save failed: ' + error.message);
+    if (btn) btn.textContent = '☁ Save to Dashboard';
+  } else {
+    if (btn) { btn.textContent = '✓ Saved'; btn.classList.add('saved'); }
+  }
+}
+
+async function deleteSavedBrief(id) {
+  const sb = getSupabase();
+  if (!sb || !currentUser) return;
+  await sb.from('saved_briefs').delete().eq('id', id).eq('user_id', currentUser.id);
+  renderDashboard();
+}
+
+async function loadSavedBrief(id) {
+  const sb = getSupabase();
+  if (!sb || !currentUser) return;
+  const { data } = await sb.from('saved_briefs').select('*').eq('id', id).single();
+  if (!data) return;
+  window._lastBriefData = { analysis: data.analysis, topic: data.topic, liveHeadlines: [] };
+  currentBriefTopic = data.topic;
+  switchTab('brief');
+  // Re-render the brief from stored data
+  const el = document.getElementById('briefContent');
+  if (el && data.analysis) generateBrief();
+}
+
+// ── HOOK: Add "Save to Dashboard" button to brief actions ─────────────────────
+const _origGenerateBrief = generateBrief;
+// Patch is handled inline in generateBrief — save button added after render

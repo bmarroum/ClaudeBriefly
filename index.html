@@ -19,6 +19,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <!-- DISCLAIMER -->
@@ -420,6 +421,13 @@
     </div>
   </div>
 <!-- SETTINGS TAB -->
+<div id="tab-dashboard" class="tab-content">
+  <div class="page-label">My Account</div>
+  <div class="page-title" style="margin-bottom:18px;">👤 Account & Dashboard</div>
+  <div id="authContainer"></div>
+  <div id="dashboardContainer" style="display:none;"></div>
+</div>
+
 <div id="tab-settings" class="tab-content">
   <div class="page-label">Preferences</div>
   <div class="page-title" style="margin-bottom:18px;">⚙️ Settings</div>
@@ -447,6 +455,7 @@
   <button class="nav-btn" id="nav-press" onclick="switchTab('press')"><span class="nav-icon">📰</span>Press</button>
   <button class="nav-btn" id="nav-archive" onclick="switchTab('archive')"><span class="nav-icon">🗄</span>Archive</button>
   <button class="nav-btn" id="nav-ask" onclick="switchTab('ask')"><span class="nav-icon">🤖</span>Ask</button>
+  <button class="nav-btn" id="nav-dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">👤</span>Account</button>
   <button class="nav-btn" id="nav-settings" onclick="switchTab('settings')"><span class="nav-icon">⚙️</span>Settings</button>
 </nav>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
