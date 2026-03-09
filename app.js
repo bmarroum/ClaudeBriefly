@@ -14,6 +14,25 @@ let showCitations = true;
 let showAiBadge = true;
 let refreshTimer = null;
 let archiveItems = [];
+
+function archiveSave(topic, analysis) {
+  try {
+    const item = {
+      id: Date.now(),
+      topic,
+      ts: new Date().toISOString(),
+      threat_level: analysis.threat_level || 'UNKNOWN',
+      confidence: analysis.confidence || 0,
+      executive: (analysis.executive || '').slice(0, 200),
+    };
+    archiveItems = LS.get('archive', []);
+    // Avoid duplicates — remove any existing entry for same topic
+    archiveItems = archiveItems.filter(i => i.topic?.toLowerCase() !== topic.toLowerCase());
+    archiveItems.unshift(item);
+    if (archiveItems.length > 50) archiveItems = archiveItems.slice(0, 50);
+    LS.set('archive', archiveItems);
+  } catch(e) { console.warn('archiveSave error:', e.message); }
+}
 let marketsLoaded = false;
 let leafletMap = null;
 let chatHistory = [];
