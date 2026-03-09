@@ -35,6 +35,26 @@ function archiveSave(topic, analysis) {
 }
 let marketsLoaded = false;
 let leafletMap = null;
+
+function initMap() {
+  const container = document.getElementById('airspaceMap');
+  if (!container || leafletMap) return;
+  container.style.height = '280px';
+  container.style.borderRadius = 'var(--radius)';
+  container.style.overflow = 'hidden';
+  container.style.marginBottom = '20px';
+  container.style.border = '1px solid var(--border)';
+  try {
+    leafletMap = L.map('airspaceMap', { zoomControl: true, scrollWheelZoom: false })
+      .setView([20, 10], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap © CARTO',
+      subdomains: 'abcd', maxZoom: 18
+    }).addTo(leafletMap);
+    // Fix map tiles not rendering on tab switch
+    setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 300);
+  } catch(e) { console.warn('Map init error:', e); }
+}
 let chatHistory = [];
 
 const CACHE = {};
@@ -96,8 +116,11 @@ function switchTab(tab) {
   currentTab = tab; LS.set('lastTab', tab);
   if (tab === 'news') loadNews(currentRegion);
   else if (tab === 'markets' && !marketsLoaded) loadMarkets();
-  else if (tab === 'archive') renderArchive();
-  else if (tab === 'airspace' && !leafletMap) initMap();
+  // Archive removed - use Dashboard tab
+  else if (tab === 'airspace') {
+    if (!leafletMap) initMap();
+    else setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 100);
+  }
   else if (tab === 'settings') initSettingsUI();
   else if (tab === 'dashboard') renderDashboardTab();
   else if (tab === 'press' && !document.getElementById('pressContent').innerHTML.trim()) loadPress(currentPressRegion);
@@ -1018,10 +1041,19 @@ function renderAdvisoryGrid() {
 async function loadAllAdvisories() {
   const el = document.getElementById('advisoryContent');
   if (!advisorySelected.length) { el.innerHTML = ''; return; }
+  // Render all skeletons instantly
   el.innerHTML = advisorySelected.map(c =>
-    '<div id="adv_card_'+c.replace(/\s+/g,'_')+'"><div class="adv-card"><div class="loading-state"><div class="loading-spinner"></div>Loading '+esc(c)+'…</div></div></div>'
+    '<div id="adv_card_'+c.replace(/\s+/g,'_')+'">'+
+    '<div class="adv-card" style="padding:18px 20px;">'+
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">'+
+    '<div style="width:120px;height:14px;background:var(--border);border-radius:4px;animation:shimmer 1.4s ease infinite;"></div>'+
+    '</div>'+
+    '<div style="width:100%;height:8px;background:var(--border);border-radius:4px;margin-bottom:8px;animation:shimmer 1.4s ease infinite;"></div>'+
+    '<div style="width:80%;height:8px;background:var(--border);border-radius:4px;animation:shimmer 1.4s ease infinite;"></div>'+
+    '</div></div>'
   ).join('');
-  advisorySelected.forEach(c => loadSingleAdvisory(c));
+  // Load all in parallel
+  Promise.all(advisorySelected.map(c => loadSingleAdvisory(c)));
 }
 
 async function loadSingleAdvisory(c) {
@@ -1221,40 +1253,61 @@ function loadMarkets(force) {
 async function loadMarketGroup(g) {
   const el = document.getElementById('ticker-'+g.id);
   if (!el) return;
-  el.innerHTML = g.symbols.split(',').map(s => '<div class="ticker-card"><div class="tc-symbol">'+esc(s.split('.')[0].replace('^',''))+'</div><div class="loading-spinner" style="width:14px;height:14px;margin:8px 0;"></div></div>').join('');
-  try {
-    const data = await apiFetch('/api/markets/quote?symbols='+encodeURIComponent(g.symbols),
-      { method: 'GET' }, 'mkt_'+g.id, CACHE_TTL.markets);
-    const quotes = data.quotes || [];
-    const isAI = data.source === 'ai_estimate';
-    const isLive = data.source === 'twelvedata';
-    updateMarketsSummaryBar(quotes);
 
-    // Fetch real sparkline data for each symbol if Twelve Data available
-    const sparklineData = {};
-    if (isLive) {
-      await Promise.all(quotes.map(async q => {
-        try {
-          const sd = await apiFetch('/api/markets/sparkline?symbol='+encodeURIComponent(q.symbol)+'&interval=1day&outputsize=30',
-            { method: 'GET' }, 'spark_'+q.symbol, CACHE_TTL.markets);
-          if (sd && sd.prices) sparklineData[q.symbol] = sd.prices;
-        } catch(e) { /* use simulated */ }
-      }));
-    }
+  // TradingView symbol map
+  const tvMap = {
+    '^GSPC':'SP:SPX', '^DJI':'DJ:DJI', '^IXIC':'NASDAQ:COMP', '^RUT':'TVC:RUT',
+    '^FTSE':'LSE:UKX', '^GDAXI':'XETR:DAX', '^FCHI':'EURONEXT:PX1', '^IBEX':'BME:IBC',
+    '^N225':'TSE:NI225', '^HSI':'HKEX:HSI', '000001.SS':'SSE:000001',
+    '^BSESN':'BSE:SENSEX', '^OSEAX':'OSE:OSEAX',
+    'EWJ':'AMEX:EWJ', 'EWY':'AMEX:EWY', 'EWT':'AMEX:EWT',
+    '^TASI':'TADAWUL:TASI', '^DFMGI':'DFM:DFMGI', '^BVSP':'BMFBOVESPA:IBOV',
+    '^MXX':'BMV:IPC', '^MERV':'BCBA:IMV',
+    'GC=F':'COMEX:GC1!', 'SI=F':'COMEX:SI1!', 'CL=F':'NYMEX:CL1!',
+    'BTC-USD':'BINANCE:BTCUSDT', 'ETH-USD':'BINANCE:ETHUSDT',
+    'EURUSD=X':'FX:EURUSD', 'GBPUSD=X':'FX:GBPUSD', 'JPY=X':'FX:USDJPY',
+  };
 
-    el.innerHTML = quotes.map(q => {
-      const name = g.names[q.symbol] || q.name || q.symbol;
-      const up = q.change >= 0;
-      const pr = q.price != null ? q.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
-      const pct = q.changePercent != null ? (up?'+':'')+q.changePercent.toFixed(2)+'%' : '—';
-      const chg = q.change != null ? (up?'+':'')+q.change.toFixed(2) : '';
-      return buildTickerCard(q, name, up, pr, pct, chg, isAI, sparklineData[q.symbol] || null);
-    }).join('') || '<div class="error-state">No data available</div>';
-    updateWatchlistSection();
-  } catch(e) {
-    showError(el, 'Markets unavailable — '+e.message, null);
-  }
+  const symbols = g.symbols.split(',').map(s => s.trim());
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const theme = isDark ? 'dark' : 'light';
+
+  el.innerHTML = symbols.map(sym => {
+    const tvSym = tvMap[sym] || sym;
+    const displaySym = sym.replace('^','').replace('=X','').replace('-USD','').replace('=F','');
+    const uid = 'tv_' + sym.replace(/[^a-zA-Z0-9]/g,'_') + '_' + Date.now();
+    return `<div class="ticker-card" style="padding:0;overflow:hidden;min-height:140px;">
+      <div id="${uid}" style="height:140px;"></div>
+    </div>`;
+  }).join('');
+
+  // Load TradingView mini widgets
+  symbols.forEach((sym, i) => {
+    const tvSym = tvMap[sym] || sym;
+    const displaySym = sym.replace('^','').replace('=X','').replace('-USD','').replace('=F','');
+    const uid = 'tv_' + sym.replace(/[^a-zA-Z0-9]/g,'_') + '_' + Date.now();
+    const container = el.querySelectorAll('.ticker-card')[i]?.querySelector('div');
+    if (!container) return;
+
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js';
+    script.async = true;
+    script.innerHTML = JSON.stringify({
+      symbol: tvSym,
+      width: '100%',
+      height: 140,
+      locale: 'en',
+      dateRange: '1D',
+      colorTheme: theme,
+      isTransparent: true,
+      autosize: true,
+      largeChartUrl: '',
+      noTimeScale: false,
+    });
+    container.appendChild(script);
+  });
 }
+
 async function loadMarketCommentary() {
   const el = document.getElementById('marketCommentary');
   try {
@@ -1321,12 +1374,22 @@ async function loadPress(region) {
     if (!releases.length) { el.innerHTML = '<div style="color:var(--muted);padding:20px;">No releases found.</div>'; return; }
     el.innerHTML = releases.map(r => {
       const cat = (r.category||'').replace(/\s+/g,'-');
+      let dateStr = '';
+      if (r.date || r.publishedAt || r.timestamp) {
+        try {
+          const d = new Date(r.date || r.publishedAt || r.timestamp);
+          if (!isNaN(d)) dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' · '+d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+        } catch(e) {}
+      }
       return '<div class="press-card cat-'+esc(cat)+'">'
         +'<div class="press-country"><div class="press-flag-name">'+esc(r.flag||'')+'  '+esc(r.country||'')+'</div><div class="press-category">'+esc(r.category||'')+'</div></div>'
         +'<div class="press-ministry">'+esc(r.ministry||'')+'</div>'
         +'<div class="press-title">'+esc(r.title)+'</div>'
         +'<div class="press-summary">'+esc(r.summary)+'</div>'
-        +(showCitations && r.sourceUrl ? '<a class="press-link" href="'+esc(r.sourceUrl)+'" target="_blank" rel="noopener">🔗 '+esc(r.source||'Source')+'</a>' : '')
+        +'<div class="press-footer" style="display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap;">'
+        +(dateStr ? '<span style="font-size:11px;color:var(--muted);font-family:var(--cond);">🕐 '+esc(dateStr)+'</span>' : '')
+        +(r.sourceUrl ? '<a href="'+esc(r.sourceUrl)+'" target="_blank" rel="noopener" style="font-size:11px;color:var(--gold);font-family:var(--cond);font-weight:700;text-decoration:none;letter-spacing:.04em;">↗ '+esc(r.source||'Source')+'</a>' : (r.source ? '<span style="font-size:11px;color:var(--muted);font-family:var(--cond);">'+esc(r.source)+'</span>' : ''))
+        +'</div>'
         +'</div>';
     }).join('');
   } catch (e) {
@@ -1739,6 +1802,7 @@ function resetAll() {
 }
 
 function initSettingsUI() {
+  renderSettingsAccount();
   document.getElementById('darkModeToggle').checked = LS.get('darkMode', false);
   document.getElementById('autoRefreshToggle').checked = autoRefreshEnabled;
   document.getElementById('citationsToggle').checked = showCitations;
@@ -1788,6 +1852,122 @@ function initSettingsUI() {
 })();
 
 
+
+// ── TOAST NOTIFICATIONS ───────────────────────────────────────────────────────
+function showToast(msg, type='info') {
+  const existing = document.getElementById('briefly-toast');
+  if (existing) existing.remove();
+  const colors = { info:'#2563eb', success:'#16a34a', error:'#dc2626', warning:'#d97706' };
+  const t = document.createElement('div');
+  t.id = 'briefly-toast';
+  t.style.cssText = `position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:${colors[type]||colors.info};color:#fff;padding:10px 20px;border-radius:30px;
+    font-size:13px;font-family:var(--cond);font-weight:600;letter-spacing:.04em;
+    z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);
+    transition:all .3s cubic-bezier(.4,0,.2,1);opacity:0;`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => { t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)'; });
+  setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(10px)'; setTimeout(()=>t.remove(),300); }, 3000);
+}
+
+
+// ── FLOATING CHAT PANEL ───────────────────────────────────────────────────────
+let chatPanelHistory = [];
+let chatPanelOpen = false;
+
+function toggleChatPanel() {
+  const panel = document.getElementById('chatPanel');
+  if (!panel) return;
+  chatPanelOpen = !chatPanelOpen;
+  panel.style.display = chatPanelOpen ? 'flex' : 'none';
+  if (chatPanelOpen) {
+    const msgs = document.getElementById('chatPanelMessages');
+    if (msgs && !msgs.innerHTML.trim()) {
+      msgs.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0;">Ask me anything about current events, geopolitics, or a topic from your brief.</div>';
+    }
+    setTimeout(() => document.getElementById('chatPanelInput')?.focus(), 100);
+  }
+}
+
+async function sendChatPanel() {
+  const inp = document.getElementById('chatPanelInput');
+  const msgs = document.getElementById('chatPanelMessages');
+  if (!inp || !msgs) return;
+  const q = inp.value.trim();
+  if (!q) return;
+  inp.value = '';
+  inp.disabled = true;
+
+  // Clear placeholder
+  if (msgs.querySelector('div[style*="text-align:center"]')) msgs.innerHTML = '';
+
+  // User bubble
+  msgs.innerHTML += '<div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><div style="background:var(--gold);color:#07090f;padding:9px 14px;border-radius:16px 16px 4px 16px;font-size:13px;max-width:80%;font-family:var(--sans);">'+esc(q)+'</div></div>';
+
+  // Typing indicator
+  const typId = 'cp_' + Date.now();
+  msgs.innerHTML += '<div id="'+typId+'" style="display:flex;margin-bottom:10px;"><div style="background:var(--card);border:1px solid var(--border);padding:9px 14px;border-radius:16px 16px 16px 4px;font-size:13px;color:var(--muted);">…</div></div>';
+  msgs.scrollTop = msgs.scrollHeight;
+
+  chatPanelHistory.push({ role: 'user', content: q });
+  if (chatPanelHistory.length > 20) chatPanelHistory = chatPanelHistory.slice(-20);
+
+  try {
+    const res = await apiFetch('/api/ask', {
+      body: JSON.stringify({ question: q, history: chatPanelHistory.slice(-10) })
+    }, null, 0);
+    const answer = res.answer || res.response || 'No response';
+    chatPanelHistory.push({ role: 'assistant', content: answer });
+
+    const typEl = document.getElementById(typId);
+    if (typEl) typEl.outerHTML = '<div style="display:flex;margin-bottom:10px;"><div style="background:var(--bg2);border:1px solid var(--border);padding:9px 14px;border-radius:16px 16px 16px 4px;font-size:13px;max-width:85%;line-height:1.6;font-family:var(--sans);">'+renderMarkdownChat(answer)+'</div></div>';
+  } catch(e) {
+    const typEl = document.getElementById(typId);
+    if (typEl) typEl.outerHTML = '<div style="color:var(--red);font-size:13px;padding:8px 0;">Error: '+esc(e.message)+'</div>';
+  }
+  inp.disabled = false;
+  inp.focus();
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+
+// ── ACCOUNT SECTION IN SETTINGS ──────────────────────────────────────────────
+function renderSettingsAccount() {
+  const el = document.getElementById('settingsAccountContent');
+  if (!el) return;
+
+  if (!currentUser) {
+    el.innerHTML = `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:4px;">Not signed in</div>
+          <div style="font-size:13px;color:var(--muted);">Sign in to save briefs and sync your preferences across devices.</div>
+        </div>
+        <button onclick="switchTab('dashboard')" style="padding:9px 22px;background:var(--gold);color:#07090f;border:none;border-radius:30px;font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;">Sign In / Sign Up</button>
+      </div>`;
+  } else {
+    const email = currentUser.email || '';
+    const initial = email[0]?.toUpperCase() || 'U';
+    const since = new Date(currentUser.created_at || Date.now()).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+    el.innerHTML = `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+          <div style="width:44px;height:44px;border-radius:50%;background:var(--gold);color:#07090f;font-weight:800;font-size:18px;font-family:var(--serif);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${initial}</div>
+          <div>
+            <div style="font-weight:700;font-size:15px;color:var(--text);">${esc(email)}</div>
+            <div style="font-size:12px;color:var(--muted);">Member since ${since}</div>
+          </div>
+          <button onclick="signOut()" style="margin-left:auto;padding:7px 16px;background:transparent;border:1px solid var(--border);border-radius:20px;color:var(--muted);font-size:12px;font-family:var(--sans);cursor:pointer;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">Sign Out</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <button onclick="switchTab('dashboard')" style="padding:9px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--sans);color:var(--text);cursor:pointer;">☁ View Saved Briefs</button>
+          <button onclick="switchTab('dashboard')" style="padding:9px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--sans);color:var(--text);cursor:pointer;">📊 Dashboard</button>
+        </div>
+      </div>`;
+  }
+}
+
 // ── SUPABASE AUTH & DASHBOARD (4.8 + 4.9) ────────────────────────────────────
 
 const SUPABASE_URL = 'https://xtbtyuwvzhauwhkclxdk.supabase.co';
@@ -1816,6 +1996,7 @@ async function initAuth() {
     if (document.getElementById('tab-dashboard')?.classList.contains('active')) {
       renderDashboardTab();
     }
+    renderSettingsAccount();
   });
 }
 
@@ -2063,10 +2244,14 @@ async function loadSavedBriefs() {
 
 async function saveBriefToCloud() {
   const sb = getSupabase();
-  if (!sb) { alert('Supabase not configured yet'); return; }
-  if (!currentUser) { switchTab('dashboard'); return; }
+  if (!sb) { showToast('Supabase not configured', 'error'); return; }
+  if (!currentUser) {
+    showToast('Sign in to save briefs to your dashboard', 'info');
+    setTimeout(() => switchTab('dashboard'), 1200);
+    return;
+  }
   const stored = window._lastBriefData;
-  if (!stored) { alert('No brief loaded'); return; }
+  if (!stored) { showToast('Generate a brief first', 'error'); return; }
 
   const btn = document.getElementById('saveToDashBtn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving…'; }

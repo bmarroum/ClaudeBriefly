@@ -368,7 +368,7 @@
   <div class="press-grid" id="pressContent"></div>
 </div>
 <!-- ARCHIVE TAB -->
-<div id="tab-archive" class="tab-content">
+<div id="tab-archive" class="tab-content" style="display:none!important;">
   <div class="page-header">
     <div><div class="page-label">Saved Briefings</div><div class="page-title">🗄 Archive</div></div>
     <button class="btn-outline" onclick="clearArchive()">🗑 Clear All</button>
@@ -376,7 +376,7 @@
   <div id="archiveList"></div>
 </div>
 <!-- ASK TAB -->
-  <div id="tab-ask" class="tab-content">
+  <div id="tab-ask" class="tab-content" style="display:none!important;">
     <div style="max-width:1100px;margin:0 auto;">
       <div class="page-header" style="margin-bottom:16px;">
         <div><div class="page-label">Intelligence Q&amp;A</div><div class="page-title">🤖 Ask Briefly</div></div>
@@ -437,6 +437,16 @@
 <div id="tab-settings" class="tab-content">
   <div class="page-label">Preferences</div>
   <div class="page-title" style="margin-bottom:18px;">⚙️ Settings</div>
+
+  <!-- ACCOUNT SECTION IN SETTINGS -->
+  <div id="settingsAccountSection" style="margin-bottom:28px;">
+    <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+      <span style="width:20px;height:1.5px;background:var(--gold);display:inline-block;opacity:.6;"></span>
+      Account
+    </div>
+    <div id="settingsAccountContent"></div>
+  </div>
+  <hr style="border:none;border-top:1px solid var(--border);margin-bottom:24px;">
   <div style="margin-bottom:20px;font-family:var(--cond);font-size:11px;color:var(--muted);letter-spacing:.06em;">Briefly Intelligence &nbsp;·&nbsp; <strong style="color:var(--gold);">v4.5</strong> &nbsp;·&nbsp; Backend: <a href="https://claudebriefly.onrender.com/health" target="_blank" rel="noopener" style="color:var(--gold);">Health Check</a></div>
   <div class="settings-grid">
     <div class="setting-card"><div class="setting-label">🌙 Dark Mode</div><div class="setting-desc">Switch to dark theme for low-light environments</div><div class="setting-row"><span style="font-size:13px;color:var(--muted)">Enable dark theme</span><label class="toggle"><input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()"/><span class="toggle-slider"></span></label></div></div>
@@ -459,8 +469,8 @@
   <button class="nav-btn" id="nav-advisories" onclick="switchTab('advisories')"><span class="nav-icon">🛡️</span>Advisories</button>
   <button class="nav-btn" id="nav-markets" onclick="switchTab('markets')"><span class="nav-icon">📈</span>Markets</button>
   <button class="nav-btn" id="nav-press" onclick="switchTab('press')"><span class="nav-icon">📰</span>Press</button>
-  <button class="nav-btn" id="nav-archive" onclick="switchTab('archive')"><span class="nav-icon">🗄</span>Archive</button>
-  <button class="nav-btn" id="nav-ask" onclick="switchTab('ask')"><span class="nav-icon">🤖</span>Ask</button>
+
+
   <button class="nav-btn" id="nav-dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">👤</span>Account</button>
   <button class="nav-btn" id="nav-settings" onclick="switchTab('settings')"><span class="nav-icon">⚙️</span>Settings</button>
 </nav>
@@ -489,5 +499,37 @@
   </div>
 </div>
 
+
+<!-- FLOATING CHAT BUBBLE -->
+<div id="chatFloat" onclick="toggleChatPanel()" title="Ask AI" style="
+  position:fixed;bottom:90px;right:20px;
+  width:52px;height:52px;border-radius:50%;
+  background:var(--gold);color:#07090f;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;cursor:pointer;z-index:200;
+  box-shadow:0 4px 20px rgba(200,160,48,0.5);
+  transition:transform .2s,box-shadow .2s;
+" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+  🤖
+</div>
+<div id="chatPanel" style="
+  position:fixed;bottom:155px;right:20px;
+  width:360px;max-height:70vh;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-lg);
+  z-index:199;display:none;
+  flex-direction:column;overflow:hidden;
+">
+  <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+    <div style="font-family:var(--serif);font-weight:700;font-size:16px;">Ask AI</div>
+    <button onclick="toggleChatPanel()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;">×</button>
+  </div>
+  <div id="chatPanelMessages" style="flex:1;overflow-y:auto;padding:14px 18px;min-height:200px;max-height:calc(70vh - 120px);"></div>
+  <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;">
+    <input id="chatPanelInput" type="text" placeholder="Ask anything…" style="flex:1;padding:8px 14px;border:1px solid var(--border);border-radius:20px;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;outline:none;" onkeydown="if(event.key==='Enter')sendChatPanel()">
+    <button onclick="sendChatPanel()" style="padding:8px 16px;background:var(--gold);color:#07090f;border:none;border-radius:20px;font-weight:700;font-family:var(--cond);font-size:12px;cursor:pointer;">Send</button>
+  </div>
+</div>
 </body>
 </html>
