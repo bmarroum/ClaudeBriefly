@@ -404,6 +404,7 @@ async function generateBrief() {
       setTimeout(() => { const cacheNote = el.querySelector('div'); if(cacheNote) cacheNote.remove(); }, 3000);
     }
     const a = data.analysis || {};
+    window._lastBriefData = { analysis: a, topic: q, liveHeadlines: data.liveHeadlines || [] };
     const liveHeadlines = data.liveHeadlines || [];
     const ts = new Date().toLocaleString('en-US',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'}) + ' UTC';
     const threat = (a.threat_level || 'MODERATE').toUpperCase();
@@ -415,7 +416,6 @@ async function generateBrief() {
     // Actions bar
     h += '<div class="brief-actions-row">';
     h += '<button class="copy-btn" id="copyBriefBtn" onclick="copyBrief()">📋 Copy Brief</button>';
-    h += '<button class="btn-outline" onclick="window.print()">🖨 Print</button>';
     h += '<button class="btn-outline" id="exportPDFBtn" onclick="exportBriefPDF()">📥 Export PDF</button>';
     if (showAiBadge) h += '<span class="ai-badge" style="padding:7px 14px;">🤖 AI Analysis</span>';
     h += '</div>';
@@ -597,7 +597,9 @@ function copyBrief() {
 }
 async function exportBriefPDF() {
   const btn = document.getElementById('exportPDFBtn');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generating PDF…'; }
+  const copyBtn = document.getElementById('copyBriefBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generating…'; }
+
   try {
     // Load jsPDF dynamically
     if (!window.jspdf) {
@@ -609,131 +611,232 @@ async function exportBriefPDF() {
       });
     }
     const { jsPDF } = window.jspdf;
+
+    // Get data directly from stored analysis object — never from DOM
+    const stored = window._lastBriefData;
+    if (!stored) throw new Error('No brief loaded yet');
+    const a = stored.analysis;
+    const topic = stored.topic || currentBriefTopic || 'Intelligence Brief';
+    const headlines = stored.liveHeadlines || [];
+
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const W = 210, margin = 18, contentW = W - margin * 2;
-    let y = 20;
+    const W = 210, margin = 16, contentW = W - margin * 2;
+    let y = 0;
 
-    // Helper: add text with word wrap, returns new y
-    function addText(text, x, startY, maxW, fontSize, fontStyle, color) {
+    // ── HELPERS ───────────────────────────────────────────────────────────────
+    function newPage() { doc.addPage(); y = 20; }
+    function checkPage(needed) { if (y + needed > 278) newPage(); }
+
+    function addWrappedText(text, x, maxW, fontSize, style, rgb) {
       doc.setFontSize(fontSize);
-      doc.setFont('helvetica', fontStyle || 'normal');
-      if (color) doc.setTextColor(...color); else doc.setTextColor(15, 22, 35);
-      const lines = doc.splitTextToSize(String(text || ''), maxW);
-      doc.text(lines, x, startY);
-      return startY + lines.length * (fontSize * 0.4);
+      doc.setFont('helvetica', style || 'normal');
+      doc.setTextColor(...(rgb || [20, 20, 40]));
+      const lines = doc.splitTextToSize(String(text || '').replace(/\s+/g,' ').trim(), maxW);
+      checkPage(lines.length * fontSize * 0.38 + 2);
+      doc.text(lines, x, y);
+      y += lines.length * fontSize * 0.38 + 2;
     }
 
-    function checkPage(neededY) {
-      if (neededY > 270) { doc.addPage(); return 22; }
-      return neededY;
+    function addSectionHeader(icon, title) {
+      checkPage(14);
+      doc.setFillColor(245, 242, 236);
+      doc.rect(margin, y - 1, contentW, 9, 'F');
+      doc.setDrawColor(200, 168, 75);
+      doc.line(margin, y - 1, margin, y + 8);
+      doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(160, 120, 40);
+      doc.text((icon + '  ' + title).toUpperCase(), margin + 3, y + 5.5);
+      y += 13;
     }
 
-    const topic = currentBriefTopic || 'Intelligence Brief';
-    const ts = new Date().toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' });
+    function addBullet(text, indent) {
+      const ix = margin + (indent || 0);
+      const bw = contentW - (indent || 0);
+      doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 30, 55);
+      const lines = doc.splitTextToSize(String(text || '').trim(), bw - 5);
+      checkPage(lines.length * 4 + 2);
+      doc.setFillColor(200, 168, 75);
+      doc.circle(ix + 1.5, y - 0.5, 0.8, 'F');
+      doc.text(lines, ix + 5, y);
+      y += lines.length * 4 + 2;
+    }
 
     // ── HEADER ────────────────────────────────────────────────────────────────
-    doc.setFillColor(15, 22, 35);
-    doc.rect(0, 0, W, 36, 'F');
-    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(200, 168, 75);
-    doc.text('BRIEFLY INTELLIGENCE', margin, 12);
-    doc.setFontSize(18); doc.setFont('helvetica','bold'); doc.setTextColor(232, 224, 208);
-    doc.text(topic.toUpperCase(), margin, 24);
-    doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(136,136,136);
-    doc.text('INTELLIGENCE BRIEF  ·  ' + ts + '  ·  AI-GENERATED — VERIFY WITH OFFICIAL SOURCES', margin, 32);
+    doc.setFillColor(12, 18, 30);
+    doc.rect(0, 0, W, 38, 'F');
+
+    doc.setFillColor(200, 168, 75);
+    doc.rect(margin, 10, 1.5, 20, 'F');
+
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(200, 168, 75);
+    doc.text('BRIEFLY INTELLIGENCE  ·  INTELLIGENCE BRIEF', margin + 5, 14);
+
+    doc.setFontSize(20); doc.setFont('helvetica', 'bold'); doc.setTextColor(235, 228, 210);
+    doc.text(topic.toUpperCase().slice(0, 40), margin + 5, 26);
+
+    const ts = new Date().toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' }) + ' UTC';
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(120, 120, 140);
+    doc.text(ts + '  ·  AI-GENERATED — VERIFY WITH OFFICIAL SOURCES', margin + 5, 34);
     y = 46;
 
-    // Grab brief data from DOM
-    const el = document.getElementById('briefContent');
-    if (!el) throw new Error('No brief loaded');
-
-    // ── THREAT LEVEL BAR ──────────────────────────────────────────────────────
-    const threatEl = el.querySelector('[class*="threat"], .threat-badge, h2');
-    const threatText = threatEl?.textContent?.trim() || '';
-    const threat = threatText.includes('CRITICAL') ? 'CRITICAL' :
-                   threatText.includes('HIGH') ? 'HIGH' :
-                   threatText.includes('ELEVATED') ? 'ELEVATED' :
-                   threatText.includes('MODERATE') ? 'MODERATE' : 'LOW';
-    const threatColors = { CRITICAL:[192,57,43], HIGH:[231,76,60], ELEVATED:[230,126,34], MODERATE:[41,128,185], LOW:[39,174,96] };
-    const tc = threatColors[threat] || [100,100,100];
+    // ── THREAT LEVEL ──────────────────────────────────────────────────────────
+    const threat = (a.threat_level || 'MODERATE').toUpperCase();
+    const tColors = {
+      CRITICAL:[180,30,30], HIGH:[210,60,40], ELEVATED:[200,110,20],
+      MODERATE:[30,100,170], LOW:[30,140,80]
+    };
+    const tc = tColors[threat] || [80,80,80];
+    checkPage(16);
     doc.setFillColor(...tc);
-    doc.roundedRect(margin, y, contentW, 10, 3, 3, 'F');
-    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
-    doc.text('THREAT LEVEL: ' + threat, margin + 4, y + 6.5);
+    doc.roundedRect(margin, y, contentW, 11, 2, 2, 'F');
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(255,255,255);
+    doc.text('THREAT LEVEL: ' + threat + '   |   CONFIDENCE: ' + (a.confidence||'—') + '%   |   SOURCES: ' + (a.data_sources||'—'), margin + 4, y + 7.5);
     y += 16;
 
-    // ── SECTIONS from DOM ─────────────────────────────────────────────────────
-    const sections = el.querySelectorAll('.brief-section, .brief-card, [class*="brief-"]');
-    const sectionData = [];
-
-    // Also grab structured text directly
-    const allHeadings = el.querySelectorAll('h2, h3, h4');
-    const allParas = el.querySelectorAll('p');
-
-    // Build sections from headings + following paragraphs
-    allHeadings.forEach(h => {
-      const title = h.textContent.trim().replace(/[^\w\s]/g,'').trim();
-      if (!title || title.length < 3) return;
-      let content = '';
-      let next = h.nextElementSibling;
-      while (next && !['H2','H3','H4'].includes(next.tagName)) {
-        if (next.tagName === 'P' || next.tagName === 'DIV') {
-          const t = next.textContent.trim();
-          if (t.length > 10) content += t + ' ';
-        }
-        next = next.nextElementSibling;
-      }
-      if (content.trim().length > 20) sectionData.push({ title, content: content.trim() });
-    });
-
-    // Fallback: grab all paragraphs if no sections found
-    if (sectionData.length === 0) {
-      allParas.forEach(p => {
-        const t = p.textContent.trim();
-        if (t.length > 30) sectionData.push({ title: '', content: t });
-      });
+    if (a.threat_level_reason) {
+      doc.setFontSize(8); doc.setFont('helvetica', 'italic'); doc.setTextColor(100,80,40);
+      const reasonLines = doc.splitTextToSize(a.threat_level_reason, contentW);
+      doc.text(reasonLines, margin, y);
+      y += reasonLines.length * 4 + 6;
     }
 
-    // Render sections
-    sectionData.slice(0, 12).forEach(sec => {
-      y = checkPage(y);
-      if (sec.title) {
-        // Section header
-        doc.setFillColor(245, 242, 236);
-        doc.rect(margin, y - 1, contentW, 8, 'F');
-        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(200,168,75);
-        doc.text(sec.title.toUpperCase(), margin + 2, y + 5);
-        y += 11;
-      }
-      y = checkPage(y);
-      y = addText(sec.content, margin, y, contentW, 9, 'normal', [30,30,50]) + 5;
-    });
+    // ── CONFIDENCE BAR ────────────────────────────────────────────────────────
+    const conf = Math.min(100, Math.max(0, a.confidence || 50));
+    checkPage(10);
+    doc.setFillColor(225, 220, 210);
+    doc.roundedRect(margin, y, contentW, 4, 1, 1, 'F');
+    const confColor = conf >= 70 ? [45,130,80] : conf >= 40 ? [200,110,20] : [180,40,40];
+    doc.setFillColor(...confColor);
+    doc.roundedRect(margin, y, contentW * conf / 100, 4, 1, 1, 'F');
+    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(80,80,80);
+    doc.text('Intelligence Confidence', margin, y + 8);
+    doc.text(conf + '%', margin + contentW, y + 8, { align: 'right' });
+    y += 14;
+
+    // ── EXECUTIVE SUMMARY ─────────────────────────────────────────────────────
+    if (a.executive) {
+      addSectionHeader('📌', 'Executive Summary');
+      addWrappedText(a.executive, margin, contentW, 9.5, 'normal', [20, 20, 40]);
+      y += 5;
+    }
+
+    // ── CURRENT SITUATION ─────────────────────────────────────────────────────
+    if (a.situation) {
+      addSectionHeader('📡', 'Current Situation');
+      addWrappedText(a.situation, margin, contentW, 9.5, 'normal', [20, 20, 40]);
+      y += 5;
+    }
+
+    // ── GEOPOLITICAL ANALYSIS ─────────────────────────────────────────────────
+    if (a.geopolitical) {
+      addSectionHeader('🌐', 'Geopolitical Analysis');
+      addWrappedText(a.geopolitical, margin, contentW, 9.5, 'normal', [20, 20, 40]);
+      y += 5;
+    }
+
+    // ── HUMANITARIAN ──────────────────────────────────────────────────────────
+    if (a.humanitarian) {
+      addSectionHeader('🏥', 'Humanitarian');
+      addWrappedText(a.humanitarian, margin, contentW, 9.5, 'normal', [20, 20, 40]);
+      y += 5;
+    }
+
+    // ── ECONOMIC IMPACT ───────────────────────────────────────────────────────
+    if (a.economic) {
+      addSectionHeader('📊', 'Economic Impact');
+      addWrappedText(a.economic, margin, contentW, 9.5, 'normal', [20, 20, 40]);
+      y += 5;
+    }
+
+    // ── STRATEGIC OUTLOOK ─────────────────────────────────────────────────────
+    if (a.strategic) {
+      addSectionHeader('🎯', 'Strategic Outlook');
+      addWrappedText(a.strategic, margin, contentW, 9.5, 'normal', [20, 20, 40]);
+      y += 5;
+    }
+
+    // ── KEY ACTORS ────────────────────────────────────────────────────────────
+    if (a.key_actors?.length) {
+      addSectionHeader('👤', 'Key Actors');
+      a.key_actors.slice(0, 8).forEach(actor => {
+        checkPage(14);
+        doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(20, 20, 40);
+        doc.text(String(actor.name || ''), margin + 2, y);
+        doc.setFontSize(8); doc.setFont('helvetica', 'italic'); doc.setTextColor(100, 80, 40);
+        doc.text(String(actor.role || ''), margin + 2, y + 4.5);
+        if (actor.stance) {
+          doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(60, 60, 80);
+          const sl = doc.splitTextToSize(String(actor.stance), contentW - 4);
+          doc.text(sl, margin + 2, y + 9);
+          y += sl.length * 3.5 + 10;
+        } else {
+          y += 9;
+        }
+        doc.setDrawColor(220, 215, 205);
+        doc.line(margin, y, margin + contentW, y);
+        y += 3;
+      });
+      y += 3;
+    }
 
     // ── TIMELINE ──────────────────────────────────────────────────────────────
-    const timelineItems = el.querySelectorAll('.timeline-item, [class*="timeline"] li, [class*="timeline"] div');
-    if (timelineItems.length > 0) {
-      y = checkPage(y + 4);
-      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(200,168,75);
-      doc.text('TIMELINE', margin, y); y += 6;
-      timelineItems.forEach(item => {
-        y = checkPage(y);
-        const t = item.textContent.trim().slice(0, 200);
-        if (t.length > 5) y = addText('• ' + t, margin + 2, y, contentW - 4, 8, 'normal', [50,50,80]) + 3;
+    if (a.timeline?.length) {
+      addSectionHeader('🕐', 'Timeline');
+      a.timeline.slice(0, 10).forEach(ev => {
+        checkPage(10);
+        doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(160, 120, 40);
+        doc.text(String(ev.date || ''), margin + 2, y);
+        doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(20, 20, 40);
+        const el = doc.splitTextToSize(String(ev.event || ''), contentW - 28);
+        doc.text(el, margin + 26, y);
+        y += Math.max(el.length * 4, 5) + 3;
+      });
+      y += 3;
+    }
+
+    // ── KEY RISKS ─────────────────────────────────────────────────────────────
+    if (a.key_risks?.length) {
+      addSectionHeader('⚠', 'Key Risks');
+      a.key_risks.forEach(r => addBullet(r));
+      y += 4;
+    }
+
+    // ── WATCH POINTS ──────────────────────────────────────────────────────────
+    if (a.watch_points?.length) {
+      addSectionHeader('👁', 'Watch Points');
+      a.watch_points.forEach(w => addBullet(w));
+      y += 4;
+    }
+
+    // ── LIVE HEADLINES ────────────────────────────────────────────────────────
+    if (headlines.length) {
+      addSectionHeader('📰', 'Live Headlines');
+      headlines.slice(0, 6).forEach(hl => {
+        checkPage(10);
+        doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(20, 20, 40);
+        const lines = doc.splitTextToSize('• ' + String(hl.title || ''), contentW - 4);
+        doc.text(lines, margin + 2, y);
+        y += lines.length * 4 + 2;
+        if (hl.pubDate) {
+          doc.setFontSize(7); doc.setFont('helvetica', 'italic'); doc.setTextColor(120, 120, 140);
+          doc.text(new Date(hl.pubDate).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}), margin + 4, y);
+          y += 5;
+        }
       });
     }
 
-    // ── FOOTER ────────────────────────────────────────────────────────────────
+    // ── FOOTER ON EVERY PAGE ──────────────────────────────────────────────────
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
-      doc.setFillColor(240, 237, 230);
-      doc.rect(0, 285, W, 12, 'F');
-      doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(136,136,136);
-      doc.text('BRIEFLY INTELLIGENCE  ·  AI-GENERATED CONTENT — VERIFY WITH OFFICIAL SOURCES', margin, 291);
-      doc.text('Page ' + i + ' of ' + pageCount, W - margin, 291, { align: 'right' });
+      doc.setFillColor(235, 230, 220);
+      doc.rect(0, 283, W, 14, 'F');
+      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(120, 110, 90);
+      doc.text('BRIEFLY INTELLIGENCE  ·  AI-GENERATED — VERIFY WITH OFFICIAL SOURCES', margin, 290);
+      doc.text('Page ' + i + ' of ' + pageCount, W - margin, 290, { align: 'right' });
     }
 
     // ── SAVE ──────────────────────────────────────────────────────────────────
-    const filename = 'Briefly_' + topic.replace(/[^a-z0-9]/gi,'_').slice(0,30) + '_' + new Date().toISOString().slice(0,10) + '.pdf';
+    const filename = 'Briefly_' + topic.replace(/[^a-z0-9]/gi, '_').slice(0, 30) + '_' + new Date().toISOString().slice(0, 10) + '.pdf';
     doc.save(filename);
 
   } catch(e) {
@@ -744,131 +847,6 @@ async function exportBriefPDF() {
   }
 }
 
-document.getElementById('briefSearchInput').addEventListener('keydown', e => { if (e.key==='Enter') generateBrief(); });
-
-function archiveSave(topic, analysis) {
-  const item = { id: Date.now(), topic, date: new Date().toISOString(), analysis };
-  archiveItems = [item, ...archiveItems.filter(a => a.topic !== topic)].slice(0, 50);
-  LS.set('archive', archiveItems);
-}
-
-function renderArchive() {
-  const el = document.getElementById('archiveList');
-  if (!archiveItems.length) {
-    el.innerHTML = '<div class="archive-empty"><div class="archive-empty-icon">🗄</div><div style="font-size:14px;">No saved briefings yet. Generate a brief and it will appear here.</div></div>';
-    return;
-  }
-  el.innerHTML = archiveItems.map(item => `
-    <div class="archive-item" onclick="loadArchiveItem(${item.id})">
-      <div class="archive-topic">${esc(item.topic)}</div>
-      <div class="archive-meta">${new Date(item.date).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'})}</div>
-      ${item.analysis?.executive ? '<div class="archive-preview">'+esc(item.analysis.executive.slice(0,120))+'…</div>' : ''}
-    </div>`).join('');
-}
-
-function loadArchiveItem(id) {
-  const item = archiveItems.find(a => a.id === id);
-  if (!item) return;
-  currentBriefTopic = item.topic;
-  document.getElementById('briefSearchInput').value = item.topic;
-  document.getElementById('briefTitleText').textContent = item.topic;
-  const el = document.getElementById('briefContent');
-  const a = item.analysis || {};
-  const ts = new Date(item.date).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
-  let html = '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">';
-  html += '<div><div class="report-title">'+esc(item.topic)+'</div>';
-  html += '<div class="report-meta">Intelligence Brief · '+ts+' <span class="ai-badge">🗄 Archive</span></div></div>';
-  html += '<button class="copy-btn" id="copyBriefBtn2" onclick="copyBrief()">📋 Copy Brief</button></div>';
-  const sections = [
-    {key:'executive',icon:'📌',label:'Executive Summary'},
-    {key:'geopolitical',icon:'🌐',label:'Geopolitical Analysis'},
-    {key:'humanitarian',icon:'🏥',label:'Humanitarian Impact'},
-    {key:'economic',icon:'📊',label:'Economic Impact'},
-    {key:'social',icon:'👥',label:'Social Dynamics'},
-    {key:'strategic',icon:'🎯',label:'Strategic Outlook'},
-  ];
-  sections.forEach(s => {
-    if (a[s.key]) {
-      html += '<div class="section-block"><div class="section-heading">'+s.icon+' '+s.label+'</div>';
-      html += '<div class="section-body">'+esc(a[s.key])+'</div></div>';
-    }
-  });
-  el.innerHTML = html;
-  switchTab('brief');
-}
-
-function clearArchive() {
-  if (!confirm('Clear all saved briefings?')) return;
-  archiveItems = []; LS.set('archive', []); renderArchive();
-}
-
-const COUNTRY_COORDS = {
-  'United States':[37.09,-95.71],'Ukraine':[48.38,31.17],'Israel':[31.05,34.85],
-  'Iran':[32.43,53.69],'Saudi Arabia':[23.89,45.08],'Russia':[61.52,105.32],
-  'Lebanon':[33.85,35.86],'China':[35.86,104.20],'Jordan':[30.59,36.24],
-  'Pakistan':[30.38,69.35],'Iraq':[33.22,43.68],'Syria':[34.80,38.99],
-  'Yemen':[15.55,48.52],'Libya':[26.34,17.23],'United Kingdom':[55.38,-3.44],
-  'France':[46.23,2.21],'Germany':[51.17,10.45],'Japan':[36.20,138.25],
-};
-
-function initMap() {
-  if (leafletMap) return;
-  const mapEl = document.getElementById('airspaceMap');
-  if (!mapEl) return;
-  leafletMap = L.map('airspaceMap',{zoomControl:true,scrollWheelZoom:false}).setView([25,45],4);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
-    attribution:'© OpenStreetMap contributors, © CARTO',subdomains:'abcd',maxZoom:18
-  }).addTo(leafletMap);
-}
-
-// ── AIRSPACE MULTI-SELECT (up to 7) ──────────────────────────────────────────
-let airspaceSelected = [];
-
-function renderAirspaceTags() {
-  const el = document.getElementById('airspaceSelectedTags');
-  if (!el) return;
-  el.innerHTML = airspaceSelected.map(c =>
-    '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;background:var(--text);color:var(--bg);border-radius:20px;font-family:var(--cond);font-size:11px;font-weight:700;">'
-    +esc(c)+'<button onclick="removeAirspaceCountry(\''+esc(c)+'\');" style="background:none;border:none;color:inherit;cursor:pointer;font-size:13px;line-height:1;padding:0 0 0 3px;opacity:.7;">✕</button></span>'
-  ).join('');
-  // sync chip active states
-  document.querySelectorAll('#tab-airspace .chip').forEach(ch => {
-    const country = ch.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
-    if (country) ch.classList.toggle('active', airspaceSelected.includes(country));
-  });
-}
-
-function addAirspaceCountry(country) {
-  const c = country || document.getElementById('airspaceSearchInput').value.trim();
-  if (!c) return;
-  if (airspaceSelected.includes(c)) { loadAllAirspace(); return; }
-  if (airspaceSelected.length >= 7) { alert('Maximum 7 countries selected. Remove one first.'); return; }
-  airspaceSelected.push(c);
-  document.getElementById('airspaceSearchInput').value = '';
-  renderAirspaceTags();
-  loadAllAirspace();
-}
-
-function removeAirspaceCountry(c) {
-  airspaceSelected = airspaceSelected.filter(x => x !== c);
-  renderAirspaceTags();
-  loadAllAirspace();
-}
-
-function toggleAirspaceChip(btn, country) {
-  if (airspaceSelected.includes(country)) {
-    removeAirspaceCountry(country);
-  } else {
-    addAirspaceCountry(country);
-  }
-}
-
-function clearAirspaceSelections() {
-  airspaceSelected = [];
-  renderAirspaceTags();
-  document.getElementById('airspaceContent').innerHTML = '';
-  if (leafletMap) leafletMap.eachLayer(l => { if (l instanceof L.Marker) leafletMap.removeLayer(l); });
-}
 
 function generateBriefForce() {
   const q = document.getElementById('briefSearchInput').value.trim() || currentBriefTopic;
