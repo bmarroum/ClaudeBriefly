@@ -758,7 +758,7 @@ app.post("/api/press-releases", async (req, res) => {
   try {
     const text = await callClaude(
       "You are a government communications monitor. Today: " + todayStr() + ". Respond ONLY with a valid JSON object. No markdown or extra text.",
-      liveContext + "List 5-6 recent official government press releases and statements from the " + region + " region.\n\nRespond with this exact JSON:\n{\"region\":\"" + region + "\",\"date\":\"" + todayStr() + "\",\"releases\":[{\"title\":\"<title>\",\"country\":\"<country>\",\"ministry\":\"<ministry>\",\"summary\":\"<2-3 sentence summary>\",\"category\":\"<Foreign Policy|Economy|Defense|Health|Environment|Social|Infrastructure|Justice>\",\"source\":\"<source name>\",\"sourceUrl\":\"<https://official.gov.url>\",\"flag\":\"<emoji flag>\"}]}",
+      liveContext + "List 5-6 recent official government press releases and statements from the " + region + " region.\n\nRespond with this exact JSON:\n{\"region\":\"" + region + "\",\"date\":\"" + todayStr() + "\",\"releases\":[{\"title\":\"<title>\",\"country\":\"<country>\",\"ministry\":\"<ministry>\",\"summary\":\"<2-3 sentence summary>\",\"category\":\"<Foreign Policy|Economy|Defense|Health|Environment|Social|Infrastructure|Justice>\",\"source\":\"<source name>\",\"sourceUrl\":\"<https://official.gov.url>\",\"flag\":\"<emoji flag>\",\"date\":\"<YYYY-MM-DD>\",\"publishedTime\":\"<HH:MM UTC>\"}]}",
       1400
     );
     res.json(parseJSON(text));

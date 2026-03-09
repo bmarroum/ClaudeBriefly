@@ -985,6 +985,7 @@ document.getElementById('airspaceSearchInput').addEventListener('keydown', e => 
 
 // ── ADVISORIES MULTI-SELECT (up to 7) ────────────────────────────────────────
 let advisorySelected = [];
+let airspaceSelected = [];
 
 function renderAdvisoryTags() {
   const el = document.getElementById('advisorySelectedTags');
@@ -1038,12 +1039,57 @@ function renderAdvisoryGrid() {
   });
 }
 
+function addAirspaceCountry(country) {
+  const c = country || document.getElementById('airspaceSearchInput')?.value.trim();
+  if (!c) return;
+  if (airspaceSelected.includes(c)) { loadAllAirspace(); return; }
+  if (airspaceSelected.length >= 7) { showToast('Maximum 7 countries. Remove one first.', 'warning'); return; }
+  airspaceSelected.push(c);
+  LS.set('airspaceSelected', airspaceSelected);
+  const inp = document.getElementById('airspaceSearchInput');
+  if (inp) inp.value = '';
+  renderAirspaceTags();
+  loadAllAirspace();
+}
+
+function removeAirspaceCountry(country) {
+  airspaceSelected = airspaceSelected.filter(c => c !== country);
+  LS.set('airspaceSelected', airspaceSelected);
+  renderAirspaceTags();
+  loadAllAirspace();
+  if (leafletMap) {
+    leafletMap.eachLayer(l => { if (l instanceof L.Marker) leafletMap.removeLayer(l); });
+  }
+}
+
+function clearAirspaceSelections() {
+  airspaceSelected = [];
+  LS.set('airspaceSelected', []);
+  renderAirspaceTags();
+  const el = document.getElementById('airspaceContent');
+  if (el) el.innerHTML = '';
+  if (leafletMap) {
+    leafletMap.eachLayer(l => { if (l instanceof L.Marker) leafletMap.removeLayer(l); });
+  }
+}
+
+function renderAirspaceTags() {
+  const el = document.getElementById('airspaceSelectedTags');
+  if (!el) return;
+  el.innerHTML = airspaceSelected.map(c =>
+    '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;background:var(--text);color:var(--bg);border-radius:20px;font-family:var(--cond);font-size:11px;font-weight:700;">'
+    + esc(c)
+    + '<button onclick="removeAirspaceCountry(\''+esc(c)+'\');" style="background:none;border:none;color:inherit;cursor:pointer;font-size:14px;line-height:1;padding:0 0 0 2px;">×</button>'
+    + '</span>'
+  ).join('');
+}
+
 async function loadAllAdvisories() {
   const el = document.getElementById('advisoryContent');
   if (!advisorySelected.length) { el.innerHTML = ''; return; }
   // Render all skeletons instantly
   el.innerHTML = advisorySelected.map(c =>
-    '<div id="adv_card_'+c.replace(/\s+/g,'_')+'">'+
+    '<div id="adv_card_'+c.replace(/[^a-zA-Z0-9]/g,'_')+'">'+
     '<div class="adv-card" style="padding:18px 20px;">'+
     '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">'+
     '<div style="width:120px;height:14px;background:var(--border);border-radius:4px;animation:shimmer 1.4s ease infinite;"></div>'+
@@ -1057,13 +1103,28 @@ async function loadAllAdvisories() {
 }
 
 async function loadSingleAdvisory(c) {
+  const cardId = 'adv_card_' + c.replace(/[^a-zA-Z0-9]/g,'_');
+  const wrapper = document.getElementById(cardId);
   try {
     const data = await apiFetch('/api/advisories', { body: JSON.stringify({ country: c }) }, 'adv_'+c, 15*60000);
-    renderAdvisoryCard(c, data);
+    // Build country object from string name + data
+    const countryObj = {
+      name: c,
+      code: data.country_code || data.code || c.slice(0,2).toUpperCase(),
+      flag: data.flag || getFlagEmoji(data.country_code || c.slice(0,2).toUpperCase())
+    };
+    const html = renderAdvisoryCard(countryObj, data);
+    if (wrapper) wrapper.innerHTML = html;
   } catch(e) {
-    const el = document.getElementById('adv_card_'+c.replace(/\s+/g,'_'));
-    if (el) el.innerHTML = '<div class="error-state">⚠ '+esc(c)+': '+esc(e.message)+'</div>';
+    if (wrapper) wrapper.innerHTML = '<div class="adv-card"><div class="error-state" style="padding:20px;">⚠ Failed to load '+esc(c)+': '+esc(e.message)+'</div></div>';
   }
+}
+
+function getFlagEmoji(code) {
+  if (!code || code.length !== 2) return '';
+  try {
+    return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 - 65 + c.charCodeAt(0)));
+  } catch(e) { return ''; }
 }
 
 function riskColor(score) {
@@ -1253,59 +1314,32 @@ function loadMarkets(force) {
 async function loadMarketGroup(g) {
   const el = document.getElementById('ticker-'+g.id);
   if (!el) return;
-
-  // TradingView symbol map
-  const tvMap = {
-    '^GSPC':'SP:SPX', '^DJI':'DJ:DJI', '^IXIC':'NASDAQ:COMP', '^RUT':'TVC:RUT',
-    '^FTSE':'LSE:UKX', '^GDAXI':'XETR:DAX', '^FCHI':'EURONEXT:PX1', '^IBEX':'BME:IBC',
-    '^N225':'TSE:NI225', '^HSI':'HKEX:HSI', '000001.SS':'SSE:000001',
-    '^BSESN':'BSE:SENSEX', '^OSEAX':'OSE:OSEAX',
-    'EWJ':'AMEX:EWJ', 'EWY':'AMEX:EWY', 'EWT':'AMEX:EWT',
-    '^TASI':'TADAWUL:TASI', '^DFMGI':'DFM:DFMGI', '^BVSP':'BMFBOVESPA:IBOV',
-    '^MXX':'BMV:IPC', '^MERV':'BCBA:IMV',
-    'GC=F':'COMEX:GC1!', 'SI=F':'COMEX:SI1!', 'CL=F':'NYMEX:CL1!',
-    'BTC-USD':'BINANCE:BTCUSDT', 'ETH-USD':'BINANCE:ETHUSDT',
-    'EURUSD=X':'FX:EURUSD', 'GBPUSD=X':'FX:GBPUSD', 'JPY=X':'FX:USDJPY',
-  };
-
-  const symbols = g.symbols.split(',').map(s => s.trim());
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const theme = isDark ? 'dark' : 'light';
-
-  el.innerHTML = symbols.map(sym => {
-    const tvSym = tvMap[sym] || sym;
-    const displaySym = sym.replace('^','').replace('=X','').replace('-USD','').replace('=F','');
-    const uid = 'tv_' + sym.replace(/[^a-zA-Z0-9]/g,'_') + '_' + Date.now();
-    return `<div class="ticker-card" style="padding:0;overflow:hidden;min-height:140px;">
-      <div id="${uid}" style="height:140px;"></div>
-    </div>`;
+  // Show loading skeletons
+  el.innerHTML = g.symbols.split(',').map(s => {
+    const sym = s.trim().replace('^','').replace('=F','').replace('-USD','').replace('=X','');
+    return '<div class="ticker-card" id="tc-'+sym+'_loading"><div class="tc-symbol">'+sym+'</div><div class="loading-spinner" style="width:14px;height:14px;margin:8px 0;"></div></div>';
   }).join('');
+  try {
+    const data = await apiFetch('/api/markets/quote?symbols='+encodeURIComponent(g.symbols),
+      { method: 'GET' }, 'mkt_'+g.id, CACHE_TTL.markets);
+    const quotes = data.quotes || [];
+    const isAI = data.source === 'ai_estimate';
+    updateMarketsSummaryBar(quotes);
 
-  // Load TradingView mini widgets
-  symbols.forEach((sym, i) => {
-    const tvSym = tvMap[sym] || sym;
-    const displaySym = sym.replace('^','').replace('=X','').replace('-USD','').replace('=F','');
-    const uid = 'tv_' + sym.replace(/[^a-zA-Z0-9]/g,'_') + '_' + Date.now();
-    const container = el.querySelectorAll('.ticker-card')[i]?.querySelector('div');
-    if (!container) return;
-
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js';
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      symbol: tvSym,
-      width: '100%',
-      height: 140,
-      locale: 'en',
-      dateRange: '1D',
-      colorTheme: theme,
-      isTransparent: true,
-      autosize: true,
-      largeChartUrl: '',
-      noTimeScale: false,
-    });
-    container.appendChild(script);
-  });
+    el.innerHTML = quotes.map(q => {
+      const name = g.names[q.symbol] || q.name || q.symbol;
+      const up = (q.change || 0) >= 0;
+      const pr = q.price != null
+        ? (q.price >= 1000 ? q.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})
+          : q.price.toFixed(q.price < 10 ? 4 : 2))
+        : '—';
+      const pct = q.changePercent != null ? (up?'+':'')+q.changePercent.toFixed(2)+'%' : '—';
+      const chg = q.change != null ? (up?'+':'')+q.change.toFixed(2) : '';
+      return buildTickerCard(q, name, up, pr, pct, chg, isAI, null);
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div class="error-state" style="padding:16px;">⚠ Failed to load '+esc(g.label)+'</div>';
+  }
 }
 
 async function loadMarketCommentary() {
@@ -1375,9 +1409,11 @@ async function loadPress(region) {
     el.innerHTML = releases.map(r => {
       const cat = (r.category||'').replace(/\s+/g,'-');
       let dateStr = '';
-      if (r.date || r.publishedAt || r.timestamp) {
+      if (r.publishedTime || r.date) {
+        dateStr = (r.date || '') + (r.publishedTime ? ' · ' + r.publishedTime : '');
+      } else if (r.publishedAt || r.timestamp) {
         try {
-          const d = new Date(r.date || r.publishedAt || r.timestamp);
+          const d = new Date(r.publishedAt || r.timestamp);
           if (!isNaN(d)) dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' · '+d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
         } catch(e) {}
       }
@@ -1387,7 +1423,7 @@ async function loadPress(region) {
         +'<div class="press-title">'+esc(r.title)+'</div>'
         +'<div class="press-summary">'+esc(r.summary)+'</div>'
         +'<div class="press-footer" style="display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap;">'
-        +(dateStr ? '<span style="font-size:11px;color:var(--muted);font-family:var(--cond);">🕐 '+esc(dateStr)+'</span>' : '')
+        +(dateStr ? '<span style="font-size:11px;color:var(--muted);font-family:var(--cond);">🕐 '+esc(dateStr)+'</span>' : (r.date||r.publishedTime ? '<span style="font-size:11px;color:var(--muted);font-family:var(--cond);">🕐 '+esc((r.date||'')+' '+(r.publishedTime||''))+'</span>' : ''))
         +(r.sourceUrl ? '<a href="'+esc(r.sourceUrl)+'" target="_blank" rel="noopener" style="font-size:11px;color:var(--gold);font-family:var(--cond);font-weight:700;text-decoration:none;letter-spacing:.04em;">↗ '+esc(r.source||'Source')+'</a>' : (r.source ? '<span style="font-size:11px;color:var(--muted);font-family:var(--cond);">'+esc(r.source)+'</span>' : ''))
         +'</div>'
         +'</div>';
@@ -1848,6 +1884,9 @@ function initSettingsUI() {
   switchTab(lastTab);
   loadBreakingTicker();
   initAuth();
+  // Restore airspace selections from localStorage
+  airspaceSelected = LS.get('airspaceSelected', []);
+  renderAirspaceTags();
   setupRefreshTimer();
 })();
 
@@ -1965,6 +2004,109 @@ function renderSettingsAccount() {
           <button onclick="switchTab('dashboard')" style="padding:9px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--sans);color:var(--text);cursor:pointer;">📊 Dashboard</button>
         </div>
       </div>`;
+  }
+}
+
+
+// ── ACCOUNT MANAGEMENT FUNCTIONS ─────────────────────────────────────────────
+async function saveAccountProfile() {
+  const sb = getSupabase();
+  if (!sb || !currentUser) return;
+  const statusEl = document.getElementById('acct-save-status');
+  if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = 'var(--muted)'; }
+
+  const displayName = document.getElementById('acct-displayname')?.value.trim();
+  const newEmail = document.getElementById('acct-email')?.value.trim();
+  const newPass = document.getElementById('acct-password')?.value;
+  const newPass2 = document.getElementById('acct-password2')?.value;
+
+  try {
+    // Update display name in user metadata
+    if (displayName) {
+      const { error } = await sb.auth.updateUser({ data: { full_name: displayName, display_name: displayName } });
+      if (error) throw error;
+    }
+    // Update email if changed
+    if (newEmail && newEmail !== currentUser.email) {
+      const { error } = await sb.auth.updateUser({ email: newEmail });
+      if (error) throw error;
+      if (statusEl) statusEl.textContent = 'Check your new email to confirm the change.';
+    }
+    // Update password if provided
+    if (newPass) {
+      if (newPass !== newPass2) throw new Error('Passwords do not match');
+      if (newPass.length < 6) throw new Error('Password must be at least 6 characters');
+      const { error } = await sb.auth.updateUser({ password: newPass });
+      if (error) throw error;
+      document.getElementById('acct-password').value = '';
+      document.getElementById('acct-password2').value = '';
+    }
+    if (statusEl) { statusEl.textContent = '✓ Saved successfully'; statusEl.style.color = '#4caf84'; }
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
+    showToast('Profile updated', 'success');
+  } catch(e) {
+    if (statusEl) { statusEl.textContent = '✗ ' + e.message; statusEl.style.color = '#e05c5c'; }
+    showToast(e.message, 'error');
+  }
+}
+
+function triggerAvatarUpload() {
+  showToast('Avatar upload: To add a photo, use Google sign-in with a profile picture', 'info');
+}
+
+async function confirmDeleteAccount() {
+  if (!confirm('Are you sure you want to permanently delete your account? This cannot be undone.')) return;
+  const code = prompt('Type DELETE to confirm:');
+  if (code !== 'DELETE') { showToast('Cancelled', 'info'); return; }
+  const sb = getSupabase();
+  if (!sb) return;
+  showToast('Deleting account…', 'warning');
+  // Sign out - actual deletion requires server-side admin API
+  await sb.auth.signOut();
+  showToast('Account deletion requested. Contact support to complete.', 'info');
+}
+
+async function deleteSavedBrief(id) {
+  const sb = getSupabase();
+  if (!sb || !currentUser) return;
+  if (!confirm('Delete this brief?')) return;
+  const { error } = await sb.from('saved_briefs').delete().eq('id', id).eq('user_id', currentUser.id);
+  if (error) { showToast('Failed to delete: ' + error.message, 'error'); return; }
+  showToast('Brief deleted', 'success');
+  renderDashboard();
+}
+
+
+// ── SAVE BRIEF TO CLOUD ───────────────────────────────────────────────────────
+async function saveBriefToCloud() {
+  const sb = getSupabase();
+  if (!sb) { showToast('Supabase not configured', 'error'); return; }
+  if (!currentUser) {
+    showToast('Sign in to save briefs to your dashboard', 'info');
+    setTimeout(() => switchTab('dashboard'), 1200);
+    return;
+  }
+  const stored = window._lastBriefData;
+  if (!stored) { showToast('Generate a brief first', 'error'); return; }
+
+  const btn = document.getElementById('saveToDashBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving…'; }
+
+  try {
+    const { error } = await sb.from('saved_briefs').insert({
+      user_id: currentUser.id,
+      topic: stored.topic,
+      threat_level: stored.analysis?.threat_level,
+      confidence: stored.analysis?.confidence,
+      analysis: stored.analysis,
+      created_at: new Date().toISOString()
+    });
+    if (error) throw error;
+    showToast('✓ Brief saved to dashboard', 'success');
+    if (btn) { btn.textContent = '✓ Saved'; btn.style.background = '#4caf84'; btn.style.color = '#fff'; }
+  } catch(e) {
+    showToast('Save failed: ' + e.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '☁ Save to Dashboard'; }
   }
 }
 
@@ -2158,142 +2300,130 @@ async function renderDashboard() {
 
   const email = currentUser.email || '';
   const initial = email[0]?.toUpperCase() || 'U';
-  const savedBriefs = await loadSavedBriefs();
-  const localArchive = LS.get('archive', []);
+  const meta = currentUser.user_metadata || {};
+  const displayName = meta.full_name || meta.name || meta.display_name || email.split('@')[0] || 'User';
+  const avatarUrl = meta.avatar_url || meta.picture || '';
+  const since = new Date(currentUser.created_at || Date.now()).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  // Load cloud briefs
+  let savedBriefs = [];
+  try { savedBriefs = await loadSavedBriefs(); } catch(e) {}
   const watchlist = LS.get('watchlist', []);
 
-  const threatColors = {
-    CRITICAL: '#c0392b', HIGH: '#e74c3c', ELEVATED: '#e67e22',
-    MODERATE: '#2980b9', LOW: '#27ae60'
-  };
+  const threatColors = { CRITICAL:'#e05c5c', HIGH:'#ff9800', MODERATE:'#ffc107', LOW:'#4caf84', UNKNOWN:'#888' };
 
-  let h = '';
+  const avatarHtml = avatarUrl
+    ? `<img src="${esc(avatarUrl)}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div style="width:72px;height:72px;border-radius:50%;background:var(--gold);color:#07090f;font-weight:800;font-size:28px;font-family:var(--serif);display:none;align-items:center;justify-content:center;">${esc(initial)}</div>`
+    : `<div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#f0c040);color:#07090f;font-weight:800;font-size:28px;font-family:var(--serif);display:flex;align-items:center;justify-content:center;">${esc(initial)}</div>`;
 
-  // Header
-  h += `<div class="dash-header">
-    <div class="dash-avatar">${initial}</div>
-    <div class="dash-user-info">
-      <h3>${esc(email)}</h3>
-      <p>Member since ${new Date(currentUser.created_at || Date.now()).toLocaleDateString('en-US', { month:'long', year:'numeric' })}</p>
-    </div>
-    <button class="dash-sign-out" onclick="signOut()">Sign Out</button>
-  </div>`;
+  el.innerHTML = `
+  <div style="max-width:760px;margin:0 auto;">
 
-  // Stats
-  h += `<div class="dash-grid">
-    <div class="dash-stat-card">
-      <div class="dash-stat-num">${savedBriefs.length + localArchive.length}</div>
-      <div class="dash-stat-label">Briefs Generated</div>
-    </div>
-    <div class="dash-stat-card">
-      <div class="dash-stat-num">${watchlist.length || 0}</div>
-      <div class="dash-stat-label">Watchlist Items</div>
-    </div>
-  </div>`;
-
-  // Cloud-saved briefs
-  h += `<div class="dash-section-title">☁ Saved Briefs</div>`;
-  if (savedBriefs.length === 0) {
-    h += `<div class="dash-empty">No saved briefs yet. Generate a brief and click "Save to Dashboard".</div>`;
-  } else {
-    savedBriefs.forEach(b => {
-      const color = threatColors[(b.threat_level || '').toUpperCase()] || '#888';
-      const date = new Date(b.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
-      h += `<div class="dash-brief-item" onclick="loadSavedBrief('${b.id}')">
-        <div class="dash-brief-threat" style="background:${color}"></div>
-        <div>
-          <div class="dash-brief-topic">${esc(b.topic)}</div>
-          <div class="dash-brief-meta">${b.threat_level || 'UNKNOWN'} · ${b.confidence || '?'}% confidence · ${date}</div>
+    <!-- Profile Header -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;margin-bottom:20px;display:flex;align-items:flex-start;gap:22px;flex-wrap:wrap;">
+      <div style="position:relative;">
+        <div style="display:flex;">${avatarHtml}</div>
+        <button onclick="triggerAvatarUpload()" title="Change photo" style="position:absolute;bottom:-4px;right:-4px;width:26px;height:26px;border-radius:50%;background:var(--gold);border:2px solid var(--bg);color:#07090f;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;" >✏</button>
+      </div>
+      <div style="flex:1;min-width:200px;">
+        <div style="font-family:var(--serif);font-size:22px;font-weight:700;margin-bottom:4px;">${esc(displayName)}</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">${esc(email)}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:11px;font-family:var(--cond);color:var(--muted);background:var(--bg2);padding:4px 10px;border-radius:20px;border:1px solid var(--border);">📅 Member since ${esc(since)}</span>
+          <span style="font-size:11px;font-family:var(--cond);color:var(--muted);background:var(--bg2);padding:4px 10px;border-radius:20px;border:1px solid var(--border);">☁ ${savedBriefs.length} saved briefs</span>
+          <span style="font-size:11px;font-family:var(--cond);color:var(--muted);background:var(--bg2);padding:4px 10px;border-radius:20px;border:1px solid var(--border);">📍 ${watchlist.length} watchlist items</span>
         </div>
-        <button class="dash-brief-delete" onclick="event.stopPropagation();deleteSavedBrief(${b.id})" title="Delete">×</button>
-      </div>`;
-    });
-  }
+      </div>
+      <button onclick="signOut()" style="padding:8px 18px;background:transparent;border:1px solid var(--border);border-radius:20px;color:var(--muted);font-size:12px;font-family:var(--sans);cursor:pointer;flex-shrink:0;transition:all .2s;" onmouseover="this.style.borderColor='#e05c5c';this.style.color='#e05c5c'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">Sign Out</button>
+    </div>
 
-  // Local archive
-  if (localArchive.length > 0) {
-    h += `<div class="dash-section-title" style="margin-top:28px;">📋 Recent Local Briefs</div>`;
-    localArchive.slice(0, 10).forEach(b => {
-      const color = threatColors[(b.threat_level || '').toUpperCase()] || '#888';
-      const date = new Date(b.ts).toLocaleDateString('en-US', { month:'short', day:'numeric' });
-      h += `<div class="dash-brief-item" onclick="quickBrief('${esc(b.topic)}')">
-        <div class="dash-brief-threat" style="background:${color}"></div>
+    <!-- Edit Profile -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px;">
+      <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:16px;">Edit Profile</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
         <div>
-          <div class="dash-brief-topic">${esc(b.topic)}</div>
-          <div class="dash-brief-meta">${b.threat_level || '—'} · ${date}</div>
+          <label style="font-size:11px;font-family:var(--cond);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px;">Display Name</label>
+          <input id="acct-displayname" type="text" value="${esc(displayName)}" style="width:100%;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--sans);font-size:13px;box-sizing:border-box;outline:none;" placeholder="Your name" />
         </div>
-      </div>`;
-    });
-  }
+        <div>
+          <label style="font-size:11px;font-family:var(--cond);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px;">Email</label>
+          <input id="acct-email" type="email" value="${esc(email)}" style="width:100%;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--sans);font-size:13px;box-sizing:border-box;outline:none;" placeholder="your@email.com" />
+        </div>
+        <div>
+          <label style="font-size:11px;font-family:var(--cond);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px;">New Password</label>
+          <input id="acct-password" type="password" style="width:100%;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--sans);font-size:13px;box-sizing:border-box;outline:none;" placeholder="Leave blank to keep current" />
+        </div>
+        <div>
+          <label style="font-size:11px;font-family:var(--cond);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px;">Confirm Password</label>
+          <input id="acct-password2" type="password" style="width:100%;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--sans);font-size:13px;box-sizing:border-box;outline:none;" placeholder="Confirm new password" />
+        </div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center;">
+        <button onclick="saveAccountProfile()" style="padding:10px 24px;background:var(--gold);color:#07090f;border:none;border-radius:30px;font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;">Save Changes</button>
+        <span id="acct-save-status" style="font-size:12px;color:var(--muted);font-family:var(--sans);"></span>
+      </div>
+    </div>
 
-  el.innerHTML = h;
+    <!-- Saved Briefs -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px;">
+      <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
+        Saved Briefs
+        <span style="color:var(--muted);font-size:11px;">${savedBriefs.length} total</span>
+      </div>
+      ${savedBriefs.length === 0
+        ? '<div style="text-align:center;padding:30px 0;color:var(--muted);font-size:14px;">No saved briefs yet.<br><span style="font-size:12px;opacity:.6;">Generate a brief and click ☁ Save to Dashboard</span></div>'
+        : savedBriefs.map(b => {
+            const tc = threatColors[b.threat_level] || '#888';
+            const d = new Date(b.created_at||Date.now()).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+            return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">
+              <div style="width:10px;height:10px;border-radius:50%;background:${tc};flex-shrink:0;"></div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(b.topic||'Untitled')}</div>
+                <div style="font-size:11px;color:var(--muted);font-family:var(--cond);">${b.threat_level||'?'} · ${b.confidence||0}% confidence · ${d}</div>
+              </div>
+              <button onclick="deleteSavedBrief('${b.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;flex-shrink:0;" title="Delete" onmouseover="this.style.color='#e05c5c'" onmouseout="this.style.color='var(--muted)'">🗑</button>
+            </div>`;
+          }).join('')
+      }
+    </div>
+
+    <!-- Preferences -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px;">
+      <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:16px;">Preferences</div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        ${[
+          ['Email Notifications', 'Get notified about critical threat level changes', 'pref-email-notifs'],
+          ['Brief Digest', 'Weekly summary of your saved briefs', 'pref-digest'],
+          ['Live Context', 'Include live news in brief generation', 'pref-live-context'],
+        ].map(([label, desc, key]) => {
+          const val = LS.get(key, key === 'pref-live-context');
+          return `<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+            <div>
+              <div style="font-size:13px;font-weight:600;">${label}</div>
+              <div style="font-size:11px;color:var(--muted);">${desc}</div>
+            </div>
+            <label class="toggle" style="flex-shrink:0;">
+              <input type="checkbox" ${val?'checked':''} onchange="LS.set('${key}',this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div style="background:var(--card);border:1px solid rgba(224,92,92,.3);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px;">
+      <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#e05c5c;margin-bottom:16px;">Danger Zone</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-size:13px;font-weight:600;">Delete Account</div>
+          <div style="font-size:11px;color:var(--muted);">Permanently delete your account and all data. This cannot be undone.</div>
+        </div>
+        <button onclick="confirmDeleteAccount()" style="padding:8px 18px;background:transparent;border:1px solid #e05c5c;border-radius:20px;color:#e05c5c;font-size:12px;font-family:var(--sans);cursor:pointer;">Delete Account</button>
+      </div>
+    </div>
+
+  </div>`;
 }
 
-// ── SUPABASE BRIEF OPERATIONS ─────────────────────────────────────────────────
-async function loadSavedBriefs() {
-  const sb = getSupabase();
-  if (!sb || !currentUser) return [];
-  const { data, error } = await sb.from('saved_briefs')
-    .select('id, topic, threat_level, confidence, executive, created_at')
-    .eq('user_id', currentUser.id)
-    .order('created_at', { ascending: false })
-    .limit(20);
-  if (error) { console.warn('loadSavedBriefs error:', error.message); return []; }
-  return data || [];
-}
 
-async function saveBriefToCloud() {
-  const sb = getSupabase();
-  if (!sb) { showToast('Supabase not configured', 'error'); return; }
-  if (!currentUser) {
-    showToast('Sign in to save briefs to your dashboard', 'info');
-    setTimeout(() => switchTab('dashboard'), 1200);
-    return;
-  }
-  const stored = window._lastBriefData;
-  if (!stored) { showToast('Generate a brief first', 'error'); return; }
-
-  const btn = document.getElementById('saveToDashBtn');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving…'; }
-
-  const { error } = await sb.from('saved_briefs').insert({
-    user_id: currentUser.id,
-    topic: stored.topic,
-    threat_level: stored.analysis?.threat_level,
-    confidence: stored.analysis?.confidence,
-    executive: (stored.analysis?.executive || '').slice(0, 500),
-    analysis: stored.analysis,
-  });
-
-  if (btn) { btn.disabled = false; }
-  if (error) {
-    alert('Save failed: ' + error.message);
-    if (btn) btn.textContent = '☁ Save to Dashboard';
-  } else {
-    if (btn) { btn.textContent = '✓ Saved'; btn.classList.add('saved'); }
-  }
-}
-
-async function deleteSavedBrief(id) {
-  const sb = getSupabase();
-  if (!sb || !currentUser) return;
-  await sb.from('saved_briefs').delete().eq('id', id).eq('user_id', currentUser.id);
-  renderDashboard();
-}
-
-async function loadSavedBrief(id) {
-  const sb = getSupabase();
-  if (!sb || !currentUser) return;
-  const { data } = await sb.from('saved_briefs').select('*').eq('id', id).single();
-  if (!data) return;
-  window._lastBriefData = { analysis: data.analysis, topic: data.topic, liveHeadlines: [] };
-  currentBriefTopic = data.topic;
-  switchTab('brief');
-  // Re-render the brief from stored data
-  const el = document.getElementById('briefContent');
-  if (el && data.analysis) generateBrief();
-}
-
-// ── HOOK: Add "Save to Dashboard" button to brief actions ─────────────────────
-const _origGenerateBrief = generateBrief;
-// Patch is handled inline in generateBrief — save button added after render
