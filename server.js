@@ -57,7 +57,7 @@ function setCache(res, seconds) {
 }
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL   = "llama-3.3-70b-versatile";
-const VERSION = "3.7";
+const VERSION = "4.5";
 
 // ── CLAUDE HELPER ─────────────────────────────────────────────────────────────
 async function callClaude(system, user, maxTokens = 1024) {

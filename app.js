@@ -605,7 +605,7 @@ async function generateBrief() {
 function copyBrief() {
   const sections = document.querySelectorAll('#briefContent .brief-section');
   let text = currentBriefTopic.toUpperCase() + ' — INTELLIGENCE BRIEF\n' + '═'.repeat(60) + '\n';
-  text += 'Generated: ' + new Date().toUTCString() + '\nSource: Briefly Intelligence v3.7\n\n';
+  text += 'Generated: ' + new Date().toUTCString() + '\nSource: Briefly Intelligence v4.5\n\n';
   sections.forEach(s => {
     const title = s.querySelector('.brief-section-title');
     const body = s.querySelector('.brief-section-body');
