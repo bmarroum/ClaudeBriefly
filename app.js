@@ -370,11 +370,39 @@ async function generateBrief() {
   currentBriefTopic = q; LS.set('lastBrief', q);
   document.getElementById('briefTitleText').textContent = q;
   const el = document.getElementById('briefContent');
-  el.innerHTML = '<div style="padding:30px 0;text-align:center;"><div class="loading-spinner" style="width:28px;height:28px;border-width:3px;margin:0 auto 14px;"></div><div style="font-family:var(--serif);font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Generating Intelligence Brief</div><div style="font-size:12px;color:var(--muted);">Analyzing live sources and synthesizing assessment…</div></div>';
+  // Animated progress stages
+  const stages = [
+    { icon: '🔍', text: 'Searching live sources…', sub: 'Claude web search + Google News RSS' },
+    { icon: '📡', text: 'Gathering intelligence…', sub: 'Gemini grounding + Groq context analysis' },
+    { icon: '🧠', text: 'Synthesizing assessment…', sub: 'Cross-referencing sources and building brief' },
+    { icon: '📋', text: 'Finalizing brief…', sub: 'Structuring threat levels and key actors' },
+  ];
+  let stageIdx = 0;
+  function renderStage(s) {
+    el.innerHTML = `<div style="padding:40px 0;text-align:center;">
+      <div style="font-size:36px;margin-bottom:16px;animation:pulse 1.5s infinite">${s.icon}</div>
+      <div style="font-family:var(--serif);font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px;">${s.text}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:24px;">${s.sub}</div>
+      <div style="display:flex;justify-content:center;gap:6px;">
+        ${stages.map((_,i) => `<div style="width:8px;height:8px;border-radius:50%;background:${i===stageIdx?'var(--accent)':'var(--border)'};transition:background 0.3s;"></div>`).join('')}
+      </div>
+    </div>`;
+  }
+  renderStage(stages[0]);
+  const stageTimer = setInterval(() => {
+    stageIdx = Math.min(stageIdx + 1, stages.length - 1);
+    renderStage(stages[stageIdx]);
+  }, 7000);
+
   const btn = document.getElementById('briefGenerateBtn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Analyzing…'; }
   try {
-    const data = await apiFetch('/api/briefing', { body: JSON.stringify({ topic: q }) }, null);
+    const data = await apiFetch('/api/briefing', { body: JSON.stringify({ topic: q, force: !!window._briefForce }) }, null);
+    clearInterval(stageTimer);
+    if (data.cached) {
+      el.innerHTML = '<div style="padding:10px 0 4px;text-align:center;font-size:12px;color:var(--muted);">⚡ Served from cache · <a href="#" onclick="generateBriefForce()" style="color:var(--accent)">Refresh</a></div>';
+      setTimeout(() => { const cacheNote = el.querySelector('div'); if(cacheNote) cacheNote.remove(); }, 3000);
+    }
     const a = data.analysis || {};
     const liveHeadlines = data.liveHeadlines || [];
     const ts = new Date().toLocaleString('en-US',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'}) + ' UTC';
@@ -545,6 +573,7 @@ async function generateBrief() {
     el.innerHTML = h;
     archiveSave(q, a);
   } catch (e) {
+    clearInterval(stageTimer);
     el.innerHTML = '<div class="error-state">⚠ Failed to generate brief: '+esc(e.message)+' <button class="error-retry" onclick="generateBrief()">Retry</button></div>';
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '⚡ Generate Brief'; }
@@ -689,6 +718,15 @@ function clearAirspaceSelections() {
   renderAirspaceTags();
   document.getElementById('airspaceContent').innerHTML = '';
   if (leafletMap) leafletMap.eachLayer(l => { if (l instanceof L.Marker) leafletMap.removeLayer(l); });
+}
+
+function generateBriefForce() {
+  const q = document.getElementById('briefSearchInput').value.trim() || currentBriefTopic;
+  if (!q) return;
+  // Override the fetch to pass force:true
+  const _orig = window._briefForce;
+  window._briefForce = true;
+  generateBrief().finally(() => { window._briefForce = false; });
 }
 
 async function loadAllAirspace() {

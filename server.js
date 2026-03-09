@@ -26,6 +26,28 @@ const ANTHROPIC_VERSION = "2023-06-01";
 const MODEL = "claude-sonnet-4-20250514";
 const GEMINI_MODEL = "gemini-2.0-flash";
 
+// ── IN-MEMORY BRIEF CACHE (topic → result, 15min TTL) ────────────────────────
+const BRIEF_CACHE = new Map();
+const BRIEF_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+
+function getBriefCache(topic) {
+  const key = topic.trim().toLowerCase();
+  const entry = BRIEF_CACHE.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > BRIEF_CACHE_TTL) { BRIEF_CACHE.delete(key); return null; }
+  return entry.data;
+}
+
+function setBriefCache(topic, data) {
+  const key = topic.trim().toLowerCase();
+  BRIEF_CACHE.set(key, { data, ts: Date.now() });
+  // Keep cache from growing unbounded
+  if (BRIEF_CACHE.size > 50) {
+    const oldest = [...BRIEF_CACHE.entries()].sort((a,b) => a[1].ts - b[1].ts)[0][0];
+    BRIEF_CACHE.delete(oldest);
+  }
+}
+
 // ── CACHE HELPER ──────────────────────────────────────────────────────────────
 function setCache(res, seconds) {
   res.set({
@@ -495,8 +517,17 @@ app.get("/api/rss/breaking", async (req, res) => {
 // All three feed into a final Claude synthesis pass.
 
 app.post("/api/briefing", async (req, res) => {
-  const { topic } = req.body;
+  const { topic, force } = req.body;
   if (!topic) return res.status(400).json({ error: "Topic required" });
+
+  // Serve from cache if available (and not a forced refresh)
+  if (!force) {
+    const cached = getBriefCache(topic);
+    if (cached) {
+      console.log(`[BRIEF] Cache hit: "${topic}"`);
+      return res.json({ ...cached, cached: true });
+    }
+  }
 
   const su = encodeURIComponent(topic);
   const hasGemini = !!process.env.GEMINI_API_KEY;
@@ -614,7 +645,7 @@ app.post("/api/briefing", async (req, res) => {
       combinedContext +
       "\nWrite a verified intelligence brief about: " + topic +
       "\n\nOutput ONLY this JSON (every field must contain honest, sourced content):\n" + JSON_SCHEMA,
-      3500
+      2000
     );
 
     const analysis = parseJSON(text);
@@ -638,7 +669,9 @@ app.post("/api/briefing", async (req, res) => {
     if (searchUsed) engines.push("gemini");
     if (groqContextText) engines.push("groq");
     const engineUsed = engines.join("+");
-    res.json({ analysis, liveHeadlines, engine: engineUsed, searchUsed, dataSourceCount });
+    const result = { analysis, liveHeadlines, engine: engineUsed, searchUsed, dataSourceCount };
+    setBriefCache(topic, result);
+    res.json(result);
   } catch (e) {
     console.error("Briefing synthesis error:", e.message);
     res.status(500).json({ error: e.message });
@@ -649,6 +682,7 @@ app.post("/api/briefing", async (req, res) => {
 async function callClaudeSearch(topic) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
+    signal: AbortSignal.timeout(20000),
     headers: {
       "Content-Type": "application/json",
       "x-api-key": process.env.ANTHROPIC_API_KEY,
@@ -657,7 +691,7 @@ async function callClaudeSearch(topic) {
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 2000,
+      max_tokens: 1200,
       tools: [{ type: "web_search_20250305", name: "web_search" }],
       system: "You are a research assistant. Search the web for the latest news and information about the given topic. Focus on results from the past 2 weeks. Summarise what you find factually and include specific dates, names, and events. Return only what you found — no analysis, no opinions.",
       messages: [{ role: "user", content: "Search for the very latest news and developments about: \"" + topic + "\". Today is " + todayStr() + ". Find recent events, current status, key developments from the past 2 weeks. Be specific about dates and facts." }],
