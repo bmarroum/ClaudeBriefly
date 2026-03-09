@@ -658,19 +658,12 @@ async function exportBriefPDF() {
 
     function addSectionHeader(tag, title) {
       checkPage(14);
-      // Gold tag box on left
-      const tagW = doc.getStringUnitWidth(tag) * 8 / doc.internal.scaleFactor + 6;
+      // Full-width gold box with title inside
       doc.setFillColor(200, 168, 75);
-      doc.roundedRect(margin, y, tagW, 7, 1, 1, 'F');
-      doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
-      doc.text(tag, margin + 3, y + 5);
-      // Title text after tag
-      doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(20, 20, 40);
-      doc.text(title.toUpperCase(), margin + tagW + 4, y + 5);
-      // Underline
-      doc.setDrawColor(230, 225, 215);
-      doc.line(margin, y + 9, margin + contentW, y + 9);
-      y += 14;
+      doc.roundedRect(margin, y, contentW, 8, 1.5, 1.5, 'F');
+      doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 22, 35);
+      doc.text(title.toUpperCase(), margin + 5, y + 5.8);
+      y += 13;
     }
 
     function addBullet(text, indent) {
