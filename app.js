@@ -1,21 +1,23 @@
 'use strict';
 // ═══════════════════════════════════════════════════════════════════
-//  BRIEFLY INTELLIGENCE v5.0 — MENA & Ukraine NGO Safety Platform
+// BRIEFLY INTELLIGENCE v5.1 — MENA & Ukraine NGO Safety Platform
+// FIXES: Advisory data mapping, State Dept URLs, &nbsp; decode,
+//        airspace status badges, stale date display, airspace query
 // ═══════════════════════════════════════════════════════════════════
 const API = 'https://claudebriefly.onrender.com';
 
-// ── State ─────────────────────────────────────────────────────────
-let currentTab      = 'news';
-let currentRegion   = 'Middle East & Africa';
+// ── State ───────────────────────────────────────────────────────────
+let currentTab = 'news';
+let currentRegion = 'Middle East & Africa';
 let currentBriefTopic = '';
-let showCitations   = true;
-let showAiBadge     = true;
-let marketsLoaded   = false;
-let leafletMap      = null;
-let advisoryActive  = new Set();
-let chatHistory     = [];
+let showCitations = true;
+let showAiBadge = true;
+let marketsLoaded = false;
+let leafletMap = null;
+let advisoryActive = new Set();
+let chatHistory = [];
 
-// ── Cache ─────────────────────────────────────────────────────────
+// ── Cache ───────────────────────────────────────────────────────────
 const CACHE = {};
 const TTL = { news: 5*60000, brief: 30*60000, markets: 10*60000, adv: 15*60000, air: 10*60000 };
 
@@ -27,13 +29,13 @@ function cacheGet(k, ttl) {
 }
 function cacheSet(k, d) { CACHE[k] = { data: d, ts: Date.now() }; }
 
-// ── localStorage helper ───────────────────────────────────────────
+// ── localStorage helper ─────────────────────────────────────────────
 const LS = {
   get(k, def) { try { const v = localStorage.getItem('briefly_'+k); return v!=null ? JSON.parse(v) : def; } catch { return def; } },
-  set(k, v)  { try { localStorage.setItem('briefly_'+k, JSON.stringify(v)); } catch {} },
+  set(k, v) { try { localStorage.setItem('briefly_'+k, JSON.stringify(v)); } catch {} },
 };
 
-// ── Fetch with retry ──────────────────────────────────────────────
+// ── Fetch with retry ────────────────────────────────────────────────
 async function apiFetch(path, opts, cKey, ttl) {
   if (cKey) { const c = cacheGet(cKey, ttl||TTL.news); if (c) return c; }
   const merged = { method:'POST', headers:{'Content-Type':'application/json'}, ...opts };
@@ -51,17 +53,29 @@ async function apiFetch(path, opts, cKey, ttl) {
   }
 }
 
-// ── Utilities ─────────────────────────────────────────────────────
+// ── Utilities ───────────────────────────────────────────────────────
 function esc(s) {
   if (!s) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
+
+// FIX BUG 7: Added &nbsp; decoding to cleanBody
 function cleanBody(s) {
   if (!s) return '';
-  return String(s).replace(/<[^>]+>/g,' ').replace(/https?:\/\/\S+/g,'')
-    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#\d+;/g,'')
-    .replace(/\s+/g,' ').trim().slice(0,200);
+  return String(s)
+    .replace(/<[^>]+>/g,' ')
+    .replace(/https?:\/\/\S+/g,'')
+    .replace(/&nbsp;/g,' ')      // ← FIX: decode &nbsp; entities
+    .replace(/&amp;/g,'&')
+    .replace(/&lt;/g,'<')
+    .replace(/&gt;/g,'>')
+    .replace(/&#\d+;/g,'')
+    .replace(/\s+/g,' ')
+    .trim()
+    .slice(0,200);
 }
+
+// FIX BUG 6: Show year on old dates (>7 days)
 function fmtDate(str) {
   try {
     const d = new Date(str);
@@ -70,11 +84,15 @@ function fmtDate(str) {
     const diff = (now - d) / 60000;
     if (diff < 60) return Math.round(diff) + 'm ago';
     if (diff < 1440) return Math.round(diff/60) + 'h ago';
-    return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    // FIX: show year when older than 7 days so stale content is obvious
+    const opts = diff > 10080
+      ? {month:'short', day:'numeric', year:'numeric'}
+      : {month:'short', day:'numeric'};
+    return d.toLocaleDateString('en-US', opts);
   } catch { return ''; }
 }
 
-// ── Tab switching ─────────────────────────────────────────────────
+// ── Tab switching ───────────────────────────────────────────────────
 function switchTab(tab) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -84,11 +102,10 @@ function switchTab(tab) {
   if (nb) nb.classList.add('active');
   currentTab = tab;
   LS.set('lastTab', tab);
-
-  if (tab === 'news')        loadNews(currentRegion);
-  else if (tab === 'airspace')   initAirspaceTab();
+  if (tab === 'news') loadNews(currentRegion);
+  else if (tab === 'airspace') initAirspaceTab();
   else if (tab === 'markets' && !marketsLoaded) loadMarkets();
-  else if (tab === 'settings')   initSettingsUI();
+  else if (tab === 'settings') initSettingsUI();
 }
 
 function forceRefresh() {
@@ -100,7 +117,7 @@ function forceRefresh() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  NEWS
+// NEWS
 // ═══════════════════════════════════════════════════════════════════
 function selectRegion(btn, region) {
   document.querySelectorAll('#regionPills .pill').forEach(b => b.classList.remove('active'));
@@ -116,14 +133,13 @@ async function loadNews(region, search) {
   el.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div>Loading headlines…</div>';
   const cKey = search ? 'search_'+search : 'news_'+currentRegion;
   try {
-    const data = await apiFetch('/api/news',
-      { body: JSON.stringify({ topic: currentRegion, search: search||undefined }) },
-      cKey, TTL.news);
+    const data = await apiFetch('/api/news', {
+      body: JSON.stringify({ topic: currentRegion, search: search||undefined })
+    }, cKey, TTL.news);
     el._data = data; el._search = search||null;
     renderNews(data, el, search||null);
   } catch(e) {
-    el.innerHTML = `<div class="error-card">⚠ Failed to load. Backend may be warming up.
-      <button class="retry-btn" onclick="loadNews(currentRegion)">Retry</button></div>`;
+    el.innerHTML = `<div class="error-card">⚠ Failed to load. Backend may be warming up. <button class="retry-btn" onclick="loadNews(currentRegion)">Retry</button></div>`;
   }
 }
 
@@ -135,7 +151,6 @@ function doNewsSearch() {
 
 function renderNews(data, el, searchQuery) {
   const items = (data.items || []).sort((a,b) => new Date(b.pubDate||0) - new Date(a.pubDate||0));
-
   let h = `<div class="news-card">`;
   h += `<div class="news-card-header">`;
   h += `<div class="news-headline">${esc(data.headline||'Headlines')}</div>`;
@@ -143,13 +158,11 @@ function renderNews(data, el, searchQuery) {
   h += `</div>`;
   if (data.summary) h += `<div class="news-summary">${esc(data.summary)}</div>`;
   h += `<div class="news-count">${items.length} headlines</div>`;
-
   items.forEach(item => {
     const body = cleanBody(item.body);
     const href = item.link ? ` href="${esc(item.link)}" target="_blank" rel="noopener"` : '';
     let title = esc(item.title);
     if (searchQuery) title = highlight(title, searchQuery);
-
     h += `<div class="news-item">`;
     h += `<div class="news-item-body">`;
     h += `<a class="news-item-title"${href}>${title}</a>`;
@@ -160,7 +173,6 @@ function renderNews(data, el, searchQuery) {
     if (item.isLive) h += `<span class="live-badge">● Live</span>`;
     h += `</div></div></div>`;
   });
-
   h += `</div>`;
   el.innerHTML = h;
 }
@@ -168,15 +180,12 @@ function renderNews(data, el, searchQuery) {
 function highlight(text, q) {
   const terms = q.trim().split(/\s+/).filter(t => t.length > 2);
   let r = text;
-  terms.forEach(t => {
-    r = r.replace(new RegExp('('+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')', 'gi'),
-      '<mark class="hl">$1</mark>');
-  });
+  terms.forEach(t => { r = r.replace(new RegExp('('+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')', 'gi'), '<mark class="hl">$1</mark>'); });
   return r;
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  BRIEF
+// BRIEF
 // ═══════════════════════════════════════════════════════════════════
 const THREAT_ICONS = { CRITICAL:'🔴', HIGH:'🟠', ELEVATED:'🟡', MODERATE:'🔵', LOW:'🟢' };
 
@@ -193,15 +202,15 @@ function generateBriefForce() {
 async function generateBrief() {
   const q = document.getElementById('briefSearchInput').value.trim() || currentBriefTopic;
   if (!q) { showToast('Enter a topic first', 'warning'); return; }
-  currentBriefTopic = q; LS.set('lastBrief', q);
+  currentBriefTopic = q;
+  LS.set('lastBrief', q);
   document.getElementById('briefTitleText').textContent = q;
-
   const el = document.getElementById('briefContent');
   const stages = [
-    { icon:'🔍', text:'Searching live sources…',     sub:'Google News + Reuters RSS feeds' },
-    { icon:'📡', text:'Gathering intelligence…',     sub:'Gemini grounding + multi-source analysis' },
-    { icon:'🧠', text:'Synthesizing assessment…',    sub:'Cross-referencing and building brief' },
-    { icon:'📋', text:'Finalizing brief…',           sub:'Structuring threat levels and actors' },
+    { icon:'🔍', text:'Searching live sources…', sub:'Google News + Reuters RSS feeds' },
+    { icon:'📡', text:'Gathering intelligence…', sub:'Gemini grounding + multi-source analysis' },
+    { icon:'🧠', text:'Synthesizing assessment…', sub:'Cross-referencing and building brief' },
+    { icon:'📋', text:'Finalizing brief…', sub:'Structuring threat levels and actors' },
   ];
   let si = 0;
   const renderStage = s => {
@@ -214,21 +223,19 @@ async function generateBrief() {
   };
   renderStage(stages[0]);
   const timer = setInterval(() => { si = Math.min(si+1, stages.length-1); renderStage(stages[si]); }, 7000);
-
   const btn = document.getElementById('briefGenerateBtn');
   if (btn) { btn.disabled=true; btn.textContent='⏳ Analyzing…'; }
-
   try {
-    const data = await apiFetch('/api/briefing',
-      { body: JSON.stringify({ topic: q, force: !!window._briefForce }) }, null);
+    const data = await apiFetch('/api/briefing', {
+      body: JSON.stringify({ topic: q, force: !!window._briefForce })
+    }, null);
     clearInterval(timer);
     const a = data.analysis || {};
     window._lastBriefData = { analysis: a, topic: q, liveHeadlines: data.liveHeadlines||[] };
     renderBrief(a, q, data.liveHeadlines||[]);
   } catch(e) {
     clearInterval(timer);
-    el.innerHTML = `<div class="error-card">⚠ Failed to generate brief: ${esc(e.message)}
-      <button class="retry-btn" onclick="generateBrief()">Retry</button></div>`;
+    el.innerHTML = `<div class="error-card">⚠ Failed to generate brief: ${esc(e.message)} <button class="retry-btn" onclick="generateBrief()">Retry</button></div>`;
   } finally {
     if (btn) { btn.disabled=false; btn.textContent='⚡ Generate'; }
   }
@@ -240,24 +247,17 @@ function renderBrief(a, topic, headlines) {
   const threat = (a.threat_level||'MODERATE').toUpperCase();
   const conf = a.confidence || 75;
   const tIcon = THREAT_ICONS[threat]||'🔵';
-
   let h = '';
-
-  // Action bar
   h += `<div class="brief-actions">
     <button class="brief-act-btn" onclick="copyBrief()">📋 Copy</button>
     <button class="brief-act-btn" onclick="exportBriefPDF()">📥 PDF</button>
     ${showAiBadge ? '<span class="ai-badge">🤖 AI Analysis</span>' : ''}
   </div>`;
-
-  // Meta
   h += `<div class="brief-meta">
     <span>📅 ${ts}</span>
     <span>🔐 INTEL BRIEF</span>
     ${headlines.length ? '<span class="live-badge">● Live Context</span>' : ''}
   </div>`;
-
-  // Threat banner
   h += `<div class="threat-banner threat-${threat}">
     <div class="threat-left">
       <span class="threat-icon-big">${tIcon}</span>
@@ -272,11 +272,7 @@ function renderBrief(a, topic, headlines) {
       ${a.threat_level_reason ? `<div class="threat-reason">${esc(a.threat_level_reason)}</div>` : ''}
     </div>
   </div>`;
-
-  // Main grid
   h += `<div class="brief-grid">`;
-
-  // Left column — narrative sections
   h += `<div class="brief-main">`;
   const sections = [
     ['📌','Executive Summary','executive'],
@@ -292,8 +288,6 @@ function renderBrief(a, topic, headlines) {
       <div class="brief-sec-body">${esc(a[key])}</div>
     </div>`;
   });
-
-  // Sources
   if (showCitations && a.sources?.length) {
     h += `<div class="brief-section">
       <div class="brief-sec-hdr"><span>📎</span><span>Verify Sources</span></div>
@@ -303,12 +297,8 @@ function renderBrief(a, topic, headlines) {
     });
     h += `</div></div>`;
   }
-  h += `</div>`; // end main
-
-  // Right column — structured data
+  h += `</div>`;
   h += `<div class="brief-side">`;
-
-  // Key Actors
   if (a.key_actors?.length) {
     h += `<div class="brief-section">
       <div class="brief-sec-hdr"><span>👤</span><span>Key Actors</span></div>
@@ -322,8 +312,6 @@ function renderBrief(a, topic, headlines) {
     });
     h += `</div></div>`;
   }
-
-  // Timeline
   if (a.timeline?.length) {
     h += `<div class="brief-section">
       <div class="brief-sec-hdr"><span>🕐</span><span>Timeline</span></div>
@@ -336,8 +324,6 @@ function renderBrief(a, topic, headlines) {
     });
     h += `</div></div>`;
   }
-
-  // Key Risks
   if (a.key_risks?.length) {
     h += `<div class="brief-section">
       <div class="brief-sec-hdr"><span>⚠️</span><span>Key Risks</span></div>
@@ -345,8 +331,6 @@ function renderBrief(a, topic, headlines) {
     a.key_risks.forEach(r => { h += `<div class="risk-item">${esc(r)}</div>`; });
     h += `</div></div>`;
   }
-
-  // Watch Points
   if (a.watch_points?.length) {
     h += `<div class="brief-section">
       <div class="brief-sec-hdr"><span>👁</span><span>Watch Points</span></div>
@@ -354,8 +338,6 @@ function renderBrief(a, topic, headlines) {
     a.watch_points.forEach(w => { h += `<div class="watch-item">${esc(w)}</div>`; });
     h += `</div></div>`;
   }
-
-  // Live Headlines
   if (headlines.length) {
     h += `<div class="brief-section">
       <div class="brief-sec-hdr"><span>📰</span><span>Live Headlines <span class="live-badge">● Live</span></span></div>
@@ -366,8 +348,6 @@ function renderBrief(a, topic, headlines) {
     });
     h += `</div></div>`;
   }
-
-  // Related topics
   if (a.related_topics?.length) {
     h += `<div class="brief-section">
       <div class="brief-sec-hdr"><span>🔗</span><span>Related Topics</span></div>
@@ -377,9 +357,8 @@ function renderBrief(a, topic, headlines) {
     });
     h += `</div></div>`;
   }
-
-  h += `</div>`; // end side
-  h += `</div>`; // end grid
+  h += `</div>`;
+  h += `</div>`;
   el.innerHTML = h;
 }
 
@@ -389,7 +368,7 @@ function copyBrief() {
   text += 'Generated: ' + new Date().toUTCString() + '\n\n';
   sections.forEach(s => {
     const title = s.querySelector('.brief-sec-hdr span:last-child');
-    const body  = s.querySelector('.brief-sec-body');
+    const body = s.querySelector('.brief-sec-body');
     if (title && body) text += title.textContent.trim() + '\n' + '─'.repeat(40) + '\n' + body.textContent.trim() + '\n\n';
   });
   navigator.clipboard.writeText(text).then(() => showToast('Brief copied', 'success'));
@@ -413,7 +392,6 @@ async function exportBriefPDF() {
     const a = stored.analysis, topic = stored.topic || currentBriefTopic;
     const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
     const W=210, M=16, CW=W-M*2; let y=0;
-
     const np = () => { doc.addPage(); y=20; };
     const chk = n => { if (y+n>278) np(); };
     const txt = (t,x,mw,sz,st,rgb) => {
@@ -423,13 +401,10 @@ async function exportBriefPDF() {
       chk(ls.length*sz*0.38+2); doc.text(ls,x,y); y+=ls.length*sz*0.38+2;
     };
     const hdr = (t) => {
-      chk(14); doc.setFillColor(200,168,75);
-      doc.roundedRect(M,y,CW,8,1.5,1.5,'F');
+      chk(14); doc.setFillColor(200,168,75); doc.roundedRect(M,y,CW,8,1.5,1.5,'F');
       doc.setFontSize(8.5); doc.setFont('helvetica','bold'); doc.setTextColor(15,22,35);
       doc.text(t.toUpperCase(), M+5, y+5.8); y+=13;
     };
-
-    // Cover header
     doc.setFillColor(12,18,30); doc.rect(0,0,W,38,'F');
     doc.setFillColor(200,168,75); doc.rect(M,10,1.5,20,'F');
     doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(200,168,75);
@@ -437,36 +412,29 @@ async function exportBriefPDF() {
     doc.setFontSize(18); doc.setFont('helvetica','bold'); doc.setTextColor(235,228,210);
     doc.text(topic.toUpperCase().slice(0,40), M+5, 26);
     doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(120,120,140);
-    doc.text(new Date().toUTCString()+'  ·  AI-GENERATED — VERIFY WITH OFFICIAL SOURCES', M+5, 34);
+    doc.text(new Date().toUTCString()+' · AI-GENERATED — VERIFY WITH OFFICIAL SOURCES', M+5, 34);
     y=46;
-
-    // Threat bar
     const threat=(a.threat_level||'MODERATE').toUpperCase();
     const tc={CRITICAL:[180,30,30],HIGH:[210,60,40],ELEVATED:[200,110,20],MODERATE:[30,100,170],LOW:[30,140,80]}[threat]||[80,80,80];
-    chk(16); doc.setFillColor(...tc);
-    doc.roundedRect(M,y,CW,11,2,2,'F');
+    chk(16); doc.setFillColor(...tc); doc.roundedRect(M,y,CW,11,2,2,'F');
     doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
-    doc.text(`THREAT: ${threat}   |   CONFIDENCE: ${a.confidence||'—'}%`, M+4, y+7.5); y+=16;
-
+    doc.text(`THREAT: ${threat} | CONFIDENCE: ${a.confidence||'—'}%`, M+4, y+7.5); y+=16;
     const sections=[['Executive Summary','executive'],['Current Situation','situation'],
       ['Geopolitical Analysis','geopolitical'],['Humanitarian','humanitarian'],['Strategic Outlook','strategic']];
     sections.forEach(([t,k]) => { if(a[k]){hdr(t); txt(a[k],M,CW,9.5); y+=4;} });
-
     if (a.key_actors?.length) {
       hdr('Key Actors');
       a.key_actors.slice(0,6).forEach(ac => {
         chk(10); txt(ac.name||'',M+2,CW-4,9,'bold');
-        if(ac.role) txt(ac.role,M+2,CW-4,8,'italic',[100,80,40]);
-        y+=2;
+        if(ac.role) txt(ac.role,M+2,CW-4,8,'italic',[100,80,40]); y+=2;
       });
     }
     if (a.key_risks?.length) { hdr('Key Risks'); a.key_risks.forEach(r=>{chk(8);txt('• '+r,M+2,CW-6,8.5);y+=1;}); }
     if (a.watch_points?.length) { hdr('Watch Points'); a.watch_points.forEach(w=>{chk(8);txt('• '+w,M+2,CW-6,8.5);y+=1;}); }
-
-    // Page footers
     const n=doc.getNumberOfPages();
     for(let i=1;i<=n;i++){
-      doc.setPage(i); doc.setFillColor(235,230,220); doc.rect(0,283,W,14,'F');
+      doc.setPage(i);
+      doc.setFillColor(235,230,220); doc.rect(0,283,W,14,'F');
       doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(120,110,90);
       doc.text('BRIEFLY INTELLIGENCE · MENA & UKRAINE · AI-GENERATED — VERIFY WITH OFFICIAL SOURCES', M, 290);
       doc.text('Page '+i+' of '+n, W-M, 290,{align:'right'});
@@ -480,7 +448,7 @@ async function exportBriefPDF() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  AIRSPACE — FlightRadar24 news feed for MENA & Ukraine
+// AIRSPACE
 // ═══════════════════════════════════════════════════════════════════
 function initAirspaceTab() {
   initMap();
@@ -500,51 +468,71 @@ function initMap() {
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution:'© OpenStreetMap © CARTO', subdomains:'abcd', maxZoom:18
     }).addTo(leafletMap);
-    // Add region markers
     const markers = [
       [31.9, 35.9, '🇵🇸 Gaza/Israel'], [33.9, 35.5, '🇱🇧 Lebanon'],
-      [34.8, 38.9, '🇸🇾 Syria'],       [33.3, 44.4, '🇮🇶 Iraq'],
-      [48.4, 31.2, '🇺🇦 Ukraine'],     [15.4, 32.5, '🇸🇩 Sudan'],
-      [15.3, 44.2, '🇾🇪 Yemen'],       [29.3, 42.7, '🇸🇦 Saudi Arabia'],
+      [34.8, 38.9, '🇸🇾 Syria'], [33.3, 44.4, '🇮🇶 Iraq'],
+      [48.4, 31.2, '🇺🇦 Ukraine'], [15.4, 32.5, '🇸🇩 Sudan'],
+      [15.3, 44.2, '🇾🇪 Yemen'], [29.3, 42.7, '🇸🇦 Saudi Arabia'],
     ];
-    markers.forEach(([lat,lng,label]) => {
-      L.marker([lat,lng]).addTo(leafletMap).bindPopup(label);
-    });
+    markers.forEach(([lat,lng,label]) => { L.marker([lat,lng]).addTo(leafletMap).bindPopup(label); });
     setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 300);
   } catch(e) { console.warn('Map init:', e); }
 }
 
+// FIX BUG 6: Improved search query with current year for fresher results
 async function loadAirspaceNews() {
   const el = document.getElementById('airspaceContent');
-  el.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div>Loading FlightRadar24 aviation news…</div>';
+  el.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div>Loading aviation news…</div>';
+  const year = new Date().getFullYear();
   try {
-    const data = await apiFetch('/api/news',
-      { body: JSON.stringify({ topic: 'Middle East Ukraine airspace aviation FlightRadar24 flight ban', search: 'airspace NOTAM aviation MENA Ukraine flight restriction' }) },
-      'airspace_news', TTL.air);
+    const data = await apiFetch('/api/news', {
+      body: JSON.stringify({
+        topic: `MENA Ukraine airspace aviation ${year}`,
+        search: `airspace closed restricted NOTAM flight ban MENA Ukraine ${year}`
+      })
+    }, 'airspace_news', TTL.air);
     renderAirspaceNews(data);
   } catch(e) {
-    el.innerHTML = `<div class="error-card">⚠ Failed to load airspace news.
-      <button class="retry-btn" onclick="loadAirspaceNews()">Retry</button></div>`;
+    el.innerHTML = `<div class="error-card">⚠ Failed to load airspace news. <button class="retry-btn" onclick="loadAirspaceNews()">Retry</button></div>`;
   }
 }
 
+// FIX BUG 5: Airspace status classification function
+function getAirspaceStatus(title, body) {
+  const text = ((title||'') + ' ' + (body||'')).toLowerCase();
+  if (/close[sd]|ban[ned]*|halt[ed]*|suspend[ed]*|shut\s?down|prohibit|no[- ]fly/.test(text)) {
+    return { label: 'CLOSED', cls: 'airspace-status-closed' };
+  }
+  if (/restrict[ed]*|notam|limit[ed]*|partial|avoid|caution|warning|danger/.test(text)) {
+    return { label: 'RESTRICTED', cls: 'airspace-status-restricted' };
+  }
+  if (/reopen[ed]*|resume[d]*|lift[ed]*|normal[ised]*|unrestrict/.test(text)) {
+    return { label: 'OPEN', cls: 'airspace-status-open' };
+  }
+  return { label: 'MONITOR', cls: 'airspace-status-monitor' };
+}
+
+// FIX BUG 5: Added status badge to each airspace news item
 function renderAirspaceNews(data, countryLabel) {
   const el = document.getElementById('airspaceContent');
   const items = data.items || [];
-
   if (!items.length) {
     el.innerHTML = '<div class="empty-state"><div class="empty-icon">✈️</div><div class="empty-title">No airspace alerts found</div></div>';
     return;
   }
-
   let h = '<div class="airspace-news-list">';
   items.slice(0,20).forEach(item => {
     const body = cleanBody(item.body);
     const href = item.link ? ` href="${esc(item.link)}" target="_blank" rel="noopener"` : '';
+    // FIX BUG 5: compute status badge
+    const status = getAirspaceStatus(item.title, item.body);
     h += `<div class="airspace-news-item">
       <div class="airspace-news-icon">✈️</div>
       <div class="airspace-news-body">
-        <a class="airspace-news-title"${href}>${esc(item.title)}</a>
+        <div class="airspace-news-title-row">
+          <a class="airspace-news-title"${href}>${esc(item.title)}</a>
+          <span class="airspace-status-badge ${status.cls}">${status.label}</span>
+        </div>
         ${body ? `<div class="airspace-news-desc">${esc(body)}</div>` : ''}
         <div class="airspace-news-meta">
           ${item.sources ? `<span>${esc(item.sources)}</span>` : ''}
@@ -555,8 +543,6 @@ function renderAirspaceNews(data, countryLabel) {
     </div>`;
   });
   h += '</div>';
-
-  // FR24 official link
   h += `<div class="airspace-source-note">
     ✈️ For live flight tracking:
     <a href="https://www.flightradar24.com/data/airspaces" target="_blank" rel="noopener">FlightRadar24 Airspaces ↗</a>
@@ -565,12 +551,11 @@ function renderAirspaceNews(data, countryLabel) {
     &nbsp;·&nbsp;
     <a href="https://eurocontrol.int/" target="_blank" rel="noopener">EUROCONTROL ↗</a>
   </div>`;
-
   el.innerHTML = h;
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  ADVISORIES — MENA & Ukraine country chips
+// ADVISORIES
 // ═══════════════════════════════════════════════════════════════════
 function toggleAdvisory(btn, country) {
   if (advisoryActive.has(country)) {
@@ -597,10 +582,7 @@ function showAdvisoryEmpty() {
 
 async function loadAdvisoryCountry(country) {
   const el = document.getElementById('advisoryContent');
-  // Clear empty state if present
   if (el.querySelector('.empty-state')) el.innerHTML = '';
-
-  // Insert skeleton
   const cardId = 'adv_'+country.replace(/\s+/g,'_');
   if (!document.getElementById(cardId)) {
     const div = document.createElement('div');
@@ -612,10 +594,10 @@ async function loadAdvisoryCountry(country) {
     </div>`;
     el.appendChild(div);
   }
-
   try {
-    const data = await apiFetch('/api/advisories',
-      { body: JSON.stringify({ country }) }, 'adv_'+country, TTL.adv);
+    const data = await apiFetch('/api/advisories', {
+      body: JSON.stringify({ country })
+    }, 'adv_'+country, TTL.adv);
     renderAdvisoryCard(country, data);
   } catch(e) {
     const div = document.getElementById(cardId);
@@ -631,7 +613,6 @@ function getFlagEmoji(code) {
 
 function removeAdvisoryCountry(country) {
   advisoryActive.delete(country);
-  // Deactivate chip
   document.querySelectorAll('#advisoryChips .adv-chip').forEach(btn => {
     const c = btn.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
     if (c === country) btn.classList.remove('active');
@@ -652,18 +633,30 @@ function advLevelLabel(level) {
   return {1:'Exercise Normal Caution',2:'Exercise Increased Caution',3:'Reconsider Travel',4:'Do Not Travel'}[parseInt(level)||2]||'Exercise Caution';
 }
 
+// FIX BUGS 2 & 3: Properly read nested API response + use correct URL from API
 function renderAdvisoryCard(country, data) {
   const cardId = 'adv_'+country.replace(/\s+/g,'_');
   const wrapper = document.getElementById(cardId);
   if (!wrapper) return;
 
-  const level  = parseInt(data.level || data.advisoryLevel || data.level_number || 2);
-  const flag   = data.flag || getFlagEmoji(data.country_code || country.slice(0,2).toUpperCase());
-  const code   = (data.country_code || country.slice(0,2)).toLowerCase();
-  const label  = advLevelLabel(level);
-  const risks  = data.risks || {};
+  // FIX BUG 2: API returns { us: { level_number, summary, ... }, uk: {...} }
+  // Previously read top-level data.level which was always undefined → defaulted to 2
+  const usData = data.us || {};
+  const ukData = data.uk || {};
+  const level = parseInt(usData.level_number || ukData.level_number || data.level || data.advisoryLevel || 2);
+  const summary = usData.summary || ukData.summary || data.summary || '';
+  const key_risks = usData.key_risks || ukData.key_risks || data.key_risks || [];
 
+  const flag = data.flag || getFlagEmoji(data.country_code || country.slice(0,2).toUpperCase());
+  const code = (data.country_code || country.slice(0,2)).toLowerCase();
+  const label = advLevelLabel(level);
   const levelClass = ['','adv-l1','adv-l2','adv-l3','adv-l4'][level] || 'adv-l2';
+
+  // FIX BUG 3: Use URL directly from API response (correct format) instead of hardcoded pattern
+  // Old: `${code}-travel-advisory.html` → 404
+  // New: use data.us.url if available, else fall back to correct format without the suffix
+  const usUrl = usData.url || `https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/${country.toLowerCase().replace(/\s+/g,'-')}.html`;
+  const ukUrl = `https://www.gov.uk/foreign-travel-advice/${country.toLowerCase().replace(/\s+/g,'-')}`;
 
   let h = `<div class="adv-card">
     <div class="adv-card-hdr">
@@ -676,9 +669,10 @@ function renderAdvisoryCard(country, data) {
     </div>
     <div class="adv-card-body">`;
 
-  if (data.summary) h += `<div class="adv-summary">${esc(data.summary)}</div>`;
+  if (summary) h += `<div class="adv-summary">${esc(summary)}</div>`;
 
-  // Risk bars
+  // Risk bars (from us data)
+  const risks = usData.risks || data.risks || {};
   const riskKeys = Object.keys(risks).slice(0,5);
   if (riskKeys.length) {
     h += `<div class="adv-risks">`;
@@ -696,21 +690,25 @@ function renderAdvisoryCard(country, data) {
 
   // Quick facts
   const facts = [];
-  if (data.key_risks?.length)     facts.push(['⚠️ Key Risks', data.key_risks.slice(0,3).join(' · ')]);
-  if (data.entry || data.entryRequirements) facts.push(['🛂 Entry', data.entry||data.entryRequirements]);
-  if (data.emergency || data.emergencyContact) facts.push(['📞 Emergency', data.emergency||data.emergencyContact]);
+  if (key_risks?.length) facts.push(['⚠️ Key Risks', key_risks.slice(0,3).join(' · ')]);
+  const entry = usData.entry || data.entry || data.entryRequirements;
+  if (entry) facts.push(['🛂 Entry', entry]);
+  const emergency = usData.emergency || data.emergency || data.emergencyContact;
+  if (emergency) facts.push(['📞 Emergency', emergency]);
+  if (usData.embassy_note) facts.push(['🏛 Embassy', usData.embassy_note]);
+
   if (facts.length) {
     h += `<div class="adv-facts">`;
-    facts.forEach(([label, val]) => {
-      h += `<div class="adv-fact"><span class="adv-fact-label">${label}</span><span class="adv-fact-val">${esc(String(val).slice(0,120))}</span></div>`;
+    facts.forEach(([lbl, val]) => {
+      h += `<div class="adv-fact"><span class="adv-fact-label">${lbl}</span><span class="adv-fact-val">${esc(String(val).slice(0,160))}</span></div>`;
     });
     h += `</div>`;
   }
 
-  // Source links
+  // FIX BUG 3: Use correct URLs
   h += `<div class="adv-sources">
-    <a href="https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories/${code}-travel-advisory.html" target="_blank" rel="noopener" class="adv-src-btn">🇺🇸 State Dept</a>
-    <a href="https://www.gov.uk/foreign-travel-advice/${code}" target="_blank" rel="noopener" class="adv-src-btn">🇬🇧 FCDO</a>
+    <a href="${esc(usUrl)}" target="_blank" rel="noopener" class="adv-src-btn">🇺🇸 State Dept</a>
+    <a href="${esc(ukUrl)}" target="_blank" rel="noopener" class="adv-src-btn">🇬🇧 FCDO</a>
   </div>`;
 
   h += `</div></div>`;
@@ -718,26 +716,14 @@ function renderAdvisoryCard(country, data) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  MARKETS — Commodities only
+// MARKETS
 // ═══════════════════════════════════════════════════════════════════
 const COMMODITIES = {
   id: 'commodities',
   label: 'Essential Commodities',
   symbols: 'GC=F,CL=F,BZ=F,NG=F,ZW=F,ZC=F,SI=F,HG=F',
-  names: {
-    'GC=F':'Gold',
-    'CL=F':'WTI Crude Oil',
-    'BZ=F':'Brent Crude Oil',
-    'NG=F':'Natural Gas',
-    'ZW=F':'Wheat',
-    'ZC=F':'Corn',
-    'SI=F':'Silver',
-    'HG=F':'Copper',
-  },
-  icons: {
-    'GC=F':'🥇', 'CL=F':'🛢️', 'BZ=F':'🛢️', 'NG=F':'🔥',
-    'ZW=F':'🌾', 'ZC=F':'🌽', 'SI=F':'⚪', 'HG=F':'🟠',
-  }
+  names: { 'GC=F':'Gold', 'CL=F':'WTI Crude Oil', 'BZ=F':'Brent Crude Oil', 'NG=F':'Natural Gas', 'ZW=F':'Wheat', 'ZC=F':'Corn', 'SI=F':'Silver', 'HG=F':'Copper' },
+  icons: { 'GC=F':'🥇', 'CL=F':'🛢️', 'BZ=F':'🛢️', 'NG=F':'🔥', 'ZW=F':'🌾', 'ZC=F':'🌽', 'SI=F':'⚪', 'HG=F':'🟠' }
 };
 
 function loadMarkets(force) {
@@ -766,6 +752,7 @@ function makeSparkline(changePct, up) {
 async function loadCommodities() {
   const el = document.getElementById('ticker-commodities');
   if (!el) return;
+  // Show all 8 loading skeletons immediately
   el.innerHTML = COMMODITIES.symbols.split(',').map(s => {
     const sym = s.replace(/[^a-zA-Z0-9]/g,'_');
     return `<div class="ticker-card loading-card" id="tc_${sym}">
@@ -773,22 +760,38 @@ async function loadCommodities() {
       <div class="loading-spinner" style="width:12px;height:12px;margin:8px 0;"></div>
     </div>`;
   }).join('');
-
   try {
     const data = await apiFetch(
       '/api/markets/quote?symbols='+encodeURIComponent(COMMODITIES.symbols),
-      { method:'GET' }, 'mkt_commodities', TTL.markets);
+      { method:'GET' },
+      'mkt_commodities', TTL.markets);
     const quotes = data.quotes || [];
-    el.innerHTML = quotes.map(q => {
-      const name  = COMMODITIES.names[q.symbol] || q.name || q.symbol;
-      const icon  = COMMODITIES.icons[q.symbol] || '📊';
-      const up    = (q.change||0) >= 0;
-      const pr    = q.price != null ? (q.price>=1000
-        ? q.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})
-        : q.price.toFixed(q.price<10?4:2)) : '—';
-      const pct   = q.changePercent != null ? (up?'+':'')+q.changePercent.toFixed(2)+'%' : '—';
-      const chg   = q.change != null ? (up?'+':'')+q.change.toFixed(2) : '';
-      const isAI  = data.source==='ai_estimate';
+
+    // FIX BUG 1 (frontend side): If backend returns fewer than 8, fill missing with placeholder
+    const allSymbols = COMMODITIES.symbols.split(',');
+    const returnedSymbols = new Set(quotes.map(q => q.symbol));
+    const finalQuotes = allSymbols.map(sym => {
+      if (returnedSymbols.has(sym)) return quotes.find(q => q.symbol === sym);
+      // Backend didn't return this symbol — show placeholder card
+      return { symbol: sym, price: null, change: null, changePercent: null, missing: true };
+    });
+
+    el.innerHTML = finalQuotes.map(q => {
+      const name = COMMODITIES.names[q.symbol] || q.name || q.symbol;
+      const icon = COMMODITIES.icons[q.symbol] || '📊';
+      if (q.missing) {
+        return `<div class="ticker-card ticker-card-unavailable">
+          <div class="tc-icon">${icon}</div>
+          <div class="tc-sym">${esc(q.symbol.replace('=F',''))}</div>
+          <div class="tc-name">${esc(name)}</div>
+          <div class="tc-unavail">Data unavailable</div>
+        </div>`;
+      }
+      const up = (q.change||0) >= 0;
+      const pr = q.price != null ? (q.price>=1000 ? q.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : q.price.toFixed(q.price<10?4:2)) : '—';
+      const pct = q.changePercent != null ? (up?'+':'')+q.changePercent.toFixed(2)+'%' : '—';
+      const chg = q.change != null ? (up?'+':'')+q.change.toFixed(2) : '';
+      const isAI = data.source==='ai_estimate';
       return `<div class="ticker-card">
         <div class="tc-icon">${icon}</div>
         <div class="tc-sym">${esc(q.symbol.replace('=F','').replace('^',''))}</div>
@@ -832,7 +835,7 @@ async function loadMarketCommentary() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  FLOATING CHAT
+// FLOATING CHAT
 // ═══════════════════════════════════════════════════════════════════
 let chatPanelHistory = [];
 
@@ -848,16 +851,15 @@ async function sendChatPanel() {
   const q = inp?.value?.trim();
   if (!q) return;
   inp.value = '';
-
   const msgs = document.getElementById('chatPanelMessages');
   chatPanelHistory.push({ role:'user', content: q });
   msgs.innerHTML += `<div class="chat-msg user">${esc(q)}</div>`;
   msgs.innerHTML += `<div class="chat-msg assistant loading-msg" id="chatLoading"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>`;
   msgs.scrollTop = msgs.scrollHeight;
-
   try {
-    const data = await apiFetch('/api/ask',
-      { body: JSON.stringify({ question: q, history: chatPanelHistory.slice(-10) }) }, null);
+    const data = await apiFetch('/api/ask', {
+      body: JSON.stringify({ question: q, history: chatPanelHistory.slice(-10) })
+    }, null);
     const loading = document.getElementById('chatLoading');
     if (loading) loading.remove();
     const answer = data.answer || data.response || 'No response';
@@ -873,13 +875,13 @@ async function sendChatPanel() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  BREAKING TICKER
+// BREAKING TICKER
 // ═══════════════════════════════════════════════════════════════════
 async function loadBreakingTicker() {
   try {
-    const data = await apiFetch('/api/news',
-      { body: JSON.stringify({ topic: 'Middle East Ukraine breaking news' }) },
-      'ticker_news', TTL.news);
+    const data = await apiFetch('/api/news', {
+      body: JSON.stringify({ topic: 'Middle East Ukraine breaking news' })
+    }, 'ticker_news', TTL.news);
     const items = (data.items||[]).slice(0,15).filter(i=>i.title);
     if (!items.length) return;
     const track = document.getElementById('tickerTrack');
@@ -889,15 +891,14 @@ async function loadBreakingTicker() {
       const lk = i.link ? ` href="${esc(i.link)}" target="_blank" rel="noopener"` : '';
       return `<span><a${lk}>${src}${esc(i.title)}</a></span>`;
     }).join('');
-    track.innerHTML = html + html; // double for seamless loop
-    // Adjust animation duration based on content
+    track.innerHTML = html + html;
     const dur = Math.max(30, items.length * 6);
     track.style.animationDuration = dur + 's';
   } catch(e) { /* silent */ }
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  SETTINGS
+// SETTINGS
 // ═══════════════════════════════════════════════════════════════════
 function initSettingsUI() {
   const dm = document.getElementById('darkModeToggle');
@@ -906,55 +907,38 @@ function initSettingsUI() {
   if (ct) ct.checked = showCitations;
 }
 
+// FIX BUG 8: toggleDarkMode now also updates the toggle visual state
 function toggleDarkMode() {
-  const on = document.getElementById('darkModeToggle').checked;
-  document.documentElement.setAttribute('data-theme', on?'dark':'light');
+  const toggle = document.getElementById('darkModeToggle');
+  const on = toggle ? toggle.checked : !LS.get('darkMode', false);
+  document.documentElement.setAttribute('data-theme', on ? 'dark' : 'light');
   LS.set('darkMode', on);
 }
+
 function toggleCitations() {
   showCitations = document.getElementById('citationsToggle').checked;
   LS.set('citations', showCitations);
 }
+
 function clearCache() {
   Object.keys(CACHE).forEach(k => delete CACHE[k]);
   marketsLoaded = false;
   showToast('Cache cleared', 'success');
   if (currentTab==='news') loadNews(currentRegion);
 }
+
 function resetAll() {
   if (confirm('Reset all settings and clear cache?')) {
-    localStorage.clear(); location.reload();
+    localStorage.clear();
+    location.reload();
   }
 }
+
 function dismissDisclaimer() {
   const el = document.getElementById('disclaimerBanner');
   if (el) el.style.display='none';
   LS.set('discDismissed', true);
 }
-
-// ═══════════════════════════════════════════════════════════════════
-//  TOAST
-// ═══════════════════════════════════════════════════════════════════
-function showToast(msg, type='info') {
-  document.getElementById('briefly-toast')?.remove();
-  const colors = { info:'#2563eb', success:'#16a34a', error:'#dc2626', warning:'#d97706' };
-  const t = document.createElement('div');
-  t.id = 'briefly-toast';
-  t.textContent = msg;
-  Object.assign(t.style, {
-    position:'fixed', bottom:'90px', left:'50%', transform:'translateX(-50%)',
-    background: colors[type]||colors.info, color:'#fff',
-    padding:'10px 20px', borderRadius:'30px', fontSize:'13px', fontFamily:'var(--sans)',
-    fontWeight:'600', zIndex:'9999', boxShadow:'0 4px 16px rgba(0,0,0,.3)',
-    animation:'fadeInUp .25s ease', pointerEvents:'none', whiteSpace:'nowrap',
-  });
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3000);
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  INIT
-// ═══════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════
 // AIRSPACE — Country search
@@ -996,9 +980,10 @@ async function loadAirspaceNewsForCountry(country) {
   const el = document.getElementById('airspaceContent');
   el.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div>Loading airspace news for ' + esc(country) + '…</div>';
   const isAll = country === 'All MENA';
+  const year = new Date().getFullYear();
   const searchTerm = isAll
-    ? 'MENA Middle East airspace flight ban restriction NOTAM aviation'
-    : country + ' airspace flight ban restriction NOTAM aviation';
+    ? `MENA Middle East airspace flight ban restriction NOTAM aviation ${year}`
+    : `${country} airspace flight ban restriction NOTAM aviation ${year}`;
   try {
     const cKey = 'air_' + country.replace(/[^a-z0-9]/gi,'_');
     const data = await apiFetch('/api/news', {
@@ -1030,10 +1015,32 @@ function doAdvisorySearch() {
     advisoryActive.add(q);
     loadAdvisoryCountry(q);
   }
-  if (document.getElementById('advisorySearchInput'))
-    document.getElementById('advisorySearchInput').value = '';
+  if (document.getElementById('advisorySearchInput')) document.getElementById('advisorySearchInput').value = '';
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════════
+function showToast(msg, type='info') {
+  document.getElementById('briefly-toast')?.remove();
+  const colors = { info:'#2563eb', success:'#16a34a', error:'#dc2626', warning:'#d97706' };
+  const t = document.createElement('div');
+  t.id = 'briefly-toast';
+  t.textContent = msg;
+  Object.assign(t.style, {
+    position:'fixed', bottom:'90px', left:'50%', transform:'translateX(-50%)',
+    background: colors[type]||colors.info, color:'#fff', padding:'10px 20px',
+    borderRadius:'30px', fontSize:'13px', fontFamily:'var(--sans)', fontWeight:'600',
+    zIndex:'9999', boxShadow:'0 4px 16px rgba(0,0,0,.3)', animation:'fadeInUp .25s ease',
+    pointerEvents:'none', whiteSpace:'nowrap',
+  });
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
 (function init() {
   // Theme
   const useDark = LS.get('darkMode', false);
@@ -1041,7 +1048,7 @@ function doAdvisorySearch() {
 
   // Restore preferences
   showCitations = LS.get('citations', true);
-  showAiBadge   = LS.get('aiBadge', true);
+  showAiBadge = LS.get('aiBadge', true);
   currentBriefTopic = LS.get('lastBrief', '');
 
   // Dismiss banner if already dismissed
@@ -1050,7 +1057,7 @@ function doAdvisorySearch() {
     if (d) d.style.display='none';
   }
 
-  // Restore last region — default to Middle East
+  // Restore last region
   currentRegion = LS.get('lastRegion', 'Middle East & Africa');
   document.querySelectorAll('#regionPills .pill').forEach(b => {
     const r = b.getAttribute('onclick')?.match(/'([^']+)'\)/)?.[1];
