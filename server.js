@@ -640,16 +640,18 @@ app.post("/api/briefing", async (req, res) => {
     "}";
 
   // ── STEP 4: Synthesise final structured brief (Claude → Gemini → Groq fallback) ──
-  const synthSystem = "You are a senior intelligence analyst producing a verified, sourced briefing. Today: " + todayStr() + ".\n\n" +
+  const synthSystem = "You are a senior intelligence analyst producing a CURRENT, real-time intelligence brief. TODAY'S DATE: " + todayStr() + ". THIS IS CRITICAL — your brief must reflect the situation as of today. Do not describe past events as current unless confirmed by the live sources provided.\n\n" +
     "STRICT ACCURACY RULES:\n" +
     "1. Respond ONLY with a valid JSON object. No markdown, no preamble.\n" +
     "2. " + dataRules + "\n" +
     "3. Never invent dates, names, or events not present in your sources.\n" +
-    "4. If a field cannot be answered from live sources, say so explicitly — do not fill with plausible-sounding content.\n" +
-    "5. Confidence score must honestly reflect how much live data you have.";
-  const synthPrompt = combinedContext +
-    "\nWrite a verified intelligence brief about: " + topic +
-    "\n\nOutput ONLY this JSON (every field must contain honest, sourced content):\n" + JSON_SCHEMA;
+    "4. If a field cannot be answered from live sources, say so explicitly.\n" +
+    "5. Confidence score must honestly reflect how much live data you have.\n" +
+    "6. The 'executive' and 'situation' fields must describe TODAY'S status, not historical background.";
+  const synthPrompt = "=== TODAY'S DATE: " + todayStr() + " — ALL ANALYSIS MUST REFLECT CURRENT STATUS ===\n\n" +
+    combinedContext +
+    "\nWrite a CURRENT intelligence brief about: " + topic + " (status as of " + todayStr() + ")" +
+    "\n\nOutput ONLY this JSON (every field must be sourced from the live data above):\n" + JSON_SCHEMA;
   try {
     // Try Claude first, fall back to Gemini, then Groq
     let text = null;
