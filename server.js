@@ -639,21 +639,49 @@ app.post("/api/briefing", async (req, res) => {
     "\"sources\":[{\"name\":\"Reuters\",\"url\":\"https://reuters.com/search/news?blob=" + su + "\"},{\"name\":\"AP News\",\"url\":\"https://apnews.com/search?q=" + su + "\"},{\"name\":\"BBC\",\"url\":\"https://bbc.com/search?q=" + su + "\"},{\"name\":\"Bloomberg\",\"url\":\"https://bloomberg.com/search?query=" + su + "\"},{\"name\":\"Al Jazeera\",\"url\":\"https://aljazeera.com/search?q=" + su + "\"}}]" +
     "}";
 
-  // ── STEP 4: Claude synthesises into final structured brief ───────────────
+  // ── STEP 4: Synthesise final structured brief (Claude → Gemini → Groq fallback) ──
+  const synthSystem = "You are a senior intelligence analyst producing a verified, sourced briefing. Today: " + todayStr() + ".\n\n" +
+    "STRICT ACCURACY RULES:\n" +
+    "1. Respond ONLY with a valid JSON object. No markdown, no preamble.\n" +
+    "2. " + dataRules + "\n" +
+    "3. Never invent dates, names, or events not present in your sources.\n" +
+    "4. If a field cannot be answered from live sources, say so explicitly — do not fill with plausible-sounding content.\n" +
+    "5. Confidence score must honestly reflect how much live data you have.";
+  const synthPrompt = combinedContext +
+    "\nWrite a verified intelligence brief about: " + topic +
+    "\n\nOutput ONLY this JSON (every field must contain honest, sourced content):\n" + JSON_SCHEMA;
   try {
-    const text = await callClaude(
-      "You are a senior intelligence analyst producing a verified, sourced briefing. Today: " + todayStr() + ".\n\n" +
-      "STRICT ACCURACY RULES:\n" +
-      "1. Respond ONLY with a valid JSON object. No markdown, no preamble.\n" +
-      "2. " + dataRules + "\n" +
-      "3. Never invent dates, names, or events not present in your sources.\n" +
-      "4. If a field cannot be answered from live sources, say so explicitly — do not fill with plausible-sounding content.\n" +
-      "5. Confidence score must honestly reflect how much live data you have.",
-      combinedContext +
-      "\nWrite a verified intelligence brief about: " + topic +
-      "\n\nOutput ONLY this JSON (every field must contain honest, sourced content):\n" + JSON_SCHEMA,
-      2000
-    );
+    // Try Claude first, fall back to Gemini, then Groq
+    let text = null;
+    let synthEngine = "unknown";
+    const claudeKey = process.env.ANTHROPIC_API_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const groqKey   = process.env.GROQ_API_KEY;
+    if (claudeKey) {
+      try {
+        text = await callClaude(synthSystem, synthPrompt, 2000);
+        synthEngine = "claude";
+      } catch(e) {
+        console.warn("Brief synthesis Claude failed:", e.message, "— trying Gemini fallback");
+      }
+    }
+    if (!text && geminiKey) {
+      try {
+        text = await callGeminiSimple(synthSystem + "\n\n" + synthPrompt, 2000);
+        synthEngine = "gemini";
+      } catch(e) {
+        console.warn("Brief synthesis Gemini failed:", e.message, "— trying Groq fallback");
+      }
+    }
+    if (!text && groqKey) {
+      try {
+        text = await callGroq(synthSystem, [{ role: "user", content: synthPrompt }], 2000);
+        synthEngine = "groq";
+      } catch(e) {
+        console.warn("Brief synthesis Groq failed:", e.message);
+      }
+    }
+    if (!text) throw new Error("All synthesis engines failed — check API keys and credits");
 
     const analysis = parseJSON(text);
 
@@ -672,9 +700,9 @@ app.post("/api/briefing", async (req, res) => {
     }
 
     analysis.data_sources = dataSourceCount;
-    const engines = ["claude"];
-    if (searchUsed) engines.push("gemini");
-    if (groqContextText) engines.push("groq");
+    const engines = [synthEngine];
+    if (searchUsed && !engines.includes("gemini")) engines.push("gemini");
+    if (groqContextText && !engines.includes("groq")) engines.push("groq");
     const engineUsed = engines.join("+");
     const result = { analysis, liveHeadlines, engine: engineUsed, searchUsed, dataSourceCount };
     setBriefCache(topic, result);
