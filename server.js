@@ -282,6 +282,13 @@ const RSS_FEEDS = {
     { url: "https://feeds.ap.org/rss/apf-latinamerica", source: "AP LatAm", sourceUrl: "https://apnews.com/world-news/latin-america" },
     { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera", sourceUrl: "https://aljazeera.com" },
   ],
+  "Ukraine": [
+    { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters", sourceUrl: "https://reuters.com/world" },
+    { url: "https://feeds.bbci.co.uk/news/world/europe/rss.xml", source: "BBC Europe", sourceUrl: "https://bbc.com/news/world/europe" },
+    { url: "https://www.aljazeera.com/xml/rss/all.xml", source: "Al Jazeera", sourceUrl: "https://aljazeera.com" },
+    { url: "https://feeds.ap.org/rss/apf-europe", source: "AP Europe", sourceUrl: "https://apnews.com/hub/europe" },
+    { url: "https://news.google.com/rss/search?q=Ukraine+war+frontline&hl=en-US&gl=US&ceid=US:en", source: "Google News Ukraine", sourceUrl: "https://news.google.com" },
+  ],
 };
 
 const BREAKING_FEEDS = [
@@ -830,8 +837,8 @@ app.post("/api/advisories", async (req, res) => {
 app.post("/api/markets/commentary", async (req, res) => {
   try {
     const { text, engine: aiEngine } = await raceAI(
-      "You are a senior markets analyst. Today: " + todayStr() + ". Respond ONLY with a valid JSON object. No markdown or extra text.",
-      "Write a global market intelligence commentary based on your knowledge of current market conditions.\n\nRespond with this JSON:\n{\"headline\":\"Market Intelligence — " + todayStr() + "\",\"summary\":\"<2-3 sentences on overall global market sentiment>\",\"us_commentary\":\"<2-3 sentences on US equities including S&P 500, Dow, Nasdaq>\",\"europe_commentary\":\"<1-2 sentences on European markets>\",\"asia_commentary\":\"<1-2 sentences on Asian markets>\",\"mideast_commentary\":\"<1-2 sentences on Middle East markets including Tadawul and DFM>\",\"oil_commentary\":\"<1-2 sentences on crude oil WTI and Brent>\",\"gold_commentary\":\"<1-2 sentences on gold and silver>\",\"fx_commentary\":\"<1-2 sentences on USD and major currencies>\",\"sources\":[{\"name\":\"Yahoo Finance\",\"url\":\"https://finance.yahoo.com\"},{\"name\":\"Bloomberg Markets\",\"url\":\"https://bloomberg.com/markets\"},{\"name\":\"Reuters Markets\",\"url\":\"https://reuters.com/markets\"},{\"name\":\"TradingView\",\"url\":\"https://www.tradingview.com/markets/\"},{\"name\":\"Tadawul\",\"url\":\"https://www.saudiexchange.sa\"},{\"name\":\"DFM\",\"url\":\"https://www.dfm.ae\"}]}",
+      "You are a senior commodities analyst covering energy, food security, and precious metals with MENA expertise. Today: " + todayStr() + ". Respond ONLY with a valid JSON object. No markdown or extra text.",
+      "Write a commodities intelligence brief for NGO and humanitarian operations in MENA.\n\nRespond with this JSON:\n{\"headline\":\"Commodities Intelligence — " + todayStr() + "\",\"summary\":\"<2-3 sentences on overall commodity conditions and MENA impact>\",\"oil_commentary\":\"<2-3 sentences on WTI Crude and Brent Crude, OPEC decisions, and energy access in conflict zones>\",\"gas_commentary\":\"<1-2 sentences on natural gas prices and regional energy security>\",\"gold_commentary\":\"<1-2 sentences on gold and silver as conflict-zone safe-haven assets>\",\"agriculture_commentary\":\"<2-3 sentences on wheat and corn prices critical to food security in MENA — note any supply disruptions from Ukraine or Black Sea routes>\",\"sources\":[{\"name\":\"Reuters Commodities\",\"url\":\"https://reuters.com/business/commodities\"},{\"name\":\"FAO Food Price Index\",\"url\":\"https://www.fao.org/worldfoodsituation/foodpricesindex/en/\"},{\"name\":\"Bloomberg Commodities\",\"url\":\"https://bloomberg.com/markets/commodities\"},{\"name\":\"OPEC\",\"url\":\"https://www.opec.org\"},{\"name\":\"WFP Market Monitor\",\"url\":\"https://www.wfp.org/publications/market-monitor\"}]}",
       900
     );
     res.json(parseJSON(text));
@@ -849,6 +856,7 @@ const TD_SYMBOL_MAP = {
   "^N225": "N225", "^HSI": "HSI", "^AXJO": "AS51", "000001.SS": "SHCOMP",
   "^TASI": "TASI", "^DFMGI": "DFMGI", "^KWSE": "KWSE",
   "GC=F": "XAU/USD", "SI=F": "XAG/USD", "CL=F": "WTI", "BZ=F": "BRENT", "NG=F": "NG",
+  "ZW=F": "WHEAT", "ZC=F": "CORN", "HG=F": "COPPER",
   "BTC-USD": "BTC/USD", "ETH-USD": "ETH/USD",
   "EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD", "JPY=X": "USD/JPY",
 };

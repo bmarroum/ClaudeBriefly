@@ -1,39 +1,36 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
 <script>
-// Apply theme before first paint to prevent flash
 (function(){
   try {
-    const saved = localStorage.getItem('briefly_darkMode');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (saved !== null ? JSON.parse(saved) : prefersDark)
-      document.documentElement.setAttribute('data-theme','dark');
+    const s = localStorage.getItem('briefly_darkMode');
+    const useDark = s !== null ? JSON.parse(s) : true;
+    if (!useDark) document.documentElement.setAttribute('data-theme','light');
   } catch(e) {}
 })();
 </script>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Briefly | Intelligence</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Crect width='36' height='36' rx='8' fill='%230f1623'/%3E%3Ctext x='18' y='26' text-anchor='middle' font-family='Georgia,serif' font-size='22' font-weight='700' fill='%23e8d5a3'%3EB%3C/text%3E%3C/svg%3E"/>
-<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#07090f"/>
+<title>Briefly | MENA & Ukraine Intelligence</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Crect width='36' height='36' rx='8' fill='%230f1623'/%3E%3Ctext x='18' y='26' text-anchor='middle' font-family='Georgia,serif' font-size='22' font-weight='700' fill='%23c8a030'%3EB%3C/text%3E%3C/svg%3E"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400&family=DM+Sans:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=DM+Sans:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
 <!-- DISCLAIMER -->
 <div class="disc" id="disclaimerBanner">
-  <span>⚠</span><span><strong>AI-generated intelligence.</strong> Verify critical information with official sources before operational use.</span>
-  <a href="https://claude.ai" target="_blank" rel="noopener">Powered by Claude</a>
+  <span class="disc-icon">⚠</span>
+  <span><strong>AI-generated intelligence.</strong> Always verify with official sources before operational use.</span>
   <button class="disc-close" onclick="dismissDisclaimer()">✕</button>
 </div>
+
 <!-- BREAKING TICKER -->
 <div class="ticker-bar">
   <div class="ticker-inner">
@@ -41,495 +38,214 @@
     <div class="ticker-wrap"><div class="ticker-track" id="tickerTrack"><span>Loading live feed…</span></div></div>
   </div>
 </div>
+
 <!-- HEADER -->
 <header>
-  <a class="logo" onclick="switchTab('news')">
+  <button class="logo" onclick="switchTab('news')">
     <div class="logo-icon">B</div>
-    <span class="logo-wordmark">Briefly</span>
-    <span class="logo-tag">Intelligence</span>
-  </a>
-  <div class="header-search">
-    <div class="search-box">
-      <span class="search-icon">🔍</span>
-      <input class="search-input" id="headerSearchInput" type="text" placeholder="Search all headlines…" autocomplete="off" onkeydown="if(event.key==='Enter')searchHeadlines()"/>
-      <button class="search-btn" onclick="searchHeadlines()">Search</button>
+    <div class="logo-text">
+      <span class="logo-wordmark">Briefly</span>
+      <span class="logo-tag">MENA & Ukraine</span>
     </div>
-  </div>
+  </button>
   <div class="header-right">
-    <div style="position:relative;">
-      <div class="live-pill" id="livePill" onclick="toggleLivePopover(event)">
-        <span class="live-dot"></span>
-        <span id="refreshLabel">Live · 15m</span>
-        <span style="font-size:9px;opacity:.6;">▾</span>
-      </div>
-      <div class="live-popover" id="livePopover">
-        <div class="lp-title">Refresh Interval</div>
-        <div class="lp-option" id="ro5" onclick="setRefreshInterval(5)">⚡ Every 5 min</div>
-        <div class="lp-option" id="ro10" onclick="setRefreshInterval(10)">🔄 Every 10 min</div>
-        <div class="lp-option active" id="ro15" onclick="setRefreshInterval(15)">📡 Every 15 min</div>
-        <div class="lp-option" id="ro30" onclick="setRefreshInterval(30)">⏱ Every 30 min</div>
-        <div class="lp-option" id="ro60" onclick="setRefreshInterval(60)">🕐 Every 60 min</div>
-      </div>
+    <div class="live-pill" id="livePill" onclick="forceRefresh()">
+      <span class="live-dot"></span>
+      <span>Live</span>
     </div>
   </div>
 </header>
-<!-- MOBILE SEARCH -->
-<div class="mobile-search">
-  <div class="search-box">
-    <span class="search-icon">🔍</span>
-    <input class="search-input" id="mobileSearchInput" type="text" placeholder="Search headlines…" autocomplete="off"/>
-    <button class="search-btn" onclick="searchHeadlinesMobile()">Go</button>
-  </div>
-</div>
+
 <main>
-<!-- NEWS TAB -->
+
+<!-- ══════════════════════ NEWS TAB ══════════════════════ -->
 <div id="tab-news" class="tab-content active">
-  <div class="two-col">
-    <div>
-      <div class="region-pills" id="regionPills">
-        <button class="pill active" onclick="selectRegion(this,'Global/World')">🌍 Global</button>
-        <button class="pill" onclick="selectRegion(this,'North America')">🌎 N. America</button>
-        <button class="pill" onclick="selectRegion(this,'Europe')">🌍 Europe</button>
-        <button class="pill" onclick="selectRegion(this,'Middle East & Africa')">🌙 Mid East</button>
-        <button class="pill" onclick="selectRegion(this,'Asia')">🌏 Asia</button>
-        <button class="pill" onclick="selectRegion(this,'South America')">🌎 S. America</button>
-      </div>
-      <!-- News search bar -->
-      <div class="news-search-bar" id="newsSearchBar">
-        <input type="text" id="newsSearchInput" placeholder="Search headlines, topics, countries…" autocomplete="off"
-          oninput="newsSearchAutocomplete(this.value)"
-          onkeydown="if(event.key==='Enter')doNewsSearch()"
-          onfocus="showNewsAutocomplete()" onblur="setTimeout(hideNewsAutocomplete,200)"/>
-        <button onclick="doNewsSearch()">Search</button>
-        <div class="search-autocomplete" id="newsAutocomplete" style="display:none;"></div>
-      </div>
-      <!-- Date + source filters -->
-      <div class="news-filters" id="newsFilters">
-        <span style="font-family:var(--cond);font-size:10px;color:rgba(232,213,163,0.35);letter-spacing:.06em;text-transform:uppercase;">Filter:</span>
-        <button class="news-filter-btn active" onclick="setNewsDateFilter(this,'all')">All Time</button>
-        <button class="news-filter-btn" onclick="setNewsDateFilter(this,'day')">24h</button>
-        <button class="news-filter-btn" onclick="setNewsDateFilter(this,'week')">7 Days</button>
-        <button class="news-filter-btn" onclick="setNewsDateFilter(this,'month')">30 Days</button>
-        <span style="flex:1"></span>
-        <button class="news-filter-btn" id="sortNewestBtn" onclick="setNewsSort('newest')" title="Sort newest first">↓ Newest</button>
-        <button class="news-filter-btn" id="sortOldestBtn" onclick="setNewsSort('oldest')" title="Sort oldest first">↑ Oldest</button>
-      </div>
-      <div id="newsSearchMeta" style="display:none;" class="news-search-meta"></div>
-      <div id="newsContent"><div class="card"><div class="loading-state"><div class="loading-spinner"></div>Loading live news…</div></div></div>
-    </div>
-    <div>
-      <div class="sidebar-card">
-        <div class="sidebar-label">Sources</div>
-        <div class="sidebar-heading" style="margin-bottom:14px;">News Sources</div>
-        <div class="src-row"><div style="display:flex;align-items:center;justify-content:space-between;"><span class="src-name">Reuters</span><span class="cred-dot cred-high">High</span></div><div class="src-desc">Global wire service. Politically neutral.</div></div>
-        <div class="src-row"><div style="display:flex;align-items:center;justify-content:space-between;"><span class="src-name">AP News</span><span class="cred-dot cred-high">High</span></div><div class="src-desc">Non-profit cooperative. Fact-checked standards.</div></div>
-        <div class="src-row"><div style="display:flex;align-items:center;justify-content:space-between;"><span class="src-name">BBC News</span><span class="cred-dot cred-high">High</span></div><div class="src-desc">UK public broadcaster. International coverage.</div></div>
-        <div class="src-row"><div style="display:flex;align-items:center;justify-content:space-between;"><span class="src-name">Al Jazeera</span><span class="cred-dot cred-med">Med</span></div><div class="src-desc">Qatar-based. Strong Middle East coverage.</div></div>
-        <div class="src-row"><div style="display:flex;align-items:center;justify-content:space-between;"><span class="src-name">The Guardian</span><span class="cred-dot cred-high">High</span></div><div class="src-desc">UK independent. In-depth investigative reporting.</div></div>
-      </div>
-    </div>
+  <div class="region-pills" id="regionPills">
+    <button class="pill active" onclick="selectRegion(this,'Middle East & Africa')">🌙 Middle East</button>
+    <button class="pill" onclick="selectRegion(this,'Ukraine')">🇺🇦 Ukraine</button>
+    <button class="pill" onclick="selectRegion(this,'Global/World')">🌍 Global</button>
+  </div>
+  <div class="news-search-bar">
+    <span class="search-icon-sm">🔍</span>
+    <input type="text" id="newsSearchInput" placeholder="Search headlines…" autocomplete="off"
+      onkeydown="if(event.key==='Enter')doNewsSearch()"/>
+    <button onclick="doNewsSearch()">Search</button>
+  </div>
+  <div id="newsContent">
+    <div class="loading-state"><div class="loading-spinner"></div>Loading live news…</div>
   </div>
 </div>
-<!-- BRIEF TAB -->
+
+<!-- ══════════════════════ BRIEF TAB ══════════════════════ -->
 <div id="tab-brief" class="tab-content">
   <div class="brief-hero">
-    <div class="brief-hero-label">🔐 Intelligence Briefing System</div>
-    <div class="brief-hero-title" id="briefTitleText">Intelligence Brief</div>
+    <div class="brief-hero-label">🔐 Intelligence Brief</div>
+    <div class="brief-hero-title" id="briefTitleText">Situation Report</div>
     <div class="brief-input-row">
-      <div class="brief-input-wrap">
-        <input class="brief-main-input" id="briefSearchInput" type="text" placeholder="Enter topic, country, conflict, or event…" autocomplete="off"/>
-      </div>
-      <button class="btn-gold" onclick="generateBrief()" id="briefGenerateBtn">⚡ Generate Brief</button>
+      <input class="brief-main-input" id="briefSearchInput" type="text"
+        placeholder="Topic, country, or conflict…" autocomplete="off"
+        onkeydown="if(event.key==='Enter')generateBrief()"/>
+      <button class="btn-gold" onclick="generateBrief()" id="briefGenerateBtn">⚡ Generate</button>
     </div>
-    <div class="brief-suggestions" id="briefSuggestions">
-      <span class="brief-sugg" onclick="quickBrief('Gaza Conflict')">Gaza Conflict</span>
-      <span class="brief-sugg" onclick="quickBrief('Russia Ukraine War')">Russia-Ukraine</span>
-      <span class="brief-sugg" onclick="quickBrief('US China tensions')">US-China Tensions</span>
-      <span class="brief-sugg" onclick="quickBrief('Iran nuclear program')">Iran Nuclear</span>
-      <span class="brief-sugg" onclick="quickBrief('Global oil markets')">Oil Markets</span>
-      <span class="brief-sugg" onclick="quickBrief('North Korea')">North Korea</span>
-      <span class="brief-sugg" onclick="quickBrief('Sudan civil war')">Sudan</span>
-      <span class="brief-sugg" onclick="quickBrief('Taiwan strait')">Taiwan Strait</span>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid rgba(200,168,75,0.15);">
-      <span id="engineStatusBadge" style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;background:rgba(200,168,75,0.12);border:1px solid rgba(200,168,75,0.25);border-radius:20px;font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(232,213,163,0.7);">
-        ✨ Gemini Live Search + 🤖 Claude Analysis
-      </span>
-      <span style="font-family:var(--cond);font-size:10px;color:rgba(232,213,163,0.35);letter-spacing:.05em;">Both engines run in parallel for maximum accuracy</span>
+    <div class="brief-suggestions">
+      <button class="brief-sugg" onclick="quickBrief('Gaza Conflict')">🇵🇸 Gaza</button>
+      <button class="brief-sugg" onclick="quickBrief('Ukraine War frontlines')">🇺🇦 Ukraine</button>
+      <button class="brief-sugg" onclick="quickBrief('Lebanon security situation')">🇱🇧 Lebanon</button>
+      <button class="brief-sugg" onclick="quickBrief('Iran nuclear program')">🇮🇷 Iran</button>
+      <button class="brief-sugg" onclick="quickBrief('Syria humanitarian crisis')">🇸🇾 Syria</button>
+      <button class="brief-sugg" onclick="quickBrief('Sudan civil war')">🇸🇩 Sudan</button>
+      <button class="brief-sugg" onclick="quickBrief('Yemen Houthis Red Sea')">🇾🇪 Yemen</button>
+      <button class="brief-sugg" onclick="quickBrief('Iraq security situation')">🇮🇶 Iraq</button>
+      <button class="brief-sugg" onclick="quickBrief('Jordan refugee NGO operations')">🇯🇴 Jordan</button>
+      <button class="brief-sugg" onclick="quickBrief('Libya conflict factions')">🇱🇾 Libya</button>
     </div>
   </div>
   <div id="briefContent">
-    <div style="text-align:center;padding:40px 20px;color:var(--muted);">
-      <div style="font-size:36px;margin-bottom:12px;">🔐</div>
-      <div style="font-family:var(--serif);font-size:18px;font-weight:700;margin-bottom:6px;color:var(--text);">Select a topic or enter your own</div>
-      <div style="font-size:13px;">AI-powered intelligence analysis with threat assessment, key actors, timeline, and strategic outlook.</div>
+    <div class="empty-state">
+      <div class="empty-icon">🔐</div>
+      <div class="empty-title">Select a topic or enter your own</div>
+      <div class="empty-sub">AI-powered intelligence with threat assessment, key actors, and strategic outlook.</div>
     </div>
   </div>
 </div>
-<!-- AIRSPACE TAB -->
+
+<!-- ══════════════════════ AIRSPACE TAB ══════════════════════ -->
 <div id="tab-airspace" class="tab-content">
   <div class="page-header">
-    <div>
-      <div class="page-label">Airspace & NOTAMs</div>
-      <div class="page-title">✈️ Airspace Status</div>
-      <div class="page-subtitle">Select up to 7 countries · FlightRadar24 · NOTAM summaries · verify with official sources</div>
-    </div>
-    <button class="btn-outline" onclick="clearAirspaceSelections()">✕ Clear All</button>
+    <div class="page-label">Aviation Safety</div>
+    <div class="page-title">✈️ Airspace Alerts</div>
+    <div class="page-subtitle">Latest FlightRadar24 news · MENA & Ukraine</div>
   </div>
   <div id="airspaceMap"></div>
-  <div class="airspace-search-row">
-    <input class="airspace-input" id="airspaceSearchInput" type="text" placeholder="Search any country…" autocomplete="off" list="airspaceCountryList"/>
-    <datalist id="airspaceCountryList">
-      <option value="Afghanistan"/><option value="Albania"/><option value="Algeria"/>
-      <option value="Angola"/><option value="Argentina"/><option value="Armenia"/>
-      <option value="Australia"/><option value="Austria"/><option value="Azerbaijan"/>
-      <option value="Bahrain"/><option value="Bangladesh"/><option value="Belarus"/>
-      <option value="Belgium"/><option value="Bolivia"/><option value="Brazil"/>
-      <option value="Bulgaria"/><option value="Cambodia"/><option value="Canada"/>
-      <option value="Chad"/><option value="Chile"/><option value="China"/>
-      <option value="Colombia"/><option value="Croatia"/><option value="Cuba"/>
-      <option value="Czech Republic"/><option value="Denmark"/><option value="Egypt"/>
-      <option value="Ethiopia"/><option value="Finland"/><option value="France"/>
-      <option value="Georgia"/><option value="Germany"/><option value="Greece"/>
-      <option value="Hungary"/><option value="India"/><option value="Indonesia"/>
-      <option value="Iran"/><option value="Iraq"/><option value="Ireland"/>
-      <option value="Israel"/><option value="Italy"/><option value="Japan"/>
-      <option value="Jordan"/><option value="Kazakhstan"/><option value="Kenya"/>
-      <option value="Kuwait"/><option value="Lebanon"/><option value="Libya"/>
-      <option value="Malaysia"/><option value="Mexico"/><option value="Morocco"/>
-      <option value="Myanmar"/><option value="Netherlands"/><option value="New Zealand"/>
-      <option value="Nigeria"/><option value="North Korea"/><option value="Norway"/>
-      <option value="Oman"/><option value="Pakistan"/><option value="Palestine"/>
-      <option value="Peru"/><option value="Philippines"/><option value="Poland"/>
-      <option value="Portugal"/><option value="Qatar"/><option value="Romania"/>
-      <option value="Russia"/><option value="Saudi Arabia"/><option value="Serbia"/>
-      <option value="Somalia"/><option value="South Africa"/><option value="South Korea"/>
-      <option value="South Sudan"/><option value="Spain"/><option value="Sri Lanka"/>
-      <option value="Sudan"/><option value="Sweden"/><option value="Switzerland"/>
-      <option value="Syria"/><option value="Taiwan"/><option value="Thailand"/>
-      <option value="Tunisia"/><option value="Turkey"/><option value="Ukraine"/>
-      <option value="United Arab Emirates"/><option value="United Kingdom"/>
-      <option value="United States"/><option value="Venezuela"/><option value="Vietnam"/>
-      <option value="Yemen"/><option value="Zimbabwe"/>
-    </datalist>
-    <button class="btn-gold" onclick="addAirspaceCountry()">+ Add</button>
+  <div class="page-section-label">Latest Aviation News</div>
+  <div id="airspaceContent">
+    <div class="loading-state"><div class="loading-spinner"></div>Loading airspace news…</div>
   </div>
-  <div id="airspaceSelectedTags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;min-height:0;"></div>
-  <div class="airspace-chips">
-    <span class="chip" onclick="toggleAirspaceChip(this,'United States')">🇺🇸 US</span>
-    <span class="chip" onclick="toggleAirspaceChip(this,'Ukraine')">🇺🇦 Ukraine</span>
-    <span class="chip" onclick="toggleAirspaceChip(this,'Israel')">🇮🇱 Israel</span>
-    <span class="chip" onclick="toggleAirspaceChip(this,'Iran')">🇮🇷 Iran</span>
-    <span class="chip" onclick="toggleAirspaceChip(this,'Saudi Arabia')">🇸🇦 Saudi</span>
-    <span class="chip" onclick="toggleAirspaceChip(this,'Russia')">🇷🇺 Russia</span>
-    <span class="chip" onclick="toggleAirspaceChip(this,'Lebanon')">🇱🇧 Lebanon</span>
-    <span class="chip" onclick="toggleAirspaceChip(this,'China')">🇨🇳 China</span>
-    <span class="chip" onclick="toggleAirspaceChip(this,'Iraq')">🇮🇶 Iraq</span>
-    <span class="chip" onclick="toggleAirspaceChip(this,'Syria')">🇸🇾 Syria</span>
-    <span class="chip" onclick="toggleAirspaceChip(this,'Yemen')">🇾🇪 Yemen</span>
-    <span class="chip" onclick="toggleAirspaceChip(this,'Jordan')">🇯🇴 Jordan</span>
-  </div>
-  <div id="airspaceContent"><div class="empty-state" style="margin-top:30px;">
-    <div class="empty-state-icon">✈️</div>
-    <div class="empty-state-title">No countries selected</div>
-    <div class="empty-state-desc">Search for a country below and click + ADD to view airspace status and NOTAMs</div>
-  </div></div>
 </div>
-<!-- ADVISORIES TAB -->
+
+<!-- ══════════════════════ ADVISORIES TAB ══════════════════════ -->
 <div id="tab-advisories" class="tab-content">
   <div class="page-header">
-    <div>
-      <div class="page-label">Travel Safety</div>
-      <div class="page-title">🛡️ Travel Advisories</div>
-      <div class="page-subtitle">Select up to 7 countries · US & UK Embassy sources · State Dept + FCDO</div>
+    <div class="page-label">Travel Safety</div>
+    <div class="page-title">🛡️ Travel Advisories</div>
+    <div class="page-subtitle">US State Dept · UK FCDO · MENA & Ukraine</div>
+  </div>
+  <div class="adv-chips" id="advisoryChips">
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Jordan')">🇯🇴 Jordan</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Lebanon')">🇱🇧 Lebanon</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Syria')">🇸🇾 Syria</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Iraq')">🇮🇶 Iraq</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Iran')">🇮🇷 Iran</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Israel')">🇮🇱 Israel</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Palestine')">🇵🇸 Palestine</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Yemen')">🇾🇪 Yemen</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Saudi Arabia')">🇸🇦 Saudi</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Egypt')">🇪🇬 Egypt</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Libya')">🇱🇾 Libya</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Sudan')">🇸🇩 Sudan</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Somalia')">🇸🇴 Somalia</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Ukraine')">🇺🇦 Ukraine</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Turkey')">🇹🇷 Turkey</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Kuwait')">🇰🇼 Kuwait</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'UAE')">🇦🇪 UAE</button>
+    <button class="adv-chip" onclick="toggleAdvisory(this,'Qatar')">🇶🇦 Qatar</button>
+  </div>
+  <div id="advisoryContent">
+    <div class="empty-state">
+      <div class="empty-icon">🛡️</div>
+      <div class="empty-title">Tap a country above</div>
+      <div class="empty-sub">Load the latest travel advisory for any MENA country or Ukraine.</div>
     </div>
-    <button class="btn-outline" onclick="clearAdvisorySelections()">✕ Clear All</button>
   </div>
-  <div class="airspace-search-row">
-    <input class="airspace-input" id="advisorySearchInput" type="text" placeholder="Search any country…" autocomplete="off" list="advisoryCountryList"/>
-    <datalist id="advisoryCountryList">
-      <option value="Afghanistan"/><option value="Albania"/><option value="Algeria"/>
-      <option value="Angola"/><option value="Argentina"/><option value="Armenia"/>
-      <option value="Australia"/><option value="Austria"/><option value="Azerbaijan"/>
-      <option value="Bahrain"/><option value="Bangladesh"/><option value="Belarus"/>
-      <option value="Belgium"/><option value="Bolivia"/><option value="Bosnia and Herzegovina"/>
-      <option value="Brazil"/><option value="Bulgaria"/><option value="Cambodia"/>
-      <option value="Canada"/><option value="Chad"/><option value="Chile"/>
-      <option value="China"/><option value="Colombia"/><option value="Congo"/>
-      <option value="Croatia"/><option value="Cuba"/><option value="Czech Republic"/>
-      <option value="Denmark"/><option value="Ecuador"/><option value="Egypt"/>
-      <option value="El Salvador"/><option value="Ethiopia"/><option value="Finland"/>
-      <option value="France"/><option value="Georgia"/><option value="Germany"/>
-      <option value="Ghana"/><option value="Greece"/><option value="Guatemala"/>
-      <option value="Haiti"/><option value="Honduras"/><option value="Hungary"/>
-      <option value="India"/><option value="Indonesia"/><option value="Iran"/>
-      <option value="Iraq"/><option value="Ireland"/><option value="Israel"/>
-      <option value="Italy"/><option value="Japan"/><option value="Jordan"/>
-      <option value="Kazakhstan"/><option value="Kenya"/><option value="Kuwait"/>
-      <option value="Kyrgyzstan"/><option value="Lebanon"/><option value="Libya"/>
-      <option value="Malaysia"/><option value="Mali"/><option value="Mexico"/>
-      <option value="Moldova"/><option value="Morocco"/><option value="Mozambique"/>
-      <option value="Myanmar"/><option value="Nepal"/><option value="Netherlands"/>
-      <option value="New Zealand"/><option value="Nicaragua"/><option value="Nigeria"/>
-      <option value="North Korea"/><option value="Norway"/><option value="Oman"/>
-      <option value="Pakistan"/><option value="Palestine"/><option value="Panama"/>
-      <option value="Paraguay"/><option value="Peru"/><option value="Philippines"/>
-      <option value="Poland"/><option value="Portugal"/><option value="Qatar"/>
-      <option value="Romania"/><option value="Russia"/><option value="Rwanda"/>
-      <option value="Saudi Arabia"/><option value="Senegal"/><option value="Serbia"/>
-      <option value="Somalia"/><option value="South Africa"/><option value="South Korea"/>
-      <option value="South Sudan"/><option value="Spain"/><option value="Sri Lanka"/>
-      <option value="Sudan"/><option value="Sweden"/><option value="Switzerland"/>
-      <option value="Syria"/><option value="Taiwan"/><option value="Tajikistan"/>
-      <option value="Tanzania"/><option value="Thailand"/><option value="Tunisia"/>
-      <option value="Turkey"/><option value="Turkmenistan"/><option value="Uganda"/>
-      <option value="Ukraine"/><option value="United Arab Emirates"/><option value="United Kingdom"/>
-      <option value="United States"/><option value="Uruguay"/><option value="Uzbekistan"/>
-      <option value="Venezuela"/><option value="Vietnam"/><option value="Yemen"/>
-      <option value="Zambia"/><option value="Zimbabwe"/>
-    </datalist>
-    <button class="btn-gold" onclick="addAdvisoryCountry()">+ Add</button>
-  </div>
-  <div id="advisorySelectedTags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;min-height:0;"></div>
-  <div class="airspace-chips">
-    <span class="chip" onclick="toggleAdvisoryChip(this,'Israel')">🇮🇱 Israel</span>
-    <span class="chip" onclick="toggleAdvisoryChip(this,'Ukraine')">🇺🇦 Ukraine</span>
-    <span class="chip" onclick="toggleAdvisoryChip(this,'Iran')">🇮🇷 Iran</span>
-    <span class="chip" onclick="toggleAdvisoryChip(this,'Russia')">🇷🇺 Russia</span>
-    <span class="chip" onclick="toggleAdvisoryChip(this,'Saudi Arabia')">🇸🇦 Saudi</span>
-    <span class="chip" onclick="toggleAdvisoryChip(this,'Jordan')">🇯🇴 Jordan</span>
-    <span class="chip" onclick="toggleAdvisoryChip(this,'Lebanon')">🇱🇧 Lebanon</span>
-    <span class="chip" onclick="toggleAdvisoryChip(this,'Pakistan')">🇵🇰 Pakistan</span>
-    <span class="chip" onclick="toggleAdvisoryChip(this,'Iraq')">🇮🇶 Iraq</span>
-    <span class="chip" onclick="toggleAdvisoryChip(this,'Syria')">🇸🇾 Syria</span>
-    <span class="chip" onclick="toggleAdvisoryChip(this,'Yemen')">🇾🇪 Yemen</span>
-    <span class="chip" onclick="toggleAdvisoryChip(this,'Turkey')">🇹🇷 Turkey</span>
-  </div>
-  <div id="advisoryContent"><div class="empty-state" style="margin-top:30px;">
-    <div class="empty-state-icon">🛡️</div>
-    <div class="empty-state-title">No countries selected</div>
-    <div class="empty-state-desc">Search for a country above and click + ADD to see travel advisories</div>
-  </div></div>
 </div>
-<!-- MARKETS TAB -->
+
+<!-- ══════════════════════ MARKETS TAB ══════════════════════ -->
 <div id="tab-markets" class="tab-content">
   <div class="page-header">
-    <div>
-      <div class="page-label">Financial Intelligence</div>
-      <div class="page-title">📈 Markets</div>
-      <div class="page-subtitle">Yahoo Finance · Apple Stocks · TradingView · AI estimates when live data unavailable</div>
-    </div>
-    <button class="btn-outline" onclick="loadMarkets(true)">🔄 Refresh</button>
+    <div class="page-label">Essential Commodities</div>
+    <div class="page-title">📈 Commodities</div>
+    <div class="page-subtitle">Oil · Gas · Wheat · Gold · Silver · Live prices</div>
   </div>
-  <!-- Markets Summary Bar -->
-  <div class="markets-summary-bar" id="marketsSummaryBar">
-    <div class="mkt-summary-item"><div class="mkt-summary-label">S&amp;P 500</div><div class="mkt-summary-val" id="ms-sp500">—</div><div class="mkt-summary-chg" id="ms-sp500c">—</div></div>
-    <div class="mkt-summary-item"><div class="mkt-summary-label">Dow Jones</div><div class="mkt-summary-val" id="ms-dow">—</div><div class="mkt-summary-chg" id="ms-dowc">—</div></div>
-    <div class="mkt-summary-item"><div class="mkt-summary-label">Nasdaq</div><div class="mkt-summary-val" id="ms-nasdaq">—</div><div class="mkt-summary-chg" id="ms-nasdaqc">—</div></div>
-    <div class="mkt-summary-item"><div class="mkt-summary-label">Gold</div><div class="mkt-summary-val" id="ms-gold">—</div><div class="mkt-summary-chg" id="ms-goldc">—</div></div>
-    <div class="mkt-summary-item"><div class="mkt-summary-label">WTI Crude</div><div class="mkt-summary-val" id="ms-oil">—</div><div class="mkt-summary-chg" id="ms-oilc">—</div></div>
-    <div class="mkt-summary-item"><div class="mkt-summary-label">BTC</div><div class="mkt-summary-val" id="ms-btc">—</div><div class="mkt-summary-chg" id="ms-btcc">—</div></div>
-  </div>
-  <!-- Watchlist -->
-  <div class="watchlist-section" id="watchlistSection" style="display:none;">
-    <div class="watchlist-title">⭐ Watchlist <span style="font-weight:400;opacity:.5;font-size:9px;margin-left:6px;">click ☆ on any card to add</span></div>
-    <div class="ticker-grid" id="watchlistGrid"><div class="watchlist-empty">No items in watchlist yet</div></div>
-  </div>
-  <div class="market-section-label">United States</div><div class="market-section-title"></div>
-  <div class="ticker-grid" id="ticker-us"></div>
-  <div class="market-section-label">Europe</div><div class="market-section-title"></div>
-  <div class="ticker-grid" id="ticker-europe"></div>
-  <div class="market-section-label">Asia</div><div class="market-section-title"></div>
-  <div class="ticker-grid" id="ticker-asia"></div>
-  <div class="market-section-label">Middle East</div><div class="market-section-title"></div>
-  <div class="ticker-grid" id="ticker-mideast"></div>
-  <div class="market-section-label">Commodities</div><div class="market-section-title"></div>
   <div class="ticker-grid" id="ticker-commodities"></div>
-  <div class="market-section-label">Commentary</div><div class="market-section-title" style="margin-bottom:14px;"></div>
-  <div class="commentary-card" id="marketCommentary"><div class="loading-state"><div class="loading-spinner"></div>Loading market commentary…</div></div>
-</div>
-<!-- PRESS TAB -->
-<div id="tab-press" class="tab-content">
-  <div class="page-header">
-    <div><div class="page-label">Official Statements</div><div class="page-title">📰 Press Releases</div><div class="page-subtitle">Government communiqués · filter by country or region</div></div>
-    <button class="btn-outline" onclick="refreshPress()">🔄 Refresh</button>
+  <div class="page-section-label" style="margin-top:28px;">Market Commentary</div>
+  <div id="marketCommentary" class="commentary-card">
+    <div class="loading-state"><div class="loading-spinner"></div>Loading commentary…</div>
   </div>
-  <div style="position:relative;max-width:360px;margin-bottom:16px;" id="pressSearchWrap">
-    <div style="display:flex;align-items:center;background:var(--bg2);border:1.5px solid var(--border);border-radius:40px;padding:5px 5px 5px 16px;transition:border-color .2s;" id="pressSearchBox">
-      <span style="color:var(--muted);font-size:13px;margin-right:8px;">🔍</span>
-      <input id="pressSearchInput" type="text" autocomplete="off" placeholder="Search country or region…"
-        style="flex:1;border:none;outline:none;font-family:var(--sans);font-size:13px;color:var(--text);background:transparent;min-width:0;"
-        oninput="filterPressDropdown()" onfocus="openPressDropdown()" onkeydown="pressDdKeydown(event)"/>
-      <span id="pressSearchCaret" style="padding:0 12px;color:var(--muted);font-size:10px;cursor:pointer;" onclick="togglePressDropdown()">▾</span>
-    </div>
-    <div id="pressDropdown" style="display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--card);border:1.5px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);z-index:200;max-height:280px;overflow-y:auto;">
-    </div>
-  </div>
-  <div class="press-grid" id="pressContent"></div>
-</div>
-<!-- ARCHIVE TAB -->
-<div id="tab-archive" class="tab-content" style="display:none!important;">
-  <div class="page-header">
-    <div><div class="page-label">Saved Briefings</div><div class="page-title">🗄 Archive</div></div>
-    <button class="btn-outline" onclick="clearArchive()">🗑 Clear All</button>
-  </div>
-  <div id="archiveList"></div>
-</div>
-<!-- ASK TAB -->
-  <div id="tab-ask" class="tab-content" style="display:none!important;">
-    <div style="max-width:1100px;margin:0 auto;">
-      <div class="page-header" style="margin-bottom:16px;">
-        <div><div class="page-label">Intelligence Q&amp;A</div><div class="page-title">🤖 Ask Briefly</div></div>
-      </div>
-      <div style="border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;height:calc(100vh - 220px);min-height:480px;max-height:760px;">
-        <div class="chat-sidebar">
-          <div class="chat-sidebar-title">Suggested Questions</div>
-          <div class="chat-suggestion" onclick="chatSuggest(this)">What caused the Gaza conflict?</div>
-          <div class="chat-suggestion" onclick="chatSuggest(this)">Explain US-China trade tensions</div>
-          <div class="chat-suggestion" onclick="chatSuggest(this)">What is happening in Sudan?</div>
-          <div class="chat-suggestion" onclick="chatSuggest(this)">Ukraine war latest</div>
-          <div class="chat-suggestion" onclick="chatSuggest(this)">Iran nuclear deal status</div>
-          <div class="chat-suggestion" onclick="chatSuggest(this)">Who are the Houthis?</div>
-          <div class="chat-suggestion" onclick="chatSuggest(this)">Taiwan strait tensions</div>
-          <div class="chat-suggestion" onclick="chatSuggest(this)">What are BRICS nations?</div>
-          <div class="chat-suggestion" onclick="chatSuggest(this)">Venezuela crisis explained</div>
-          <div class="chat-suggestion" onclick="chatSuggest(this)">NATO expansion explained</div>
-          <div style="margin-top:auto;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07);">
-            <div class="chat-sidebar-title" style="margin-bottom:6px;">Powered by</div>
-            <div style="font-size:11px;color:rgba(232,213,163,0.35);line-height:1.6;">Claude Sonnet<br/>+ Live Web Search</div>
-          </div>
-        </div>
-        <div class="chat-main">
-          <div class="chat-header">
-            <span style="font-size:18px;">🤖</span>
-            <span class="chat-header-title">Ask Briefly</span>
-            <button class="chat-clear-btn" onclick="clearChat()">✕ Clear</button>
-          </div>
-          <div class="chat-messages" id="chatMessages">
-            <div id="chatWelcome" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:10px;padding:30px;text-align:center;margin:auto;">
-              <div style="font-size:36px;margin-bottom:4px;">🌐</div>
-              <div style="font-family:var(--cond);font-size:14px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text);opacity:.5;">Intelligence Q&amp;A</div>
-              <div style="font-size:12px;color:var(--muted);max-width:300px;line-height:1.6;">Ask anything about global events, conflicts, geopolitics, or countries. I have access to live web search.</div>
-              <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:6px;">
-                <span class="chat-welcome-chip" onclick="chatSuggest(this)">Gaza ceasefire 2025</span>
-                <span class="chat-welcome-chip" onclick="chatSuggest(this)">Russia Ukraine war</span>
-                <span class="chat-welcome-chip" onclick="chatSuggest(this)">Iran nuclear program</span>
-                <span class="chat-welcome-chip" onclick="chatSuggest(this)">US China relations</span>
-              </div>
-            </div>
-          </div>
-          <div class="chat-input-row">
-            <input class="chat-input" id="chatInput" type="text" placeholder="Ask about any global event, country, or conflict…" autocomplete="off"/>
-            <button class="chat-send-btn" id="chatSendBtn" onclick="sendChat()">Send</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-<!-- SETTINGS TAB -->
-<div id="tab-dashboard" class="tab-content">
-  <div class="page-label">My Account</div>
-  <div class="page-title" style="margin-bottom:18px;">👤 Account & Dashboard</div>
-  <div id="authContainer"></div>
-  <div id="dashboardContainer" style="display:none;"></div>
 </div>
 
+<!-- ══════════════════════ SETTINGS TAB ══════════════════════ -->
 <div id="tab-settings" class="tab-content">
   <div class="page-label">Preferences</div>
-  <div class="page-title" style="margin-bottom:18px;">⚙️ Settings</div>
-
-  <!-- ACCOUNT SECTION IN SETTINGS -->
-  <div id="settingsAccountSection" style="margin-bottom:28px;">
-    <div style="font-family:var(--cond);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
-      <span style="width:20px;height:1.5px;background:var(--gold);display:inline-block;opacity:.6;"></span>
-      Account
-    </div>
-    <div id="settingsAccountContent"></div>
-  </div>
-  <hr style="border:none;border-top:1px solid var(--border);margin-bottom:24px;">
-  <div style="margin-bottom:20px;font-family:var(--cond);font-size:11px;color:var(--muted);letter-spacing:.06em;">Briefly Intelligence &nbsp;·&nbsp; <strong style="color:var(--gold);">v4.5</strong> &nbsp;·&nbsp; Backend: <a href="https://claudebriefly.onrender.com/health" target="_blank" rel="noopener" style="color:var(--gold);">Health Check</a></div>
+  <div class="page-title">⚙️ Settings</div>
   <div class="settings-grid">
-    <div class="setting-card"><div class="setting-label">🌙 Dark Mode</div><div class="setting-desc">Switch to dark theme for low-light environments</div><div class="setting-row"><span style="font-size:13px;color:var(--muted)">Enable dark theme</span><label class="toggle"><input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()"/><span class="toggle-slider"></span></label></div></div>
-    <div class="setting-card"><div class="setting-label">🔄 Auto-Refresh</div><div class="setting-desc">Automatically reload news on a schedule</div><div class="setting-row" style="margin-bottom:12px;"><span style="font-size:13px;color:var(--muted)">Enable auto-refresh</span><label class="toggle"><input type="checkbox" id="autoRefreshToggle" onchange="toggleAutoRefresh()"/><span class="toggle-slider"></span></label></div><div class="interval-btns"><button class="interval-btn" onclick="setRefreshInterval(5)">5m</button><button class="interval-btn" onclick="setRefreshInterval(10)">10m</button><button class="interval-btn active" onclick="setRefreshInterval(15)">15m</button><button class="interval-btn" onclick="setRefreshInterval(30)">30m</button><button class="interval-btn" onclick="setRefreshInterval(60)">60m</button></div></div>
-    <div class="setting-card"><div class="setting-label">📎 Show Citations</div><div class="setting-desc">Display source links on AI-generated content</div><div class="setting-row"><span style="font-size:13px;color:var(--muted)">Show verify links</span><label class="toggle"><input type="checkbox" id="citationsToggle" onchange="toggleCitations()" checked/><span class="toggle-slider"></span></label></div></div>
-    <div class="setting-card"><div class="setting-label">🤖 AI Badges</div><div class="setting-desc">Show AI Analysis badge on generated content</div><div class="setting-row"><span style="font-size:13px;color:var(--muted)">Show AI badges</span><label class="toggle"><input type="checkbox" id="aiBadgeToggle" onchange="toggleAiBadge()" checked/><span class="toggle-slider"></span></label></div></div>
-    <div class="setting-card"><div class="setting-label">🌐 Default Region</div><div class="setting-desc">Region that loads first on the News tab</div><select class="topic-sel" id="defaultTopicSel" onchange="saveDefaultTopic()"><option value="Global/World">🌍 Global / World</option><option value="North America">🌎 North America</option><option value="Europe">🌍 Europe</option><option value="Asia">🌏 Asia</option><option value="Middle East & Africa">🌙 Middle East & Africa</option><option value="South America">🌎 South America</option></select></div>
-    <div class="setting-card"><div class="setting-label">🗄 Cache & Reset</div><div class="setting-desc">Force fresh data or reset all settings</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn-neutral" onclick="clearCache()">Clear Cache</button><button class="btn-danger" onclick="resetAll()">Reset All</button></div></div>
+    <div class="setting-card">
+      <div class="setting-label">🌙 Dark Mode</div>
+      <div class="setting-desc">Dark theme for low-light field use</div>
+      <label class="toggle"><input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()"/><span class="toggle-slider"></span></label>
+    </div>
+    <div class="setting-card">
+      <div class="setting-label">📎 Show Sources</div>
+      <div class="setting-desc">Display source links on AI-generated content</div>
+      <label class="toggle"><input type="checkbox" id="citationsToggle" onchange="toggleCitations()" checked/><span class="toggle-slider"></span></label>
+    </div>
+    <div class="setting-card">
+      <div class="setting-label">🗄 Cache & Reset</div>
+      <div class="setting-desc">Force fresh data or reset all local settings</div>
+      <div class="setting-btns">
+        <button class="btn-outline" onclick="clearCache()">Clear Cache</button>
+        <button class="btn-danger" onclick="resetAll()">Reset All</button>
+      </div>
+    </div>
+  </div>
+  <div class="settings-footer">
+    Briefly Intelligence · v5.0 · MENA &amp; Ukraine · NGO Safety Platform<br>
+    AI-generated content — always verify with official sources<br>
+    <a href="https://claudebriefly.onrender.com/health" target="_blank" rel="noopener">Backend Health Check</a>
   </div>
 </div>
+
 </main>
-<div class="app-footer">
-  Briefly Intelligence &nbsp;·&nbsp; v4.5 &nbsp;·&nbsp; Powered by <a href="https://claude.ai" target="_blank" rel="noopener">Claude</a> &nbsp;·&nbsp; AI-generated content — verify with official sources
-</div>
-<!-- BOTTOM NAV -->
+
+<!-- BOTTOM NAV — 6 large touch-friendly tabs -->
 <nav class="bottom-nav">
-  <button class="nav-btn active" id="nav-news" onclick="switchTab('news')"><span class="nav-icon">📰</span>News</button>
-  <button class="nav-btn" id="nav-brief" onclick="switchTab('brief')"><span class="nav-icon">📋</span>Brief</button>
-  <button class="nav-btn" id="nav-airspace" onclick="switchTab('airspace')"><span class="nav-icon">✈️</span>Airspace</button>
-  <button class="nav-btn" id="nav-advisories" onclick="switchTab('advisories')"><span class="nav-icon">🛡️</span>Advisories</button>
-  <button class="nav-btn" id="nav-markets" onclick="switchTab('markets')"><span class="nav-icon">📈</span>Markets</button>
-  <button class="nav-btn" id="nav-press" onclick="switchTab('press')"><span class="nav-icon">📰</span>Press</button>
-
-
-  <button class="nav-btn" id="nav-dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">👤</span>Account</button>
-  <button class="nav-btn" id="nav-settings" onclick="switchTab('settings')"><span class="nav-icon">⚙️</span>Settings</button>
+  <button class="nav-btn active" id="nav-news" onclick="switchTab('news')">
+    <span class="nav-icon">📰</span><span class="nav-label">News</span>
+  </button>
+  <button class="nav-btn" id="nav-brief" onclick="switchTab('brief')">
+    <span class="nav-icon">🔐</span><span class="nav-label">Brief</span>
+  </button>
+  <button class="nav-btn" id="nav-airspace" onclick="switchTab('airspace')">
+    <span class="nav-icon">✈️</span><span class="nav-label">Airspace</span>
+  </button>
+  <button class="nav-btn" id="nav-advisories" onclick="switchTab('advisories')">
+    <span class="nav-icon">🛡️</span><span class="nav-label">Advisories</span>
+  </button>
+  <button class="nav-btn" id="nav-markets" onclick="switchTab('markets')">
+    <span class="nav-icon">📈</span><span class="nav-label">Markets</span>
+  </button>
+  <button class="nav-btn" id="nav-settings" onclick="switchTab('settings')">
+    <span class="nav-icon">⚙️</span><span class="nav-label">Settings</span>
+  </button>
 </nav>
+
+<!-- FLOATING AI CHAT BUBBLE -->
+<button id="chatFloat" onclick="toggleChatPanel()" aria-label="Ask AI">🤖</button>
+<div id="chatPanel" style="display:none;">
+  <div class="chat-panel-header">
+    <span>Ask Briefly AI</span>
+    <button onclick="toggleChatPanel()" class="chat-panel-close">✕</button>
+  </div>
+  <div id="chatPanelMessages" class="chat-panel-messages">
+    <div class="chat-panel-welcome">Ask anything about MENA or Ukraine — security, access, logistics, or context for field teams.</div>
+  </div>
+  <div class="chat-panel-footer">
+    <input id="chatPanelInput" type="text" placeholder="Ask about MENA or Ukraine…"
+      onkeydown="if(event.key==='Enter')sendChatPanel()">
+    <button onclick="sendChatPanel()">Send</button>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="app.js" defer></script>
-
-<!-- TradingView Chart Modal -->
-<div id="tvChartModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
-  <div style="background:var(--card-bg);border-radius:16px;width:min(800px,95vw);max-height:90vh;overflow:hidden;display:flex;flex-direction:column;">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
-      <div>
-        <span id="tvChartSymbol" style="font-weight:700;font-size:18px;"></span>
-        <span id="tvChartName" style="color:var(--text-muted);font-size:13px;margin-left:8px;"></span>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <div style="display:flex;gap:4px;" id="tvIntervalBtns">
-          <button onclick="setTVInterval('1D')" class="tv-int-btn active" data-int="1D">1D</button>
-          <button onclick="setTVInterval('1W')" class="tv-int-btn" data-int="1W">1W</button>
-          <button onclick="setTVInterval('1M')" class="tv-int-btn" data-int="1M">1M</button>
-          <button onclick="setTVInterval('12M')" class="tv-int-btn" data-int="12M">1Y</button>
-        </div>
-        <button onclick="closeTVModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);padding:4px 8px;">✕</button>
-      </div>
-    </div>
-    <div id="tvChartContainer" style="flex:1;min-height:400px;padding:0;"></div>
-  </div>
-</div>
-
-
-<!-- FLOATING CHAT BUBBLE -->
-<div id="chatFloat" onclick="toggleChatPanel()" title="Ask AI" style="
-  position:fixed;bottom:90px;right:20px;
-  width:52px;height:52px;border-radius:50%;
-  background:var(--gold);color:#07090f;
-  display:flex;align-items:center;justify-content:center;
-  font-size:22px;cursor:pointer;z-index:200;
-  box-shadow:0 4px 20px rgba(200,160,48,0.5);
-  transition:transform .2s,box-shadow .2s;
-" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
-  🤖
-</div>
-<div id="chatPanel" style="
-  position:fixed;bottom:155px;right:20px;
-  width:360px;max-height:70vh;
-  background:var(--card);border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  box-shadow:var(--shadow-lg);
-  z-index:199;display:none;
-  flex-direction:column;overflow:hidden;
-">
-  <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-    <div style="font-family:var(--serif);font-weight:700;font-size:16px;">Ask AI</div>
-    <button onclick="toggleChatPanel()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;">×</button>
-  </div>
-  <div id="chatPanelMessages" style="flex:1;overflow-y:auto;padding:14px 18px;min-height:200px;max-height:calc(70vh - 120px);"></div>
-  <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;">
-    <input id="chatPanelInput" type="text" placeholder="Ask anything…" style="flex:1;padding:8px 14px;border:1px solid var(--border);border-radius:20px;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;outline:none;" onkeydown="if(event.key==='Enter')sendChatPanel()">
-    <button onclick="sendChatPanel()" style="padding:8px 16px;background:var(--gold);color:#07090f;border:none;border-radius:20px;font-weight:700;font-family:var(--cond);font-size:12px;cursor:pointer;">Send</button>
-  </div>
-</div>
 </body>
 </html>
