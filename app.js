@@ -528,7 +528,7 @@ async function loadAirspaceNews() {
   }
 }
 
-function renderAirspaceNews(data) {
+function renderAirspaceNews(data, countryLabel) {
   const el = document.getElementById('airspaceContent');
   const items = data.items || [];
 
@@ -901,7 +901,7 @@ async function loadBreakingTicker() {
 // ═══════════════════════════════════════════════════════════════════
 function initSettingsUI() {
   const dm = document.getElementById('darkModeToggle');
-  if (dm) dm.checked = LS.get('darkMode', true);
+  if (dm) dm.checked = LS.get('darkMode', false);
   const ct = document.getElementById('citationsToggle');
   if (ct) ct.checked = showCitations;
 }
@@ -955,9 +955,88 @@ function showToast(msg, type='info') {
 // ═══════════════════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════
+// AIRSPACE — Country search
+// ═══════════════════════════════════════════════════════════════════
+let currentAirspaceCountry = null;
+
+function selectAirspaceCountry(btn, country) {
+  document.querySelectorAll('#airspaceChips .adv-chip').forEach(b => b.classList.remove('active'));
+  if (currentAirspaceCountry === country) {
+    currentAirspaceCountry = null;
+    const lbl = document.getElementById('airspaceSectionLabel');
+    if (lbl) lbl.textContent = 'Latest Aviation News';
+    loadAirspaceNews();
+    return;
+  }
+  btn.classList.add('active');
+  currentAirspaceCountry = country;
+  const lbl = document.getElementById('airspaceSectionLabel');
+  if (lbl) lbl.textContent = 'Airspace — ' + country;
+  loadAirspaceNewsForCountry(country);
+}
+
+function doAirspaceSearch() {
+  const q = document.getElementById('airspaceSearchInput')?.value?.trim();
+  if (!q) {
+    document.querySelectorAll('#airspaceChips .adv-chip').forEach(b => b.classList.remove('active'));
+    currentAirspaceCountry = null;
+    const lbl = document.getElementById('airspaceSectionLabel');
+    if (lbl) lbl.textContent = 'Latest Aviation News';
+    loadAirspaceNews();
+    return;
+  }
+  const lbl = document.getElementById('airspaceSectionLabel');
+  if (lbl) lbl.textContent = 'Airspace: ' + q;
+  loadAirspaceNewsForCountry(q);
+}
+
+async function loadAirspaceNewsForCountry(country) {
+  const el = document.getElementById('airspaceContent');
+  el.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div>Loading airspace news for ' + esc(country) + '…</div>';
+  const isAll = country === 'All MENA';
+  const searchTerm = isAll
+    ? 'MENA Middle East airspace flight ban restriction NOTAM aviation'
+    : country + ' airspace flight ban restriction NOTAM aviation';
+  try {
+    const cKey = 'air_' + country.replace(/[^a-z0-9]/gi,'_');
+    const data = await apiFetch('/api/news', {
+      body: JSON.stringify({ topic: country + ' airspace aviation', search: searchTerm })
+    }, cKey, TTL.air);
+    renderAirspaceNews(data, country);
+  } catch(e) {
+    el.innerHTML = '<div class="error-card">&#x26a0; Failed to load. <button class="retry-btn" onclick="loadAirspaceNews()">Retry</button></div>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ADVISORIES — Free-text search
+// ═══════════════════════════════════════════════════════════════════
+function doAdvisorySearch() {
+  const q = document.getElementById('advisorySearchInput')?.value?.trim();
+  if (!q) return;
+  let found = false;
+  document.querySelectorAll('#advisoryChips .adv-chip').forEach(btn => {
+    const c = btn.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    if (c && c.toLowerCase() === q.toLowerCase()) {
+      if (!advisoryActive.has(c)) toggleAdvisory(btn, c);
+      found = true;
+    }
+  });
+  if (!found) {
+    const el = document.getElementById('advisoryContent');
+    if (el.querySelector('.empty-state')) el.innerHTML = '';
+    advisoryActive.add(q);
+    loadAdvisoryCountry(q);
+  }
+  if (document.getElementById('advisorySearchInput'))
+    document.getElementById('advisorySearchInput').value = '';
+}
+
 (function init() {
   // Theme
-  const useDark = LS.get('darkMode', true);
+  const useDark = LS.get('darkMode', false);
   document.documentElement.setAttribute('data-theme', useDark ? 'dark' : 'light');
 
   // Restore preferences

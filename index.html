@@ -1,24 +1,24 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
 <script>
 (function(){
   try {
     const s = localStorage.getItem('briefly_darkMode');
-    const useDark = s !== null ? JSON.parse(s) : true;
-    if (!useDark) document.documentElement.setAttribute('data-theme','light');
+    const useDark = s !== null ? JSON.parse(s) : false;
+    if (useDark) document.documentElement.setAttribute('data-theme','dark');
   } catch(e) {}
 })();
 </script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="theme-color" content="#07090f"/>
+<meta name="theme-color" content="#f0ede8"/>
 <title>Briefly | MENA & Ukraine Intelligence</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Crect width='36' height='36' rx='8' fill='%230f1623'/%3E%3Ctext x='18' y='26' text-anchor='middle' font-family='Georgia,serif' font-size='22' font-weight='700' fill='%23c8a030'%3EB%3C/text%3E%3C/svg%3E"/>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Crect width='36' height='36' rx='8' fill='%23dc2626'/%3E%3Ctext x='18' y='26' text-anchor='middle' font-family='Georgia,serif' font-size='22' font-weight='700' fill='%23ffffff'%3EB%3C/text%3E%3C/svg%3E"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=DM+Sans:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -114,10 +114,38 @@
   <div class="page-header">
     <div class="page-label">Aviation Safety</div>
     <div class="page-title">✈️ Airspace Alerts</div>
-    <div class="page-subtitle">Latest FlightRadar24 news · MENA & Ukraine</div>
+    <div class="page-subtitle">FlightRadar24 · FAA NOTAMs · MENA & Ukraine</div>
   </div>
   <div id="airspaceMap"></div>
-  <div class="page-section-label">Latest Aviation News</div>
+  <!-- Country chips -->
+  <div class="page-section-label" style="margin-top:18px;">Search by Country</div>
+  <div class="adv-chips" id="airspaceChips" style="margin-bottom:16px;">
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'Jordan')">🇯🇴 Jordan</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'Lebanon')">🇱🇧 Lebanon</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'Syria')">🇸🇾 Syria</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'Iraq')">🇮🇶 Iraq</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'Iran')">🇮🇷 Iran</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'Israel')">🇮🇱 Israel</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'Palestine')">🇵🇸 Palestine</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'Yemen')">🇾🇪 Yemen</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'Saudi Arabia')">🇸🇦 Saudi</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'Egypt')">🇪🇬 Egypt</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'Libya')">🇱🇾 Libya</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'Sudan')">🇸🇩 Sudan</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'Ukraine')">🇺🇦 Ukraine</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'Turkey')">🇹🇷 Turkey</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'Kuwait')">🇰🇼 Kuwait</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'UAE')">🇦🇪 UAE</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'Qatar')">🇶🇦 Qatar</button>
+    <button class="adv-chip" onclick="selectAirspaceCountry(this,'All MENA')">🌍 All MENA</button>
+  </div>
+  <!-- Custom search -->
+  <div class="news-search-bar" style="margin-bottom:18px;">
+    <span class="search-icon-sm">✈️</span>
+    <input type="text" id="airspaceSearchInput" placeholder="Search any country or airspace topic…" onkeydown="if(event.key==='Enter')doAirspaceSearch()"/>
+    <button onclick="doAirspaceSearch()">Search</button>
+  </div>
+  <div class="page-section-label" id="airspaceSectionLabel">Latest Aviation News</div>
   <div id="airspaceContent">
     <div class="loading-state"><div class="loading-spinner"></div>Loading airspace news…</div>
   </div>
@@ -130,6 +158,13 @@
     <div class="page-title">🛡️ Travel Advisories</div>
     <div class="page-subtitle">US State Dept · UK FCDO · MENA & Ukraine</div>
   </div>
+  <!-- Search input -->
+  <div class="news-search-bar" style="margin-bottom:16px;">
+    <span class="search-icon-sm">🔍</span>
+    <input type="text" id="advisorySearchInput" placeholder="Search any country…" onkeydown="if(event.key==='Enter')doAdvisorySearch()"/>
+    <button onclick="doAdvisorySearch()">Search</button>
+  </div>
+  <!-- Country chips -->
   <div class="adv-chips" id="advisoryChips">
     <button class="adv-chip" onclick="toggleAdvisory(this,'Jordan')">🇯🇴 Jordan</button>
     <button class="adv-chip" onclick="toggleAdvisory(this,'Lebanon')">🇱🇧 Lebanon</button>
