@@ -656,14 +656,14 @@ function loadMarkets(force) {
   loadMarketCommentary();
 }
 
-// FIX 4a: Use Twelve Data via backend proxy for accurate live prices
+// Markets: fetch prices with fallback chain, TradingView on click
 async function loadCommoditiesTwelve() {
   const el = document.getElementById('ticker-commodities');
   if (!el) return;
-  // Skeleton cards
+
   el.innerHTML = SYMBOLS.map(sym => {
     const m = COMMODITY_MAP[sym];
-    return `<div class="ticker-card loading-card" id="tc_${sym.replace(/[^a-zA-Z0-9]/g,'_')}">
+    return `<div class="ticker-card loading-card">
       <div class="tc-icon">${m.icon}</div>
       <div class="tc-sym">${sym.replace('=F','')}</div>
       <div class="tc-name">${m.name}</div>
@@ -671,50 +671,58 @@ async function loadCommoditiesTwelve() {
     </div>`;
   }).join('');
 
-  try {
-    // Call backend which uses Twelve Data API
-    const data = await apiFetch(
-      '/api/markets/twelve?symbols=' + encodeURIComponent(SYMBOLS.join(',')),
-      { method:'GET' },
-      'mkt_commodities', TTL.markets
-    );
-    const quotes = data.quotes || [];
-    const bySymbol = {};
-    quotes.forEach(q => { bySymbol[q.symbol] = q; });
+  let data = null;
 
-    el.innerHTML = SYMBOLS.map(sym => {
-      const m = COMMODITY_MAP[sym];
-      const q = bySymbol[sym];
-      if (!q || q.price == null) {
-        return `<div class="ticker-card ticker-card-unavailable" onclick="openTradingView('${sym}')">
-          <div class="tc-icon">${m.icon}</div>
-          <div class="tc-sym">${sym.replace('=F','')}</div>
-          <div class="tc-name">${m.name}</div>
-          <div class="tc-unavail">Tap for chart</div>
-        </div>`;
-      }
-      const up = (q.change||0) >= 0;
-      const pr = q.price >= 1000
-        ? q.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})
-        : q.price.toFixed(q.price < 10 ? 4 : 2);
-      const pct = q.changePercent != null ? (up?'+':'')+q.changePercent.toFixed(2)+'%' : '—';
-      const chg = q.change != null ? (up?'+':'')+q.change.toFixed(2) : '';
-      return `<div class="ticker-card" onclick="openTradingView('${sym}')" style="cursor:pointer;" title="Click for TradingView chart">
+  // 1st try: Twelve Data endpoint (if server_patch.js loaded on backend)
+  try {
+    const r = await fetch(API + '/api/markets/twelve?symbols=' + encodeURIComponent(SYMBOLS.join(',')));
+    if (r.ok) { const d = await r.json(); if (d.quotes && d.quotes.length) data = d; }
+  } catch(_) {}
+
+  // 2nd try: existing /api/markets/quote endpoint
+  if (!data) {
+    try {
+      const r = await fetch(API + '/api/markets/quote?symbols=' + encodeURIComponent(SYMBOLS.join(',')));
+      if (r.ok) { const d = await r.json(); if (d.quotes && d.quotes.length) data = d; }
+    } catch(_) {}
+  }
+
+  if (!data) data = { quotes: [], source: 'error' };
+  cacheSet('mkt_commodities', data);
+
+  const bySymbol = {};
+  (data.quotes || []).forEach(q => { bySymbol[q.symbol] = q; });
+
+  el.innerHTML = SYMBOLS.map(sym => {
+    const m = COMMODITY_MAP[sym];
+    const q = bySymbol[sym];
+
+    if (!q || q.price == null) {
+      return `<div class="ticker-card ticker-card-unavailable" onclick="openTradingView('${sym}')" style="cursor:pointer;">
         <div class="tc-icon">${m.icon}</div>
         <div class="tc-sym">${sym.replace('=F','')}</div>
         <div class="tc-name">${m.name}</div>
-        ${makeSparkline(q.changePercent, up)}
-        <div class="tc-price ${up?'up':'dn'}">${pr}</div>
-        <div class="tc-chg ${up?'up':'dn'}">${pct}${chg?' ('+chg+')':''}</div>
-        <div class="tc-chart-hint" style="font-size:10px;color:var(--text-muted);margin-top:4px;">📊 Tap for chart</div>
-        ${data.source==='ai_estimate' ? '<span class="tc-badge ai-badge">AI Est.</span>' : '<span class="tc-badge live-badge">● Live</span>'}
+        <div class="tc-unavail">📊 Tap for chart</div>
       </div>`;
-    }).join('');
-  } catch(e) {
-    el.innerHTML = `<div class="error-card">⚠ Failed to load prices. <button class="retry-btn" onclick="loadCommoditiesTwelve()">Retry</button></div>`;
-  }
+    }
+    const up = (q.change||0) >= 0;
+    const pr = q.price >= 1000
+      ? q.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})
+      : q.price.toFixed(q.price < 10 ? 4 : 2);
+    const pct = q.changePercent != null ? (up?'+':'')+q.changePercent.toFixed(2)+'%' : '—';
+    const chg = q.change != null ? (up?'+':'')+q.change.toFixed(2) : '';
+    return `<div class="ticker-card" onclick="openTradingView('${sym}')" style="cursor:pointer;" title="Tap for live chart">
+      <div class="tc-icon">${m.icon}</div>
+      <div class="tc-sym">${sym.replace('=F','')}</div>
+      <div class="tc-name">${m.name}</div>
+      ${makeSparkline(q.changePercent, up)}
+      <div class="tc-price ${up?'up':'dn'}">${pr}</div>
+      <div class="tc-chg ${up?'up':'dn'}">${pct}${chg?' ('+chg+')':''}</div>
+      <div class="tc-chart-hint" style="font-size:10px;color:var(--text-muted);margin-top:4px;">📊 Tap for chart</div>
+      ${data.source==='ai_estimate' ? '<span class="tc-badge ai-badge">AI Est.</span>' : '<span class="tc-badge live-badge">● Live</span>'}
+    </div>`;
+  }).join('');
 }
-
 // FIX 4b: Open TradingView chart in a modal overlay
 function openTradingView(symbol) {
   const m = COMMODITY_MAP[symbol];
