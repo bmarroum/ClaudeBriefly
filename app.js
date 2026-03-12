@@ -637,14 +637,14 @@ function renderAdvisoryCard(country, data) {
 
 // Mapping from commodity Yahoo-style symbols to Twelve Data symbols + TradingView symbols
 const COMMODITY_MAP = {
-  'GC=F': { name:'Gold',        icon:'🥇', td:'XAU/USD', tv:'OANDA:XAUUSD' },
-  'CL=F': { name:'WTI Crude',   icon:'🛢️', td:'WTI/USD', tv:'NYMEX:CL1!' },
-  'BZ=F': { name:'Brent Crude', icon:'🛢️', td:'BRENT/USD', tv:'NYMEX:BB1!' },
-  'NG=F': { name:'Nat Gas',     icon:'🔥', td:'XNG/USD',  tv:'NYMEX:NG1!' },
-  'ZW=F': { name:'Wheat',       icon:'🌾', td:'WHEAT',    tv:'CBOT:ZW1!' },
-  'ZC=F': { name:'Corn',        icon:'🌽', td:'CORN',     tv:'CBOT:ZC1!' },
-  'SI=F': { name:'Silver',      icon:'⚪', td:'XAG/USD',  tv:'OANDA:XAGUSD' },
-  'HG=F': { name:'Copper',      icon:'🟠', td:'COPPER',   tv:'COMEX:HG1!' },
+  'GC=F': { name:'Gold',        icon:'🥇', tv:'OANDA:XAUUSD'  },
+  'CL=F': { name:'WTI Crude',   icon:'🛢️', tv:'NYMEX:CL1!'    },
+  'BZ=F': { name:'Brent Crude', icon:'🛢️', tv:'NYMEX:BB1!'    },
+  'NG=F': { name:'Nat Gas',     icon:'🔥', tv:'NYMEX:NG1!'    },
+  'ZW=F': { name:'Wheat',       icon:'🌾', tv:'CBOT:ZW1!'     },
+  'ZC=F': { name:'Corn',        icon:'🌽', tv:'CBOT:ZC1!'     },
+  'SI=F': { name:'Silver',      icon:'⚪', tv:'OANDA:XAGUSD'  },
+  'HG=F': { name:'Copper',      icon:'🟠', tv:'COMEX:HG1!'    },
 };
 
 const SYMBOLS = Object.keys(COMMODITY_MAP);
@@ -724,54 +724,101 @@ async function loadCommoditiesTwelve() {
   }).join('');
 }
 // FIX 4b: Open TradingView chart in a modal overlay
+// ── Chart modal using TradingView Mini Widget (free, no login needed) ──
 function openTradingView(symbol) {
   const m = COMMODITY_MAP[symbol];
   if (!m) return;
-  const tvSymbol = m.tv;
-  const existing = document.getElementById('tv-modal');
-  if (existing) existing.remove();
 
+  // Remove any existing modal
+  document.getElementById('tv-modal')?.remove();
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const theme = isDark ? 'dark' : 'light';
+
+  // TradingView mini chart widget — works free for forex & crypto pairs
+  // For futures we use the symbol-chart URL which opens in a lightbox iframe
   const modal = document.createElement('div');
   modal.id = 'tv-modal';
-  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:9999;display:flex;flex-direction:column;';
+  modal.style.cssText = [
+    'position:fixed;top:0;left:0;width:100%;height:100%;',
+    'background:rgba(0,0,0,.88);z-index:9999;',
+    'display:flex;flex-direction:column;'
+  ].join('');
 
-  modal.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card-bg,#1a1a2e);border-bottom:1px solid var(--border,#333);">
-      <div style="font-weight:700;font-size:15px;color:var(--text-primary,#eee);">${m.icon} ${m.name} — Live Chart</div>
-      <button onclick="document.getElementById('tv-modal').remove()" style="background:none;border:none;color:var(--text-secondary,#aaa);font-size:22px;cursor:pointer;padding:0 4px;">✕</button>
-    </div>
-    <div style="flex:1;position:relative;">
-      <div class="tradingview-widget-container" style="height:100%;width:100%;">
-        <div class="tradingview-widget-container__widget" style="height:100%;width:100%;"></div>
+  // Header
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--card-bg,#12151c);border-bottom:1px solid var(--border,#2a2a3a);flex-shrink:0;';
+  header.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:22px;">${m.icon}</span>
+      <div>
+        <div style="font-weight:700;font-size:15px;color:var(--text-primary,#eee);">${m.name}</div>
+        <div style="font-size:11px;color:var(--text-muted,#888);">Live price chart · Powered by TradingView</div>
       </div>
     </div>
-    <div style="padding:8px 16px;background:var(--card-bg,#1a1a2e);text-align:center;font-size:11px;color:var(--text-muted,#666);">
-      Powered by TradingView · Data may be delayed · Always verify before trading
+    <div style="display:flex;gap:10px;align-items:center;">
+      <a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(m.tv)}" target="_blank" rel="noopener"
+         style="font-size:12px;padding:6px 14px;background:var(--accent,#c8a84b);color:#000;border-radius:20px;font-weight:700;text-decoration:none;">
+        Open Full Chart ↗
+      </a>
+      <button onclick="document.getElementById('tv-modal').remove()"
+              style="background:none;border:none;color:var(--text-secondary,#aaa);font-size:24px;cursor:pointer;line-height:1;padding:0;">✕</button>
     </div>
   `;
 
+  // Chart container — use TradingView mini widget (free tier, works for all symbols)
+  const chartWrap = document.createElement('div');
+  chartWrap.style.cssText = 'flex:1;overflow:hidden;position:relative;';
+
+  // Mini Symbol Overview widget — free, works for all symbols
+  const widgetDiv = document.createElement('div');
+  widgetDiv.className = 'tradingview-widget-container';
+  widgetDiv.style.cssText = 'height:100%;width:100%;';
+  widgetDiv.innerHTML = '<div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%;"></div>';
+
+  const script = document.createElement('script');
+  script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js';
+  script.async = true;
+  script.textContent = JSON.stringify({
+    symbols: [[m.name, m.tv + '|1D']],
+    chartOnly: false,
+    width: '100%',
+    height: '100%',
+    locale: 'en',
+    colorTheme: theme,
+    autosize: true,
+    showVolume: false,
+    showMA: false,
+    hideDateRanges: false,
+    hideMarketStatus: false,
+    hideSymbolLogo: false,
+    scalePosition: 'right',
+    scaleMode: 'Normal',
+    fontFamily: '-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif',
+    fontSize: '10',
+    noTimeScale: false,
+    valuesTracking: '1',
+    changeMode: 'price-and-percent',
+    chartType: 'area',
+    lineWidth: 2,
+    lineType: 0,
+    dateRanges: ['1d|1', '1w|60', '1m|30D', '3m|60', '12m|1D', '60m|1W', 'all|1M']
+  });
+
+  widgetDiv.appendChild(script);
+  chartWrap.appendChild(widgetDiv);
+
+  // Footer
+  const footer = document.createElement('div');
+  footer.style.cssText = 'padding:8px 16px;background:var(--card-bg,#12151c);text-align:center;font-size:11px;color:var(--text-muted,#666);flex-shrink:0;';
+  footer.innerHTML = 'Data may be delayed · For reference only · <a href="https://www.tradingview.com" target="_blank" rel="noopener" style="color:var(--accent,#c8a84b);">TradingView</a>';
+
+  modal.appendChild(header);
+  modal.appendChild(chartWrap);
+  modal.appendChild(footer);
   document.body.appendChild(modal);
 
-  // Load TradingView widget script
-  const script = document.createElement('script');
-  script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-  script.async = true;
-  script.innerHTML = JSON.stringify({
-    autosize: true,
-    symbol: tvSymbol,
-    interval: 'D',
-    timezone: 'Etc/UTC',
-    theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'dark',
-    style: '1',
-    locale: 'en',
-    enable_publishing: false,
-    allow_symbol_change: true,
-    calendar: false,
-    support_host: 'https://www.tradingview.com'
-  });
-  modal.querySelector('.tradingview-widget-container').appendChild(script);
-
-  // Close on background click
+  // Close on backdrop click
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
 
