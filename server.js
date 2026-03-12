@@ -1091,4 +1091,5 @@ app.post("/api/ask", async (req, res) => {
 app.get("/health", (_, res) => res.json({ status: "ok", time: new Date().toISOString(), model: MODEL, version: VERSION, gemini: !!process.env.GEMINI_API_KEY }));
 
 const PORT = process.env.PORT || 3000;
+require('./server_patch.js');
 app.listen(PORT, () => console.log("Briefly Intelligence v" + VERSION + " running on port " + PORT));
