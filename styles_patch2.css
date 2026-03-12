@@ -1,0 +1,200 @@
+/* ═══════════════════════════════════════════════════════════════════
+   BRIEFLY v5.2 — CSS PATCH 2
+   Covers: ticker animation fix, airspace status, TV modal
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── FIX 1: Slower ticker animation ─────────────────────────────── */
+/* Base ticker speed is set dynamically in JS (10s per item, min 60s) */
+/* This CSS ensures the animation is smooth at any duration */
+.ticker-track {
+  animation-timing-function: linear !important;
+  animation-iteration-count: infinite !important;
+  animation-name: ticker-scroll !important;
+  /* Default duration overridden by JS — JS sets it to max(60, items*10)s */
+}
+
+/* ── Airspace status badge colors ────────────────────────────────── */
+.airspace-status-closed {
+  background: #e05c5c !important;
+  color: #fff !important;
+}
+.airspace-status-restricted {
+  background: #ff9800 !important;
+  color: #fff !important;
+}
+.airspace-status-open {
+  background: #4caf84 !important;
+  color: #fff !important;
+}
+.airspace-status-monitor {
+  background: #2196f3 !important;
+  color: #fff !important;
+}
+
+/* ── Airspace AI status card ─────────────────────────────────────── */
+.airspace-status-card {
+  animation: fadeInUp 0.3s ease;
+}
+.airspace-status-card a {
+  color: var(--accent, #c8a84b);
+  text-decoration: underline;
+}
+
+/* ── TradingView modal overlay ────────────────────────────────────── */
+#tv-modal {
+  animation: fadeIn 0.2s ease;
+}
+#tv-modal button:hover {
+  color: var(--text-primary, #fff) !important;
+}
+
+/* ── Ticker card hover (clickable for chart) ──────────────────────── */
+.ticker-card[onclick] {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ticker-card[onclick]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+.tc-chart-hint {
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.ticker-card:hover .tc-chart-hint {
+  opacity: 1;
+  color: var(--accent, #c8a84b) !important;
+}
+
+/* ── Ticker card unavailable state ───────────────────────────────── */
+.ticker-card-unavailable {
+  opacity: 0.6;
+  cursor: pointer;
+}
+.ticker-card-unavailable:hover {
+  opacity: 0.9;
+}
+.tc-unavail {
+  font-size: 11px;
+  color: var(--text-muted, #888);
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* ── FIX 5: Settings tab visibility ─────────────────────────────── */
+#tab-settings.active {
+  display: block !important;
+}
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding: 16px;
+}
+.setting-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+}
+.setting-label {
+  font-weight: 600;
+  font-size: 14px;
+}
+.setting-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.setting-btns {
+  display: flex;
+  gap: 8px;
+}
+.settings-footer {
+  padding: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.8;
+}
+.settings-footer a {
+  color: var(--accent);
+}
+
+/* ── Brief: Recent Developments at the top ───────────────────────── */
+.brief-section-live {
+  border: 1px solid rgba(var(--accent-rgb, 200,168,75), 0.35);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.brief-sec-hdr-live {
+  background: linear-gradient(90deg, rgba(200,168,75,0.15), transparent);
+}
+.live-hl {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.07));
+}
+.live-hl:last-child { border-bottom: none; }
+.live-hl a {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-decoration: none;
+  flex: 1;
+  line-height: 1.4;
+}
+.live-hl a:hover { color: var(--accent, #c8a84b); text-decoration: underline; }
+.hl-age {
+  font-size: 11px;
+  color: var(--text-muted, #888);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Brief meta: current timestamp ──────────────────────────────── */
+.brief-meta .live-badge {
+  font-size: 11px;
+}
+
+/* ── Timeline: recent events sorted newest first ─────────────────── */
+.tl-item {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.07));
+  font-size: 13px;
+}
+.tl-item:last-child { border-bottom: none; }
+.tl-date {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--accent, #c8a84b);
+  line-height: 1.5;
+}
+.tl-event {
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+/* ── Brief: remove key_actors card styles (no longer used) ───────── */
+.actor-card, .actor-list { display: none !important; }
+
+
+/* ── Animations ─────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
