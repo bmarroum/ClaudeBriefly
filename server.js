@@ -838,6 +838,39 @@ app.post("/api/airspace", async (req, res) => {
   }
 });
 
+
+// /api/airspace/status — required by loadAirspaceNewsForCountry() in app.js
+app.post("/api/airspace/status", async (req, res) => {
+  setCache(res, 900); // 15 min
+  const { country } = req.body;
+  if (!country) return res.status(400).json({ error: "Country required" });
+
+  let liveContext = "";
+  try {
+    const items = await fetchRSS(
+      "https://news.google.com/rss/search?q=" + encodeURIComponent(country + " airspace NOTAM aviation FlightRadar24") + "&hl=en-US&gl=US&ceid=US:en",
+      5000
+    );
+    if (items.length > 0) {
+      liveContext = "Recent aviation news:\n" + items.slice(0, 4).map(i => "- " + i.title).join("\n") + "\n\n";
+    }
+  } catch (e) { /* silent */ }
+
+  const fr24Url = "https://www.flightradar24.com/" + encodeURIComponent(country.toLowerCase().replace(/\s+/g, "-"));
+  const googleSearch = "https://www.google.com/search?q=" + encodeURIComponent(country + " airspace NOTAM " + new Date().getFullYear());
+
+  try {
+    const { text, engine: aiEngine } = await raceAI(
+      "You are an aviation safety analyst with knowledge of FlightRadar24, FAA, EUROCONTROL, and ICAO data. Today: " + todayStr() + ". Respond ONLY with a valid JSON object. No markdown or extra text.",
+      liveContext + "Provide current airspace status and NOTAM summary for " + country + ". Reference FlightRadar24 live flight data and official NOTAM systems.\n\nRespond with this JSON:\n{\"country\":\"" + country + "\",\"status\":\"<OPEN|RESTRICTED|CLOSED|CONFLICT_ZONE>\",\"alert_level\":\"<GREEN|AMBER|RED|BLACK>\",\"summary\":\"<2-3 sentences on current airspace status, referencing live flight activity where known>\",\"notams\":[{\"id\":\"<ID or N/A>\",\"title\":\"<NOTAM title>\",\"detail\":\"<1-2 sentences>\",\"effective\":\"<date or ongoing>\",\"authority\":\"<FAA|EASA|ICAO|GCAA|CAA>\"}],\"restrictions\":[\"<restriction1>\",\"<restriction2>\"],\"airlines_affected\":[\"<airline>\"],\"last_updated\":\"" + todayStr() + "\",\"data_sources\":\"FlightRadar24, FAA NOTAM System, EUROCONTROL, ICAO, EASA\",\"verifyLinks\":[{\"label\":\"FlightRadar24\",\"url\":\"" + fr24Url + "\"},{\"label\":\"FAA NOTAMs\",\"url\":\"https://notams.aim.faa.gov/notamSearch/\"},{\"label\":\"EUROCONTROL\",\"url\":\"https://www.eurocontrol.int/publication/notam-summary\"},{\"label\":\"EASA Safety\",\"url\":\"https://www.easa.europa.eu/en/domains/air-operations\"},{\"label\":\"ICAO\",\"url\":\"https://www.icao.int/safety/airnavigation/pages/notam.aspx\"}]}",
+      1200
+    );
+    res.json(parseJSON(text));
+  } catch (e) {
+    console.error("Airspace error:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
 // ── TRAVEL ADVISORIES ─────────────────────────────────────────────────────────
 app.post("/api/advisories", async (req, res) => {
   setCache(res, 1800); // 30 min
