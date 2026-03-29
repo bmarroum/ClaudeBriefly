@@ -1,1 +1,24 @@
-/* styles_patch.css — intentionally blank, patches applied in styles.css */
+/* styles_patch.css — additional styles */
+
+.brief-risk-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin: 2px 3px 2px 0;
+}
+
+[data-theme="dark"] .brief-risk-pill {
+  background: #4a1010;
+  color: #fca5a5;
+}
+
+.brief-risks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}

@@ -1,59 +1,45 @@
 // ═══════════════════════════════════════════════════════════════════
 //  Briefly Intelligence v5.0 — app.js
-//  Matches index.html exactly: all IDs, function names, structure
+//  Written against LIVE server response shapes (claudebriefly.onrender.com)
+//
+//  Working routes:
+//    POST /api/briefing   { topic } → { analysis:{threat_level,executive,situation,
+//                                        geopolitical,key_risks[],timeline[],key_actors,
+//                                        sources[]}, liveHeadlines[] }
+//    POST /api/airspace   { country } → { country,status,alert_level,summary,
+//                                         notams[{id,title,detail,effective,authority}],
+//                                         restrictions,last_updated }
+//    POST /api/advisories { country } → { country,
+//                                         us:{level,level_number,summary,key_risks[],url},
+//                                         uk:{level,summary,url} }
+//    GET  /api/markets/quote?symbols= → { quotes:[{symbol,price,changePercent,currency}] }
 // ═══════════════════════════════════════════════════════════════════
 
 const API = 'https://claudebriefly.onrender.com';
 
-// ─── SAFEAIRSPACE RATINGS ────────────────────────────────────────────
-const AIRSPACE_RATINGS = {
-  'jordan':        { rating: 'Three', label: 'Caution',   color: '#f59e0b', pips: 3 },
-  'lebanon':       { rating: 'Four',  label: 'High Risk', color: '#ef4444', pips: 4 },
-  'syria':         { rating: 'Five',  label: 'No Fly',    color: '#7f1d1d', pips: 5 },
-  'iraq':          { rating: 'Four',  label: 'High Risk', color: '#ef4444', pips: 4 },
-  'iran':          { rating: 'Four',  label: 'High Risk', color: '#ef4444', pips: 4 },
-  'israel':        { rating: 'Four',  label: 'High Risk', color: '#ef4444', pips: 4 },
-  'palestine':     { rating: 'Five',  label: 'No Fly',    color: '#7f1d1d', pips: 5 },
-  'west bank':     { rating: 'Five',  label: 'No Fly',    color: '#7f1d1d', pips: 5 },
-  'gaza':          { rating: 'Five',  label: 'No Fly',    color: '#7f1d1d', pips: 5 },
-  'yemen':         { rating: 'Five',  label: 'No Fly',    color: '#7f1d1d', pips: 5 },
-  'saudi arabia':  { rating: 'Two',   label: 'Low Risk',  color: '#10b981', pips: 2 },
-  'saudi':         { rating: 'Two',   label: 'Low Risk',  color: '#10b981', pips: 2 },
-  'egypt':         { rating: 'Two',   label: 'Low Risk',  color: '#10b981', pips: 2 },
-  'libya':         { rating: 'Five',  label: 'No Fly',    color: '#7f1d1d', pips: 5 },
-  'sudan':         { rating: 'Five',  label: 'No Fly',    color: '#7f1d1d', pips: 5 },
-  'ukraine':       { rating: 'Five',  label: 'No Fly',    color: '#7f1d1d', pips: 5 },
-  'turkey':        { rating: 'Two',   label: 'Low Risk',  color: '#10b981', pips: 2 },
-  'kuwait':        { rating: 'Two',   label: 'Low Risk',  color: '#10b981', pips: 2 },
-  'uae':           { rating: 'One',   label: 'Safe',      color: '#059669', pips: 1 },
-  'qatar':         { rating: 'One',   label: 'Safe',      color: '#059669', pips: 1 },
-  'all mena':      { rating: 'Varies', label: 'Mixed',    color: '#6b7280', pips: 0 },
-};
-
-// ─── STATE ──────────────────────────────────────────────────────────
+// ─── STATE ───────────────────────────────────────────────────────────
 let currentRegion = 'Middle East & Africa';
 let showCitations = true;
-let leafletMap = null;
+let leafletMap    = null;
 
-// ─── INIT ────────────────────────────────────────────────────────────
+// ─── INIT ─────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   applySavedSettings();
   loadNews(currentRegion);
   loadTicker();
   loadMarkets();
   initLeafletMap();
-  loadInitialAirspaceNews();
 });
 
-// ─── SETTINGS RESTORE ───────────────────────────────────────────────
+// ─── SETTINGS RESTORE ────────────────────────────────────────────────
 function applySavedSettings() {
   try {
     const dark = JSON.parse(localStorage.getItem('briefly_darkMode') || 'false');
     const el = document.getElementById('darkModeToggle');
     if (el) el.checked = dark;
 
-    showCitations = JSON.parse(localStorage.getItem('briefly_citations') !== null
-      ? localStorage.getItem('briefly_citations') : 'true');
+    const cit = localStorage.getItem('briefly_citations');
+    showCitations = cit !== null ? JSON.parse(cit) : true;
     const cEl = document.getElementById('citationsToggle');
     if (cEl) cEl.checked = showCitations;
   } catch(e) {}
@@ -73,46 +59,44 @@ function switchTab(tab) {
   if (content) content.classList.add('active');
   const btn = document.getElementById('nav-' + tab);
   if (btn) btn.classList.add('active');
-
-  // Resize leaflet map when airspace tab is shown (it needs this to render correctly)
   if (tab === 'airspace' && leafletMap) {
     setTimeout(() => leafletMap.invalidateSize(), 150);
   }
 }
 
-// ─── LIVE REFRESH ────────────────────────────────────────────────────
+// ─── LIVE PILL / REFRESH ─────────────────────────────────────────────
 function forceRefresh() {
   const pill = document.getElementById('livePill');
-  if (pill) {
-    pill.style.opacity = '0.5';
-    setTimeout(() => { pill.style.opacity = '1'; }, 600);
-  }
+  if (pill) { pill.style.opacity = '0.5'; setTimeout(() => pill.style.opacity = '1', 700); }
   loadNews(currentRegion);
   loadTicker();
   loadMarkets();
 }
 
-// ─── TICKER ──────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+//  TICKER  — uses /api/briefing with a news-style topic
+// ═══════════════════════════════════════════════════════════════════════
 async function loadTicker() {
   const track = document.getElementById('tickerTrack');
   if (!track) return;
   try {
-    const res = await fetch(`${API}/api/news?region=Middle East`);
-    const data = await res.json();
-    const items = (data.articles || []).slice(0, 8);
-    if (items.length) {
-      track.innerHTML = items
-        .map(a => `<span style="margin-right:40px">${a.date ? a.date + ' — ' : ''}${a.title}</span>`)
+    const res = await apiFetch('/api/briefing', 'POST', { topic: 'MENA security latest news headlines' });
+    const headlines = res.liveHeadlines || [];
+    if (headlines.length) {
+      track.innerHTML = headlines
+        .map(h => `<span style="margin-right:48px">● ${escHtml(typeof h === 'string' ? h : h.headline || h.title || '')}</span>`)
         .join('');
+    } else {
+      track.innerHTML = '<span>Live intelligence feed — MENA &amp; Ukraine</span>';
     }
   } catch(e) {
-    track.innerHTML = '<span>Live intelligence feed — MENA & Ukraine</span>';
+    track.innerHTML = '<span>Live intelligence feed — MENA &amp; Ukraine</span>';
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  NEWS TAB
-// ══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+//  NEWS TAB  — uses /api/briefing to synthesise regional news cards
+// ═══════════════════════════════════════════════════════════════════════
 function selectRegion(btn, region) {
   document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
   btn.classList.add('active');
@@ -123,56 +107,88 @@ function selectRegion(btn, region) {
 async function loadNews(region) {
   const el = document.getElementById('newsContent');
   if (!el) return;
-  el.innerHTML = `<div class="loading-state"><div class="loading-spinner"></div>Loading ${region} news…</div>`;
+  setLoading(el, `Loading ${region} intelligence…`);
   try {
-    const res = await fetch(`${API}/api/news?region=${encodeURIComponent(region)}`);
-    const data = await res.json();
-    renderNewsCards(data.articles || [], el);
+    const data = await apiFetch('/api/briefing', 'POST', { topic: `${region} security humanitarian latest developments` });
+    renderNewsFromBriefing(data, region, el);
   } catch(err) {
-    el.innerHTML = `<div class="error-card">⚠️ Failed to load news: ${err.message}</div>`;
+    setError(el, `Failed to load news: ${err.message}`);
   }
 }
 
 async function doNewsSearch() {
   const q = document.getElementById('newsSearchInput')?.value?.trim();
+  if (!q) return;
   const el = document.getElementById('newsContent');
   if (!el) return;
-  el.innerHTML = `<div class="loading-state"><div class="loading-spinner"></div>Searching…</div>`;
+  setLoading(el, `Searching for "${q}"…`);
   try {
-    const url = `${API}/api/news?region=${encodeURIComponent(currentRegion)}&q=${encodeURIComponent(q || '')}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    renderNewsCards(data.articles || [], el);
+    const data = await apiFetch('/api/briefing', 'POST', { topic: q });
+    renderNewsFromBriefing(data, q, el);
   } catch(err) {
-    el.innerHTML = `<div class="error-card">⚠️ Search failed: ${err.message}</div>`;
+    setError(el, `Search failed: ${err.message}`);
   }
 }
 
-function renderNewsCards(articles, container) {
-  if (!articles.length) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">No articles found</div></div>`;
+function renderNewsFromBriefing(data, region, container) {
+  const a = data.analysis || {};
+  const headlines = data.liveHeadlines || [];
+
+  // Build synthetic news cards from briefing data
+  const cards = [];
+
+  // Live headlines first
+  headlines.forEach(h => {
+    if (typeof h === 'string') {
+      cards.push({ title: h, source: 'Live Feed', category: 'Security' });
+    } else if (h && h.headline) {
+      cards.push({ title: h.headline, summary: h.summary, source: h.source || 'Intelligence', date: h.date, category: 'Security', url: h.url });
+    }
+  });
+
+  // Timeline events
+  (a.timeline || []).forEach(t => {
+    if (t && (t.event || t.title)) {
+      cards.push({ title: t.event || t.title, summary: t.detail || t.description, date: t.date, source: 'Timeline', category: 'Political' });
+    }
+  });
+
+  // Situation summary as a card
+  if (a.situation) {
+    cards.push({ title: `${region} — Situation Overview`, summary: a.situation.substring(0, 200), source: 'Analysis', category: 'Security' });
+  }
+  if (a.humanitarian) {
+    cards.push({ title: `${region} — Humanitarian Update`, summary: a.humanitarian.substring(0, 200), source: 'Analysis', category: 'Humanitarian' });
+  }
+  if (a.economic) {
+    cards.push({ title: `${region} — Economic Conditions`, summary: a.economic.substring(0, 200), source: 'Analysis', category: 'Economic' });
+  }
+
+  if (!cards.length) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">No results found</div></div>`;
     return;
   }
-  container.innerHTML = articles.map(a => {
-    const catClass = 'cat-' + (a.category || 'security').toLowerCase();
+
+  container.innerHTML = cards.map(c => {
+    const catClass = 'cat-' + (c.category || 'security').toLowerCase();
     return `
       <div class="news-card">
         <div class="news-card-meta">
-          <span class="news-source">${escHtml(a.source || 'Source')}</span>
-          ${a.date ? `<span class="news-date">${escHtml(a.date)}</span>` : ''}
-          ${a.category ? `<span class="news-category-tag ${catClass}">${escHtml(a.category)}</span>` : ''}
+          <span class="news-source">${escHtml(c.source || 'Brief')}</span>
+          ${c.date ? `<span class="news-date">${escHtml(c.date)}</span>` : ''}
+          ${c.category ? `<span class="news-category-tag ${catClass}">${escHtml(c.category)}</span>` : ''}
         </div>
         <div class="news-title">
-          ${a.url ? `<a href="${escHtml(a.url)}" target="_blank" rel="noopener">${escHtml(a.title || '')}</a>` : escHtml(a.title || '')}
+          ${c.url ? `<a href="${escHtml(c.url)}" target="_blank" rel="noopener">${escHtml(c.title)}</a>` : escHtml(c.title)}
         </div>
-        ${a.summary ? `<div class="news-summary">${escHtml(a.summary)}</div>` : ''}
+        ${c.summary ? `<div class="news-summary">${escHtml(c.summary)}</div>` : ''}
       </div>`;
   }).join('');
 }
 
-// ══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 //  BRIEF TAB
-// ══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 function quickBrief(topic) {
   const input = document.getElementById('briefSearchInput');
   if (input) input.value = topic;
@@ -188,222 +204,254 @@ async function generateBrief() {
 
   const el = document.getElementById('briefContent');
   if (!el) return;
-  el.innerHTML = `<div class="loading-state"><div class="loading-spinner"></div>Generating intelligence brief on "${topic}"…</div>`;
+  setLoading(el, `Generating intelligence brief on "${topic}"…`);
 
-  // Disable button during load
   const btn = document.getElementById('briefGenerateBtn');
   if (btn) btn.disabled = true;
 
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const res = await fetch(`${API}/api/briefing`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ country: topic, focus: topic })
-    });
-    const data = await res.json();
-    renderBriefCard(data, el);
+    const data = await apiFetch('/api/briefing', 'POST', { topic });
+    renderBriefCard(data, topic, el);
   } catch(err) {
-    el.innerHTML = `<div class="error-card">⚠️ Failed to generate brief: ${err.message}</div>`;
+    setError(el, `Failed to generate brief: ${err.message}`);
   } finally {
     if (btn) btn.disabled = false;
   }
 }
 
-function renderBriefCard(data, container) {
-  if (!data || data.error) {
-    container.innerHTML = `<div class="error-card">⚠️ ${data?.error || 'Failed to parse response'}</div>`;
-    return;
-  }
+function renderBriefCard(data, topic, container) {
+  const a = data.analysis || {};
+  const headlines = data.liveHeadlines || [];
 
-  const risk = (data.overallRisk || 'Medium').toLowerCase();
-  const threatClass = 'threat-' + (risk === 'critical' ? 'critical' : risk === 'high' ? 'high' : risk === 'low' ? 'low' : 'medium');
+  // Threat level → CSS class
+  const tl = (a.threat_level || 'MODERATE').toUpperCase();
+  const threatClass = tl === 'CRITICAL' ? 'threat-critical'
+    : tl.includes('HIGH') || tl === 'ELEVATED' ? 'threat-high'
+    : tl.includes('LOW') || tl === 'MINIMAL' ? 'threat-low'
+    : 'threat-medium';
 
-  const developments = (data.recentDevelopments || []).map(d => `
+  // Timeline rows
+  const timelineRows = (a.timeline || []).slice(0, 6).map(t => `
     <div class="brief-item">
-      <div class="brief-item-date">${escHtml(d.date || '')}</div>
+      <div class="brief-item-date">${escHtml(t.date || '')}</div>
       <div class="brief-item-content">
-        <strong>${escHtml(d.headline || '')}</strong>
-        ${d.detail ? `<p>${escHtml(d.detail)}</p>` : ''}
+        <strong>${escHtml(t.event || t.title || '')}</strong>
+        ${t.detail || t.description ? `<p>${escHtml(t.detail || t.description)}</p>` : ''}
       </div>
     </div>`).join('');
 
-  const ops = (data.operationalConsiderations || []).map(c => `
-    <div class="brief-item">
-      <div class="brief-item-date">${escHtml(c.category || '')}</div>
-      <div class="brief-item-content"><p>${escHtml(c.detail || '')}</p></div>
-    </div>`).join('');
+  // Live headlines rows
+  const headlineRows = headlines.slice(0, 5).map(h => {
+    const title = typeof h === 'string' ? h : (h.headline || h.title || '');
+    const summary = typeof h === 'object' ? (h.summary || '') : '';
+    const url = typeof h === 'object' ? h.url : null;
+    return `
+      <div class="brief-item">
+        <div class="brief-item-date">${escHtml(typeof h === 'object' && h.date ? h.date : 'Now')}</div>
+        <div class="brief-item-content">
+          <strong>${url ? `<a href="${escHtml(url)}" target="_blank" rel="noopener">${escHtml(title)}</a>` : escHtml(title)}</strong>
+          ${summary ? `<p>${escHtml(summary)}</p>` : ''}
+        </div>
+      </div>`;
+  }).join('');
 
-  const sources = showCitations && data.sources?.length
-    ? `<div class="brief-sources">Sources: ${data.sources.map(s => escHtml(s)).join(', ')}</div>` : '';
+  // Key risks pills
+  const risks = (a.key_risks || []).map(r =>
+    `<span class="brief-risk-pill">${escHtml(r)}</span>`).join('');
+
+  // Sources
+  const sources = showCitations && (a.sources || []).length
+    ? `<div class="brief-sources">Sources: ${a.sources.map(s => escHtml(s)).join(' · ')}</div>` : '';
 
   container.innerHTML = `
     <div class="brief-card">
       <div class="brief-card-header">
         <div>
-          <div class="brief-card-title">${escHtml(data.country || '')}</div>
-          <div class="brief-card-date">${escHtml(data.date || '')}</div>
+          <div class="brief-card-title">${escHtml(topic)}</div>
+          <div class="brief-card-date">
+            ${escHtml(a.classification || 'Intelligence Brief')}
+            ${data.engine ? ' · ' + escHtml(data.engine) : ''}
+          </div>
         </div>
-        <span class="threat-badge ${threatClass}">${escHtml(data.overallRisk || 'Medium')} Risk</span>
+        <span class="threat-badge ${threatClass}">${escHtml(a.threat_level || 'MODERATE')}</span>
       </div>
       <div class="brief-card-body">
-        ${data.summary ? `<div class="brief-section-title">Executive Summary</div><div class="brief-summary-text">${escHtml(data.summary)}</div>` : ''}
-        ${developments ? `<div class="brief-section-title">Recent Developments</div>${developments}` : ''}
-        ${ops ? `<div class="brief-section-title">Operational Considerations</div>${ops}` : ''}
+
+        ${a.executive ? `
+          <div class="brief-section-title">Executive Summary</div>
+          <div class="brief-summary-text">${escHtml(a.executive)}</div>
+        ` : ''}
+
+        ${headlineRows ? `
+          <div class="brief-section-title">Live Headlines</div>
+          ${headlineRows}
+        ` : ''}
+
+        ${a.situation ? `
+          <div class="brief-section-title">Situation</div>
+          <div class="brief-summary-text">${escHtml(a.situation)}</div>
+        ` : ''}
+
+        ${a.geopolitical ? `
+          <div class="brief-section-title">Geopolitical Context</div>
+          <div class="brief-summary-text">${escHtml(a.geopolitical)}</div>
+        ` : ''}
+
+        ${a.humanitarian ? `
+          <div class="brief-section-title">Humanitarian</div>
+          <div class="brief-summary-text">${escHtml(a.humanitarian)}</div>
+        ` : ''}
+
+        ${timelineRows ? `
+          <div class="brief-section-title">Timeline</div>
+          ${timelineRows}
+        ` : ''}
+
+        ${risks ? `
+          <div class="brief-section-title">Key Risks</div>
+          <div class="brief-risks">${risks}</div>
+        ` : ''}
+
+        ${a.strategic ? `
+          <div class="brief-section-title">Strategic Outlook</div>
+          <div class="brief-summary-text">${escHtml(a.strategic)}</div>
+        ` : ''}
+
         ${sources}
       </div>
     </div>`;
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  AIRSPACE TAB  ←  FIXED: calls POST /api/airspace/status
-// ══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+//  AIRSPACE TAB  — uses POST /api/airspace (the working route)
+// ═══════════════════════════════════════════════════════════════════════
 
-// Leaflet map
+// Alert level → colour
+const ALERT_COLORS = {
+  'GREEN':  '#059669',
+  'AMBER':  '#f59e0b',
+  'ORANGE': '#f97316',
+  'RED':    '#dc2626',
+  'BLACK':  '#1f2937',
+};
+
+const ALERT_LABELS = {
+  'SAFE':       { color: '#059669', pips: 1 },
+  'LOW':        { color: '#10b981', pips: 2 },
+  'AMBER':      { color: '#f59e0b', pips: 3 },
+  'ORANGE':     { color: '#f97316', pips: 4 },
+  'RED':        { color: '#dc2626', pips: 5 },
+  'RESTRICTED': { color: '#f59e0b', pips: 3 },
+  'HIGH RISK':  { color: '#ef4444', pips: 4 },
+  'NO FLY':     { color: '#7f1d1d', pips: 5 },
+};
+
 function initLeafletMap() {
   if (typeof L === 'undefined') return;
   try {
     leafletMap = L.map('airspaceMap', { zoomControl: true, scrollWheelZoom: false })
       .setView([29, 40], 4);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 18
+      attribution: '© OpenStreetMap contributors', maxZoom: 18
     }).addTo(leafletMap);
   } catch(e) { console.warn('Leaflet init failed:', e); }
 }
 
-// Load default airspace news on tab init
-async function loadInitialAirspaceNews() {
-  const el = document.getElementById('airspaceContent');
-  if (!el) return;
-  el.innerHTML = `<div class="loading-state"><div class="loading-spinner"></div>Loading airspace news…</div>`;
-  try {
-    const res = await fetch(`${API}/api/news?region=MENA&q=airspace aviation NOTAM`);
-    const data = await res.json();
-    renderNewsCards(data.articles || [], el);
-    const label = document.getElementById('airspaceSectionLabel');
-    if (label) label.textContent = 'Latest Aviation News';
-  } catch(err) {
-    el.innerHTML = `<div class="error-card">⚠️ ${err.message}</div>`;
-  }
-}
-
-// Called by chip buttons in HTML: selectAirspaceCountry(this, 'Jordan')
 function selectAirspaceCountry(btn, country) {
-  // Highlight active chip
   document.querySelectorAll('#airspaceChips .adv-chip').forEach(c => c.classList.remove('active'));
   if (btn) btn.classList.add('active');
-
-  // Populate search input
   const input = document.getElementById('airspaceSearchInput');
   if (input) input.value = country;
-
-  // Update section label
   const label = document.getElementById('airspaceSectionLabel');
   if (label) label.textContent = `Airspace Status — ${country}`;
-
-  // Fetch status
   fetchAirspaceStatus(country);
 }
 
-// Called by search button / Enter key
 function doAirspaceSearch() {
   const val = document.getElementById('airspaceSearchInput')?.value?.trim();
-  if (!val) return;
-  fetchAirspaceStatus(val);
-}
-
-// Core fetch — POST /api/airspace/status
-async function fetchAirspaceStatus(country) {
-  const el = document.getElementById('airspaceContent');
-  if (!el) return;
-  el.innerHTML = `<div class="loading-state"><div class="loading-spinner"></div>Loading airspace status for ${escHtml(country)}…</div>`;
-
-  try {
-    const res = await fetch(`${API}/api/airspace/status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ country })
-    });
-    if (!res.ok) throw new Error(`Server error ${res.status}`);
-    const data = await res.json();
-    renderAirspaceStatusCard(data, el);
-  } catch(err) {
-    // Fallback: use hardcoded rating if backend fails
-    const key = country.toLowerCase();
-    const rd = AIRSPACE_RATINGS[key];
-    if (rd) {
-      renderAirspaceStatusCard({
-        country,
-        rating: rd.rating,
-        label: rd.label,
-        color: rd.color,
-        pips: rd.pips,
-        source: 'SafeAirspace.net',
-        updated: new Date().toISOString().split('T')[0],
-        summary: `${country} airspace is currently rated ${rd.rating} (${rd.label}) by SafeAirspace.net.`,
-        notams: [],
-        recommendation: 'Consult your aviation authority before operations.'
-      }, el);
-    } else {
-      el.innerHTML = `<div class="error-card">⚠️ Could not load airspace status: ${err.message}</div>`;
-    }
+  if (val) {
+    const label = document.getElementById('airspaceSectionLabel');
+    if (label) label.textContent = `Airspace Status — ${val}`;
+    fetchAirspaceStatus(val);
   }
 }
 
-function renderAirspaceStatusCard(data, container) {
-  const key = (data.country || '').toLowerCase();
-  const localRd = AIRSPACE_RATINGS[key] || {};
-  const pipCount = data.pips || localRd.pips || ({ One:1, Two:2, Three:3, Four:4, Five:5 }[data.rating] || 0);
-  const color = data.color || localRd.color || '#6b7280';
+async function fetchAirspaceStatus(country) {
+  const el = document.getElementById('airspaceContent');
+  if (!el) return;
+  setLoading(el, `Loading airspace status for ${country}…`);
+  try {
+    const data = await apiFetch('/api/airspace', 'POST', { country });
+    renderAirspaceCard(data, el);
+  } catch(err) {
+    setError(el, `Failed to load airspace status: ${err.message}`);
+  }
+}
+
+function renderAirspaceCard(data, container) {
+  const alert = (data.alert_level || 'AMBER').toUpperCase();
+  const status = (data.status || 'UNKNOWN').toUpperCase();
+  const alertInfo = ALERT_LABELS[alert] || ALERT_LABELS[status] || { color: '#f59e0b', pips: 3 };
+  const color = ALERT_COLORS[alert] || alertInfo.color;
 
   const pips = Array.from({ length: 5 }, (_, i) =>
-    `<span class="rating-pip ${i < pipCount ? 'pip-active' : 'pip-inactive'}"></span>`
+    `<span class="rating-pip ${i < alertInfo.pips ? 'pip-active' : 'pip-inactive'}"></span>`
   ).join('');
 
-  const notams = (data.notams || []).length
-    ? `<div class="airspace-notams-block">
-         <h4>Active NOTAMs / Restrictions</h4>
-         <ul class="notam-list">${data.notams.map(n => `<li>${escHtml(n)}</li>`).join('')}</ul>
-       </div>` : '';
+  const notams = (data.notams || []).slice(0, 5).map(n => `
+    <div class="brief-item">
+      <div class="brief-item-date">${escHtml(n.effective || n.authority || '')}</div>
+      <div class="brief-item-content">
+        <strong>${escHtml(n.title || n.id || '')}</strong>
+        ${n.detail ? `<p>${escHtml(n.detail)}</p>` : ''}
+      </div>
+    </div>`).join('');
 
-  const rec = data.recommendation
-    ? `<div class="airspace-rec-block">
-         <span class="airspace-rec-label">⚡ Recommendation</span>
-         <p>${escHtml(data.recommendation)}</p>
-       </div>` : '';
+  const restrictions = (data.restrictions || []).map(r =>
+    `<li>${escHtml(typeof r === 'string' ? r : r.detail || r.restriction || '')}</li>`
+  ).join('');
 
   container.innerHTML = `
     <div class="airspace-status-card">
-      <div class="airspace-card-header" style="border-left: 4px solid ${color}">
+      <div class="airspace-card-header" style="border-left:4px solid ${color}">
         <div>
           <h2>${escHtml(data.country || '')}</h2>
-          <span class="airspace-card-source">${escHtml(data.source || 'SafeAirspace.net')}</span>
+          <span class="airspace-card-source">FlightRadar24 · FAA NOTAMs · SafeAirspace</span>
         </div>
         <div class="airspace-rating-block">
-          <span class="airspace-rating-text" style="color:${color}">${escHtml(data.rating || '')} — ${escHtml(data.label || '')}</span>
+          <span class="airspace-rating-text" style="color:${color}">
+            ${escHtml(status)} — ${escHtml(alert)}
+          </span>
           <div class="rating-pips">${pips}</div>
         </div>
       </div>
       <div class="airspace-card-body">
         ${data.summary ? `<p class="airspace-summary">${escHtml(data.summary)}</p>` : ''}
-        ${notams}
-        ${rec}
-        ${data.updated ? `<p class="airspace-updated">Updated: ${escHtml(data.updated)}</p>` : ''}
+
+        ${notams ? `
+          <div class="airspace-notams-block">
+            <h4>Active NOTAMs</h4>
+            ${notams}
+          </div>` : ''}
+
+        ${restrictions ? `
+          <div class="airspace-notams-block">
+            <h4>Restrictions</h4>
+            <ul class="notam-list">${restrictions}</ul>
+          </div>` : ''}
+
+        ${data.last_updated ? `<p class="airspace-updated">Updated: ${escHtml(data.last_updated)}</p>` : ''}
       </div>
     </div>`;
 }
 
-// ══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 //  ADVISORIES TAB
-// ══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 async function toggleAdvisory(btn, country) {
-  // Toggle chip active state
   const wasActive = btn.classList.contains('active');
   document.querySelectorAll('#advisoryChips .adv-chip').forEach(c => c.classList.remove('active'));
-
   if (wasActive) {
-    // Deselect — show empty state
     document.getElementById('advisoryContent').innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">🛡️</div>
@@ -412,7 +460,6 @@ async function toggleAdvisory(btn, country) {
       </div>`;
     return;
   }
-
   btn.classList.add('active');
   const input = document.getElementById('advisorySearchInput');
   if (input) input.value = country;
@@ -427,79 +474,76 @@ async function doAdvisorySearch() {
 async function fetchAdvisory(country) {
   const el = document.getElementById('advisoryContent');
   if (!el) return;
-  el.innerHTML = `<div class="loading-state"><div class="loading-spinner"></div>Loading advisory for ${escHtml(country)}…</div>`;
-
+  setLoading(el, `Loading advisory for ${country}…`);
   try {
-    const res = await fetch(`${API}/api/advisories`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ country })
-    });
-    const json = await res.json();
-    const data = json.data || json;
+    const data = await apiFetch('/api/advisories', 'POST', { country });
     renderAdvisoryCard(data, el);
   } catch(err) {
-    el.innerHTML = `<div class="error-card">⚠️ Failed to load advisory: ${err.message}</div>`;
+    setError(el, `Failed to load advisory: ${err.message}`);
   }
 }
 
 function renderAdvisoryCard(data, container) {
-  if (!data || data.error) {
-    container.innerHTML = `<div class="error-card">⚠️ ${data?.error || 'No data'}</div>`;
-    return;
-  }
-
   const us = data.us || {};
   const uk = data.uk || {};
   const levelColors = { 1: '#10b981', 2: '#f59e0b', 3: '#f97316', 4: '#dc2626' };
   const levelBg     = { 1: '#d1fae5', 2: '#fef3c7', 3: '#ffedd5', 4: '#fee2e2' };
-  const color = levelColors[us.level_number] || '#6b7280';
-  const bg    = levelBg[us.level_number]    || '#f3f4f6';
+  const n = us.level_number || 0;
+  const color = levelColors[n] || '#6b7280';
+  const bg    = levelBg[n]    || '#f3f4f6';
+
+  const usRisks = (us.key_risks || []).map(r => `<span class="brief-risk-pill">${escHtml(r)}</span>`).join('');
+  const ukRisks = (uk.key_risks || []).map(r => `<span class="brief-risk-pill">${escHtml(r)}</span>`).join('');
 
   container.innerHTML = `
     <div class="advisory-card">
       <div class="advisory-card-header">
-        <span class="advisory-country">${escHtml(data.country || country || '')}</span>
-        ${us.level_number ? `<span class="advisory-level-badge" style="background:${bg};color:${color}">Level ${us.level_number}</span>` : ''}
+        <span class="advisory-country">${escHtml(data.country || '')}</span>
+        ${n ? `<span class="advisory-level-badge" style="background:${bg};color:${color}">Level ${n}</span>` : ''}
       </div>
-      ${data.summary ? `<p class="advisory-summary">${escHtml(data.summary)}</p>` : ''}
+
+      ${us.summary ? `<p class="advisory-summary">${escHtml(us.summary)}</p>` : ''}
+
       <div class="advisory-sources-grid">
         <div class="advisory-source-block">
           <h4>🇺🇸 US State Dept</h4>
-          <span class="advisory-source-level" style="color:${color}">${escHtml(us.level_label || 'Unknown')}</span>
-          ${us.updated ? `<span class="advisory-source-date">Updated: ${escHtml(us.updated)}</span>` : ''}
+          <span class="advisory-source-level" style="color:${color}">${escHtml(us.level || 'Unknown')}</span>
+          ${us.last_updated ? `<span class="advisory-source-date">${escHtml(us.last_updated)}</span>` : ''}
+          ${usRisks ? `<div style="margin:6px 0">${usRisks}</div>` : ''}
+          ${us.embassy_note ? `<p style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">${escHtml(us.embassy_note)}</p>` : ''}
           ${us.url ? `<a class="advisory-link" href="${escHtml(us.url)}" target="_blank" rel="noopener">View Advisory ↗</a>` : ''}
         </div>
-        ${uk.level_label ? `
         <div class="advisory-source-block">
           <h4>🇬🇧 UK FCDO</h4>
-          <span class="advisory-source-level">${escHtml(uk.level_label)}</span>
+          <span class="advisory-source-level">${escHtml(uk.level || 'Unknown')}</span>
+          ${uk.last_updated ? `<span class="advisory-source-date">${escHtml(uk.last_updated)}</span>` : ''}
+          ${ukRisks ? `<div style="margin:6px 0">${ukRisks}</div>` : ''}
+          ${uk.embassy_note ? `<p style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">${escHtml(uk.embassy_note)}</p>` : ''}
           ${uk.url ? `<a class="advisory-link" href="${escHtml(uk.url)}" target="_blank" rel="noopener">View Advisory ↗</a>` : ''}
-        </div>` : ''}
+        </div>
       </div>
     </div>`;
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  MARKETS TAB
-// ══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+//  MARKETS TAB  — changePercent (not percent_change)
+// ═══════════════════════════════════════════════════════════════════════
 const COMMODITIES = [
-  { symbol: 'XAU/USD', name: 'Gold',       icon: '🥇', type: 'metal'  },
-  { symbol: 'XAG/USD', name: 'Silver',     icon: '🥈', type: 'metal'  },
-  { symbol: 'CL1!',    name: 'WTI Crude',  icon: '🛢️', type: 'energy' },
-  { symbol: 'BZ1!',    name: 'Brent',      icon: '🛢️', type: 'energy' },
-  { symbol: 'NG1!',    name: 'Nat Gas',    icon: '🔥', type: 'energy' },
-  { symbol: 'ZW1!',    name: 'Wheat',      icon: '🌾', type: 'agri'   },
-  { symbol: 'ZC1!',    name: 'Corn',       icon: '🌽', type: 'agri'   },
-  { symbol: 'HG1!',    name: 'Copper',     icon: '🔶', type: 'metal'  },
+  { symbol: 'XAU/USD', name: 'Gold',      icon: '🥇' },
+  { symbol: 'XAG/USD', name: 'Silver',    icon: '🥈' },
+  { symbol: 'CL1!',    name: 'WTI Crude', icon: '🛢️' },
+  { symbol: 'BZ1!',    name: 'Brent',     icon: '🛢️' },
+  { symbol: 'NG1!',    name: 'Nat Gas',   icon: '🔥' },
+  { symbol: 'ZW1!',    name: 'Wheat',     icon: '🌾' },
+  { symbol: 'ZC1!',    name: 'Corn',      icon: '🌽' },
+  { symbol: 'HG1!',    name: 'Copper',    icon: '🔶' },
 ];
 
 async function loadMarkets() {
   renderCommoditySkeleton();
   const symbols = COMMODITIES.map(c => c.symbol).join(',');
   try {
-    const res = await fetch(`${API}/api/markets/quote?symbols=${encodeURIComponent(symbols)}`);
-    const data = await res.json();
+    const data = await apiFetch(`/api/markets/quote?symbols=${encodeURIComponent(symbols)}`, 'GET');
     renderCommodities(data.quotes || []);
     loadMarketCommentary();
   } catch(err) {
@@ -511,7 +555,7 @@ function renderCommoditySkeleton() {
   const el = document.getElementById('ticker-commodities');
   if (!el) return;
   el.innerHTML = COMMODITIES.map(c => `
-    <div class="commodity-card" style="opacity:0.5">
+    <div class="commodity-card" style="opacity:0.45">
       <div class="commodity-icon">${c.icon}</div>
       <div class="commodity-name">${c.name}</div>
       <div class="commodity-price">—</div>
@@ -530,11 +574,11 @@ function renderCommodities(quotes) {
     const price = q.price
       ? q.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       : '—';
-    const pct = q.percent_change || 0;
-    const changeClass = pct > 0 ? 'change-up' : pct < 0 ? 'change-down' : 'change-flat';
-    const changeStr = q.percent_change !== undefined
-      ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`
-      : '—';
+    // Live server uses changePercent
+    const pct = q.changePercent !== undefined ? q.changePercent
+              : q.percent_change !== undefined ? q.percent_change : null;
+    const changeClass = pct === null ? 'change-flat' : pct > 0 ? 'change-up' : pct < 0 ? 'change-down' : 'change-flat';
+    const changeStr   = pct !== null ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` : '—';
 
     return `
       <div class="commodity-card">
@@ -551,101 +595,122 @@ async function loadMarketCommentary() {
   const el = document.getElementById('marketCommentary');
   if (!el) return;
   try {
-    const res = await fetch(`${API}/api/query`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: 'Provide a 2-paragraph market commentary on commodity prices relevant to MENA NGO operations today: oil, wheat, gold. Focus on operational implications.'
-      })
+    const data = await apiFetch('/api/briefing', 'POST', {
+      topic: 'commodity prices oil wheat gold impact on MENA NGO operations today'
     });
-    const data = await res.json();
-    el.innerHTML = (data.response || '').replace(/\n\n/g, '</p><p>').replace(/^/, '<p>').replace(/$/, '</p>');
+    const a = data.analysis || {};
+    const text = a.economic || a.executive || '';
+    if (text) {
+      el.innerHTML = text.split('\n\n')
+        .filter(p => p.trim())
+        .map(p => `<p style="margin-bottom:12px">${escHtml(p)}</p>`)
+        .join('');
+    } else {
+      el.innerHTML = '<p style="color:var(--text-muted)">Market commentary unavailable.</p>';
+    }
   } catch(err) {
     el.innerHTML = '<p style="color:var(--text-muted)">Market commentary unavailable.</p>';
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 //  SETTINGS TAB
-// ══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 function toggleDarkMode() {
   const checked = document.getElementById('darkModeToggle')?.checked;
   document.documentElement.setAttribute('data-theme', checked ? 'dark' : 'light');
-  try { localStorage.setItem('briefly_darkMode', JSON.stringify(checked)); } catch(e) {}
+  try { localStorage.setItem('briefly_darkMode', JSON.stringify(!!checked)); } catch(e) {}
 }
 
 function toggleCitations() {
-  showCitations = document.getElementById('citationsToggle')?.checked ?? true;
+  showCitations = !!(document.getElementById('citationsToggle')?.checked);
   try { localStorage.setItem('briefly_citations', JSON.stringify(showCitations)); } catch(e) {}
 }
 
 function clearCache() {
   try {
-    const keys = ['briefly_newsCache', 'briefly_briefCache'];
-    keys.forEach(k => localStorage.removeItem(k));
-    alert('Cache cleared.');
-  } catch(e) { alert('Cache cleared.'); }
+    ['briefly_newsCache','briefly_briefCache'].forEach(k => localStorage.removeItem(k));
+  } catch(e) {}
+  alert('Cache cleared.');
 }
 
 function resetAll() {
   if (!confirm('Reset all settings and clear cache?')) return;
   try {
     localStorage.clear();
-    document.getElementById('darkModeToggle').checked = false;
-    document.getElementById('citationsToggle').checked = true;
+    const dm = document.getElementById('darkModeToggle');
+    const ci = document.getElementById('citationsToggle');
+    if (dm) dm.checked = false;
+    if (ci) ci.checked = true;
     document.documentElement.setAttribute('data-theme', 'light');
     showCitations = true;
-    alert('Reset complete.');
   } catch(e) {}
+  alert('Reset complete.');
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  AI CHAT PANEL
-// ══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+//  CHAT PANEL  — uses /api/briefing as fallback (no /api/query on server)
+// ═══════════════════════════════════════════════════════════════════════
 function toggleChatPanel() {
   const panel = document.getElementById('chatPanel');
   if (!panel) return;
-  panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
-  if (panel.style.display === 'flex') {
-    document.getElementById('chatPanelInput')?.focus();
-  }
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'flex';
+  if (!isOpen) setTimeout(() => document.getElementById('chatPanelInput')?.focus(), 50);
 }
 
 async function sendChatPanel() {
-  const input = document.getElementById('chatPanelInput');
+  const input    = document.getElementById('chatPanelInput');
   const messages = document.getElementById('chatPanelMessages');
   if (!input || !messages) return;
-
   const text = input.value.trim();
   if (!text) return;
   input.value = '';
 
-  // Add user message
   messages.innerHTML += `<div class="chat-msg-user">${escHtml(text)}</div>`;
-  messages.innerHTML += `<div class="chat-msg-ai" id="chatTyping">…</div>`;
+  const typingId = 'chat-typing-' + Date.now();
+  messages.innerHTML += `<div class="chat-msg-ai" id="${typingId}">…</div>`;
   messages.scrollTop = messages.scrollHeight;
 
   try {
-    const res = await fetch(`${API}/api/query`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: text })
-    });
-    const data = await res.json();
-    const typing = document.getElementById('chatTyping');
-    if (typing) {
-      typing.id = '';
-      typing.textContent = data.response || 'No response.';
-    }
+    const data = await apiFetch('/api/briefing', 'POST', { topic: text });
+    const a = data.analysis || {};
+    const reply = a.executive || a.situation || 'No response available.';
+    const el = document.getElementById(typingId);
+    if (el) el.textContent = reply;
   } catch(err) {
-    const typing = document.getElementById('chatTyping');
-    if (typing) { typing.id = ''; typing.textContent = 'Error: ' + err.message; }
+    const el = document.getElementById(typingId);
+    if (el) el.textContent = 'Error: ' + err.message;
   }
-
   messages.scrollTop = messages.scrollHeight;
 }
 
-// ─── UTILITY ─────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════════════════════════
+
+// Central fetch helper
+async function apiFetch(path, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body && method !== 'GET') opts.body = JSON.stringify(body);
+  const url = path.startsWith('http') ? path : API + path;
+  const res = await fetch(url, opts);
+  const text = await res.text();
+  // If response starts with '<', it's HTML (likely a 404/error page)
+  if (text.trimStart().startsWith('<')) {
+    throw new Error(`Server returned an error page for ${path}`);
+  }
+  return JSON.parse(text);
+}
+
+function setLoading(el, msg = 'Loading…') {
+  el.innerHTML = `<div class="loading-state"><div class="loading-spinner"></div>${escHtml(msg)}</div>`;
+}
+
+function setError(el, msg) {
+  el.innerHTML = `<div class="error-card">⚠️ ${escHtml(msg)}</div>`;
+}
+
 function escHtml(str) {
   if (!str) return '';
   return String(str)
