@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
   applySavedSettings();
   loadNews(currentRegion);
   loadTicker();
-  loadMarkets();
   initLeafletMap();
 });
 
@@ -525,93 +524,7 @@ function renderAdvisoryCard(data, container) {
     </div>`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  MARKETS TAB  — changePercent (not percent_change)
-// ═══════════════════════════════════════════════════════════════════════
-const COMMODITIES = [
-  { symbol: 'XAU/USD', name: 'Gold',      icon: '🥇' },
-  { symbol: 'XAG/USD', name: 'Silver',    icon: '🥈' },
-  { symbol: 'CL1!',    name: 'WTI Crude', icon: '🛢️' },
-  { symbol: 'BZ1!',    name: 'Brent',     icon: '🛢️' },
-  { symbol: 'NG1!',    name: 'Nat Gas',   icon: '🔥' },
-  { symbol: 'ZW1!',    name: 'Wheat',     icon: '🌾' },
-  { symbol: 'ZC1!',    name: 'Corn',      icon: '🌽' },
-  { symbol: 'HG1!',    name: 'Copper',    icon: '🔶' },
-];
 
-async function loadMarkets() {
-  renderCommoditySkeleton();
-  const symbols = COMMODITIES.map(c => c.symbol).join(',');
-  try {
-    const data = await apiFetch(`/api/markets/quote?symbols=${encodeURIComponent(symbols)}`, 'GET');
-    renderCommodities(data.quotes || []);
-    loadMarketCommentary();
-  } catch(err) {
-    console.error('Markets error:', err);
-  }
-}
-
-function renderCommoditySkeleton() {
-  const el = document.getElementById('ticker-commodities');
-  if (!el) return;
-  el.innerHTML = COMMODITIES.map(c => `
-    <div class="commodity-card" style="opacity:0.45">
-      <div class="commodity-icon">${c.icon}</div>
-      <div class="commodity-name">${c.name}</div>
-      <div class="commodity-price">—</div>
-      <div class="commodity-change change-flat">—</div>
-    </div>`).join('');
-}
-
-function renderCommodities(quotes) {
-  const el = document.getElementById('ticker-commodities');
-  if (!el) return;
-  const map = {};
-  quotes.forEach(q => { map[q.symbol] = q; });
-
-  el.innerHTML = COMMODITIES.map(c => {
-    const q = map[c.symbol] || {};
-    const price = q.price
-      ? q.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      : '—';
-    // Live server uses changePercent
-    const pct = q.changePercent !== undefined ? q.changePercent
-              : q.percent_change !== undefined ? q.percent_change : null;
-    const changeClass = pct === null ? 'change-flat' : pct > 0 ? 'change-up' : pct < 0 ? 'change-down' : 'change-flat';
-    const changeStr   = pct !== null ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` : '—';
-
-    return `
-      <div class="commodity-card">
-        <div class="commodity-icon">${c.icon}</div>
-        <div class="commodity-name">${c.name}</div>
-        <div class="commodity-price">${price}</div>
-        <div class="commodity-change ${changeClass}">${changeStr}</div>
-        <div class="commodity-currency">${q.currency || 'USD'}</div>
-      </div>`;
-  }).join('');
-}
-
-async function loadMarketCommentary() {
-  const el = document.getElementById('marketCommentary');
-  if (!el) return;
-  try {
-    const data = await apiFetch('/api/briefing', 'POST', {
-      topic: 'commodity prices oil wheat gold impact on MENA NGO operations today'
-    });
-    const a = data.analysis || {};
-    const text = a.economic || a.executive || '';
-    if (text) {
-      el.innerHTML = text.split('\n\n')
-        .filter(p => p.trim())
-        .map(p => `<p style="margin-bottom:12px">${escHtml(p)}</p>`)
-        .join('');
-    } else {
-      el.innerHTML = '<p style="color:var(--text-muted)">Market commentary unavailable.</p>';
-    }
-  } catch(err) {
-    el.innerHTML = '<p style="color:var(--text-muted)">Market commentary unavailable.</p>';
-  }
-}
 
 // ═══════════════════════════════════════════════════════════════════════
 //  SETTINGS TAB

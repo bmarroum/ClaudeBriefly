@@ -552,36 +552,6 @@ main {
 .advisory-source-date { font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 6px; }
 .advisory-link { font-size: 0.78rem; color: var(--accent); font-weight: 600; }
 
-/* ─── MARKETS ────────────────────────────────────────────────────── */
-.ticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 12px; margin-bottom: 8px; }
-
-.commodity-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px 14px; text-align: center;
-  box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition), transform var(--transition);
-}
-.commodity-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-3px); }
-
-.commodity-icon { font-size: 1.6rem; margin-bottom: 6px; }
-.commodity-name { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 6px; }
-.commodity-price { font-size: 1.1rem; font-weight: 700; color: var(--text-heading); margin-bottom: 3px; font-variant-numeric: tabular-nums; }
-.commodity-change { font-size: 0.82rem; font-weight: 600; }
-.commodity-currency { font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; }
-.change-up   { color: #10b981; }
-.change-down { color: #dc2626; }
-.change-flat { color: var(--text-muted); }
-
-.commentary-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 18px;
-  box-shadow: var(--shadow-card);
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.92rem; line-height: 1.75; color: var(--text);
-  transition: box-shadow var(--transition), transform var(--transition);
-}
-.commentary-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
-
 /* ─── SETTINGS ───────────────────────────────────────────────────── */
 .settings-grid { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
 .setting-card {
